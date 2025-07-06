@@ -1,0 +1,15 @@
+2025-07-07 01:13:11 - FeatureEng-20250707_011311 - INFO - ========== Running Command: gen-feats ==========
+2025-07-07 01:13:11 - FeatureEng-20250707_011311 - INFO - Args: {'command': 'gen-feats', 'funcs': None, 'base_file': None}
+2025-07-07 01:13:11 - FeatureEng-20250707_011311 - INFO - =======================================
+2025-07-07 01:13:12 - FeatureEng-20250707_011311 - INFO - 未找到基础特征文件，将创建全新的特征集。
+2025-07-07 01:13:12 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: distributional_stats ---
+2025-07-07 01:13:47 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: cumulative_features ---
+2025-07-07 01:13:53 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: oscillation_features ---
+2025-07-07 01:13:59 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: cyclic_features ---
+2025-07-07 01:14:05 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: amplitude_features ---
+2025-07-07 01:14:11 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: higher_order_stats_features ---
+2025-07-07 01:19:06 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: ar_model_residual_features ---
+2025-07-07 01:19:12 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: entropy_features ---
+2025-07-07 01:19:50 - FeatureEng-20250707_011311 - INFO - --- 开始生成特征: fractal_dimension_features ---
+2025-07-07 01:19:56 - FeatureEng-20250707_011311 - INFO - 特征已保存到新文件: features_20250707_011956.parquet
+2025-07-07 01:19:56 - FeatureEng-20250707_011311 - INFO - 生成/更新完成。新文件: features_20250707_011956.parquet, 总特征数: 60

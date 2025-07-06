@@ -6,14 +6,15 @@ import antropy
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 import logging
-import os
-from pathlib import Path
 import inspect
 import json
+from datetime import datetime
+from pathlib import Path
 
 from . import config, utils
 
-logger = logging.getLogger(__name__)
+# logger 将由 main.py 在运行时注入
+logger = None
 
 # --- 特征函数注册表 ---
 FEATURE_REGISTRY = {}
@@ -315,33 +316,44 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
 
 # --- 特征管理核心逻辑 ---
 
-def _load_feature_file():
-    """加载特征文件及其元数据。如果文件不存在，则返回空的 DataFrame 和元数据。"""
-    if not config.FEATURE_FILE.exists():
+def _get_latest_feature_file() -> Path | None:
+    """查找并返回最新的特征文件路径"""
+    feature_files = list(config.FEATURE_DIR.glob('features_*.parquet'))
+    if not feature_files:
+        return None
+    return max(feature_files, key=lambda p: p.stat().st_mtime)
+
+def _load_feature_file(file_path: Path):
+    """加载指定的特征文件及其元数据。"""
+    if not file_path or not file_path.exists():
         return pd.DataFrame(), {}
-    
     try:
-        table = pd.read_parquet(config.FEATURE_FILE)
-        metadata_str = table.attrs.get(b'feature_metadata', b'{}')
-        metadata = json.loads(metadata_str.decode('utf-8'))
+        table = pd.read_parquet(file_path)
+        metadata_str = table.attrs.get('feature_metadata', '{}')
+        metadata = json.loads(metadata_str)
         return table, metadata
     except Exception as e:
-        logger.warning(f"无法加载特征文件或元数据: {e}。将创建一个新的特征文件。")
+        logger.warning(f"无法加载特征文件 {file_path}: {e}。")
         return pd.DataFrame(), {}
 
-def _save_feature_file(df: pd.DataFrame, metadata: dict):
-    """保存特征文件及其元数据。"""
+def _save_feature_file(df: pd.DataFrame, metadata: dict) -> Path:
+    """将特征保存到一个新的、带时间戳的文件中，并返回其路径。"""
+    config.FEATURE_DIR.mkdir(exist_ok=True, parents=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    new_feature_path = config.FEATURE_DIR / f'features_{timestamp}.parquet'
+    
     df.attrs['feature_metadata'] = json.dumps(metadata)
-    df.to_parquet(config.FEATURE_FILE)
+    df.to_parquet(new_feature_path)
+    logger.info(f"特征已保存到新文件: {new_feature_path.name}")
+    return new_feature_path
 
-def _backup_feature_file():
-    """如果特征文件存在，则备份它。"""
-    if config.FEATURE_FILE.exists():
+def _backup_feature_file(file_path: Path):
+    """如果文件路径有效，则备份它。"""
+    if file_path and file_path.exists():
         config.FEATURE_BACKUP_DIR.mkdir(exist_ok=True, parents=True)
-        timestamp = utils.get_timestamp()
-        backup_path = config.FEATURE_BACKUP_DIR / f'features_{timestamp}.parquet'
-        config.FEATURE_FILE.rename(backup_path)
-        logger.info(f"已将旧特征文件备份到: {backup_path}")
+        backup_path = config.FEATURE_BACKUP_DIR / file_path.name
+        file_path.rename(backup_path)
+        logger.info(f"已将文件 {file_path.name} 备份到: {config.FEATURE_BACKUP_DIR}")
 
 def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
     """并行应用单个特征函数"""
@@ -352,98 +364,91 @@ def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
     )
     return pd.DataFrame(results).set_index('id')
 
-def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None):
+def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None):
     """
-    生成指定的特征，并更新持久化的特征文件。
-    - 如果 funcs_to_run 为 None，则生成所有已注册的特征。
-    - 如果 funcs_to_run 不为 None，则只生成/更新列表中的特征。
+    生成特征，并输出到一个新的带时间戳的文件中。
     """
+    # 1. 确定基础特征文件
+    if base_feature_file:
+        base_path = config.FEATURE_DIR / base_feature_file
+    else:
+        base_path = _get_latest_feature_file()
+
+    # 2. 加载基础特征
+    if base_path and base_path.exists():
+        logger.info(f"将基于特征文件进行更新: {base_path.name}")
+        feature_df, metadata = _load_feature_file(base_path)
+        # 更新操作需要备份旧文件
+        _backup_feature_file(base_path)
+    else:
+        logger.info("未找到基础特征文件，将创建全新的特征集。")
+        feature_df, metadata = pd.DataFrame(), {}
+
+    # 3. 确定要运行的函数
     if funcs_to_run is None:
         funcs_to_run = list(FEATURE_REGISTRY.keys())
-        logger.info("将生成所有已注册的特征。")
-    else:
-        logger.info(f"将生成指定的特征: {funcs_to_run}")
-
-    # 1. 备份并加载现有特征
-    _backup_feature_file()
-    feature_df, metadata = _load_feature_file()
-
-    # 2. 确定要运行的函数
-    valid_funcs = [f for f in funcs_to_run if f in FEATURE_REGISTRY]
-    if len(valid_funcs) != len(funcs_to_run):
-        invalid_funcs = set(funcs_to_run) - set(valid_funcs)
-        logger.warning(f"以下特征函数未在注册表中找到，将被忽略: {invalid_funcs}")
-
-    # 3. 逐个生成新特征并更新
-    for func_name in valid_funcs:
-        func = FEATURE_REGISTRY[func_name]
-        logger.info(f"--- 开始生成特征: {func_name} ---")
+    
+    # 4. 逐个生成新特征并更新
+    for func_name in funcs_to_run:
+        func = FEATURE_REGISTRY.get(func_name)
+        if not func:
+            logger.warning(f"函数 {func_name} 未在注册表中找到，已跳过。")
+            continue
         
-        # 3.1 如果该函数之前生成过特征，先从主DataFrame中删除它们
+        logger.info(f"--- 开始生成特征: {func_name} ---")
         if func_name in metadata:
             cols_to_drop = [col for col in metadata[func_name] if col in feature_df.columns]
             if cols_to_drop:
                 feature_df.drop(columns=cols_to_drop, inplace=True)
-                logger.info(f"已删除旧版特征: {cols_to_drop}")
-
-        # 3.2 生成新特征
-        new_feature_df = _apply_feature_func_parallel(func, X_df)
         
-        # 3.3 合并新特征并更新元数据
+        new_feature_df = _apply_feature_func_parallel(func, X_df)
         feature_df = feature_df.join(new_feature_df, how='outer')
         metadata[func_name] = new_feature_df.columns.tolist()
-        logger.info(f"--- 完成生成特征: {func_name} ---")
 
-    # 4. 保存更新后的文件
-    _save_feature_file(feature_df, metadata)
-    logger.info(f"特征文件已更新。当前总特征数: {len(feature_df.columns)}")
-    return feature_df
+    # 4. 保存到新文件
+    new_path = _save_feature_file(feature_df, metadata)
+    logger.info(f"生成/更新完成。新文件: {new_path.name}, 总特征数: {len(feature_df.columns)}")
 
-def delete_features(funcs_to_delete: list):
+def delete_features(funcs_to_delete: list, base_feature_file: str):
     """
-    从持久化的特征文件中删除指定的特征。
+    从指定的特征文件中删除特征，并生成一个新的带时间戳的文件。
     """
-    if not funcs_to_delete:
-        logger.warning("未指定任何要删除的特征。")
+    base_path = config.FEATURE_DIR / base_feature_file
+    if not base_path.exists():
+        logger.error(f"指定的特征文件不存在: {base_feature_file}")
         return
 
-    logger.info(f"将删除以下函数对应的特征: {funcs_to_delete}")
-
-    # 1. 备份并加载
-    _backup_feature_file()
-    feature_df, metadata = _load_feature_file()
-
-    if feature_df.empty:
-        logger.warning("特征文件为空或不存在，无需删除。")
-        return
-
-    # 2. 确定要删除的列
+    logger.info(f"将从文件 {base_feature_file} 中删除特征: {funcs_to_delete}")
+    feature_df, metadata = _load_feature_file(base_path)
+    _backup_feature_file(base_path)
+    
     cols_to_drop = []
     for func_name in funcs_to_delete:
         if func_name in metadata:
-            cols_to_drop.extend(metadata[func_name])
-            del metadata[func_name] # 从元数据中移除
-        else:
-            logger.warning(f"函数 {func_name} 未在元数据中找到，可能之前未生成过或已被删除。")
+            cols_to_drop.extend(metadata.pop(func_name))
+
+    feature_df.drop(columns=[c for c in cols_to_drop if c in feature_df.columns], inplace=True)
     
-    # 3. 删除列
-    final_cols_to_drop = [col for col in cols_to_drop if col in feature_df.columns]
-    if final_cols_to_drop:
-        feature_df.drop(columns=final_cols_to_drop, inplace=True)
-        logger.info(f"已成功删除特征: {final_cols_to_drop}")
+    new_path = _save_feature_file(feature_df, metadata)
+    logger.info(f"删除完成。新文件: {new_path.name}, 总特征数: {len(feature_df.columns)}")
+
+def load_features(feature_file: str = None) -> tuple[pd.DataFrame | None, str | None]:
+    """加载指定的或最新的特征文件。"""
+    if feature_file:
+        path_to_load = config.FEATURE_DIR / feature_file
     else:
-        logger.info("没有需要删除的特征列。")
+        logger.info("未指定特征文件，将尝试加载最新版本。")
+        path_to_load = _get_latest_feature_file()
 
-    # 4. 保存
-    _save_feature_file(feature_df, metadata)
-    logger.info(f"特征文件已更新。当前总特征数: {len(feature_df.columns)}")
+    if not path_to_load or not path_to_load.exists():
+        logger.error(f"无法找到要加载的特征文件: {path_to_load}")
+        return None, None
 
-def load_features() -> pd.DataFrame:
-    """加载持久化的特征文件。"""
-    logger.info(f"正在从 {config.FEATURE_FILE} 加载特征...")
-    feature_df, _ = _load_feature_file()
+    logger.info(f"正在从 {path_to_load.name} 加载特征...")
+    feature_df, _ = _load_feature_file(path_to_load)
+    
     if feature_df.empty:
-        logger.error("特征文件为空或不存在！请先生成特征。")
-        raise FileNotFoundError("特征文件未找到或为空。")
+        return None, None
+        
     logger.info(f"特征加载成功，共 {len(feature_df.columns)} 个特征。")
-    return feature_df 
+    return feature_df, path_to_load.name 

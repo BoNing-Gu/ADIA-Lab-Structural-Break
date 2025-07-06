@@ -4,51 +4,49 @@ import lightgbm as lgb
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
 import logging
-import os
-import matplotlib.pyplot as plt
-from pathlib import Path
+import json
+from datetime import datetime
 
 from . import config, features, data
 
-logger = logging.getLogger(__name__)
+# logger 将由 main.py 在运行时注入
+logger = None
 
-def train_and_evaluate():
+def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_model: bool = False):
     """
-    加载持久化的特征和标签，然后进行5折交叉验证训练和评估。
+    加载指定的特征文件和标签，进行交叉验证，并根据参数选择性保存产出物。
     """
     logger.info("Starting training and evaluation pipeline...")
+    logger.info(f"Model Parameters: {json.dumps(config.LGBM_PARAMS, indent=4)}")
 
     # 1. 加载特征和标签
-    try:
-        feature_df = features.load_features()
-        _, y_train = data.load_data()
-    except FileNotFoundError as e:
-        logger.error(f"无法开始训练: {e}")
-        return
+    feature_df, loaded_feature_name = features.load_features(feature_file_name)
+    if feature_df is None:
+        logger.error("特征加载失败，训练中止。")
+        return None, None
 
-    X_train_features = feature_df
-    y_train_target = y_train.loc[X_train_features.index]['structural_breakpoint'].astype(int)
+    logger.info(f"Successfully loaded features from: {loaded_feature_name}")
+    
+    _, y_train = data.load_data()
 
     # 确保对齐
-    common_index = X_train_features.index.intersection(y_train_target.index)
-    X_train_features = X_train_features.loc[common_index]
-    y_train_target = y_train_target.loc[common_index]
+    common_index = feature_df.index.intersection(y_train.index)
+    feature_df = feature_df.loc[common_index]
+    y_train = y_train.loc[common_index]
     
-    logger.info(f"训练数据已对齐. X shape: {X_train_features.shape}, y shape: {y_train_target.shape}")
+    logger.info(f"训练数据已对齐. X shape: {feature_df.shape}, y shape: {y_train.shape}")
     logger.info("Starting 5-fold cross-validation with LightGBM...")
 
     skf = StratifiedKFold(**config.CV_PARAMS)
 
-    oof_preds = np.zeros(len(X_train_features))
+    oof_preds = np.zeros(len(feature_df))
     models = []
-    # 使用 all_feature_importances 替换 feature_importances 以避免命名冲突
-    all_feature_importances = pd.DataFrame(index=X_train_features.columns)
-
-    for fold, (train_idx, val_idx) in enumerate(skf.split(X_train_features, y_train_target)):
+    
+    for fold, (train_idx, val_idx) in enumerate(skf.split(feature_df, y_train)):
         logger.info(f"--- Fold {fold+1}/{config.CV_PARAMS['n_splits']} ---")
 
-        X_train_fold, y_train_fold = X_train_features.iloc[train_idx], y_train_target.iloc[train_idx]
-        X_val_fold, y_val_fold = X_train_features.iloc[val_idx], y_train_target.iloc[val_idx]
+        X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
+        X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]
 
         model = lgb.LGBMClassifier(**config.LGBM_PARAMS)
 
@@ -56,7 +54,7 @@ def train_and_evaluate():
             X_train_fold, y_train_fold,
             eval_set=[(X_val_fold, y_val_fold)],
             eval_metric='auc',
-            callbacks=[lgb.early_stopping(100, verbose=False)] # 静默回调
+            callbacks=[lgb.early_stopping(100, verbose=False)]
         )
 
         preds = model.predict_proba(X_val_fold)[:, 1]
@@ -65,38 +63,36 @@ def train_and_evaluate():
         fold_auc = roc_auc_score(y_val_fold, preds)
         logger.info(f"Fold {fold+1} AUC: {fold_auc:.5f}")
 
-        fold_importance = pd.DataFrame({
-            'importance': model.feature_importances_
-        }, index=X_train_features.columns)
-        all_feature_importances[f'fold_{fold+1}'] = fold_importance['importance']
-
-    overall_oof_auc = roc_auc_score(y_train_target, oof_preds)
+    overall_oof_auc = roc_auc_score(y_train, oof_preds)
     logger.info(f"Overall OOF AUC: {overall_oof_auc:.5f}")
 
-    # 保存 OOF 预测
-    config.OUTPUT_DIR.mkdir(exist_ok=True)
-    oof_df = pd.DataFrame({'id': X_train_features.index, 'oof_preds': oof_preds})
-    oof_path = config.OUTPUT_DIR / 'oof_preds.csv'
-    oof_df.to_csv(oof_path, index=False)
-    logger.info(f"OOF predictions saved to {oof_path}")
+    # 2. 创建带时间和AUC分数的输出文件夹
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    auc_str = f"{overall_oof_auc:.5f}".replace('.', '_')
+    run_output_dir = config.OUTPUT_DIR / f'train_{timestamp}_auc_{auc_str}'
+    run_output_dir.mkdir(exist_ok=True, parents=True)
+    logger.info(f"所有产出物将保存到: {run_output_dir}")
 
-    # 保存特征重要性图
-    plot_feature_importance(all_feature_importances, config.OUTPUT_DIR)
-    
-    return models, overall_oof_auc
+    # 3. 保存模型
+    if save_model:
+        for i, model in enumerate(models):
+            model.booster_.save_model(run_output_dir / f'model_fold_{i+1}.txt')
+        logger.info("Models saved.")
 
-def plot_feature_importance(importances_df, output_dir):
-    """绘制并保存特征重要性图表"""
-    mean_importance = importances_df.mean(axis=1).sort_values(ascending=False)
+    # 4. 可选地保存 OOF
+    if save_oof:
+        oof_df = pd.DataFrame({'id': feature_df.index, 'oof_preds': oof_preds})
+        oof_df.to_csv(run_output_dir / 'oof_preds.csv', index=False)
+        logger.info("OOF predictions saved.")
+        
+    # 5. 保存本次训练的元数据
+    training_metadata = {
+        "feature_file_used": loaded_feature_name,
+        "model_params": config.LGBM_PARAMS,
+        "cv_params": config.CV_PARAMS,
+        "oof_auc": overall_oof_auc
+    }
+    with open(run_output_dir / 'training_metadata.json', 'w') as f:
+        json.dump(training_metadata, f, indent=4)
     
-    plt.figure(figsize=(12, max(6, len(mean_importance) // 4)))
-    mean_importance.head(50).sort_values().plot(kind='barh') # 只显示 top 50
-    plt.title('Average Feature Importance across Folds (Top 50)')
-    plt.xlabel('Mean Importance Score')
-    plt.ylabel('Features')
-    plt.tight_layout()
-    
-    fig_path = output_dir / 'feature_importance.png'
-    plt.savefig(fig_path)
-    logger.info(f"Feature importance plot saved to {fig_path}")
-    plt.close() 
+    return models, overall_oof_auc 

@@ -1,8 +1,8 @@
 import warnings
 import argparse
-warnings.filterwarnings('ignore')
-
-from . import utils, data, features, train
+import sys
+import logging
+from . import utils, data, features, train, config
 
 def main():
     """主函数，根据命令行参数调度实验流程"""
@@ -10,52 +10,72 @@ def main():
     subparsers = parser.add_subparsers(dest='command', required=True, help='可用的命令')
 
     # --- 特征生成命令 ---
-    parser_gen = subparsers.add_parser('gen-feats', help='生成或更新特征')
-    parser_gen.add_argument(
-        '--funcs', 
-        nargs='*', 
-        default=None,
-        help='要生成/更新的特征函数名称列表。如果未提供，则生成所有已注册的特征。'
-    )
+    parser_gen = subparsers.add_parser('gen-feats', help='生成或更新特征，并创建一个新的带时间戳的特征文件')
+    parser_gen.add_argument('--funcs', nargs='*', default=None, help='要生成/更新的特征函数名列表。如果为空，则运行所有注册的函数。')
+    parser_gen.add_argument('--base-file', type=str, default=None, help='可选，指定一个基础特征文件名进行更新。如果为空，则使用最新的特征文件。')
 
     # --- 特征删除命令 ---
-    parser_del = subparsers.add_parser('del-feats', help='删除特征')
-    parser_del.add_argument(
-        '--funcs', 
-        nargs='+', 
-        required=True,
-        help='要删除的特征函数名称列表。'
-    )
+    parser_del = subparsers.add_parser('del-feats', help='从指定的特征文件中删除特征，并创建一个新的带时间戳的文件')
+    parser_del.add_argument('--funcs', nargs='+', required=True, help='要删除的特征函数名称列表。')
+    parser_del.add_argument('--base-file', type=str, required=True, help='必须指定一个基础特征文件名进行操作。')
 
     # --- 训练命令 ---
-    parser_train = subparsers.add_parser('train', help='使用已有的特征文件进行训练')
+    parser_train = subparsers.add_parser('train', help='使用特征文件进行训练')
+    parser_train.add_argument('--feature-file', type=str, default=None, help='可选，指定用于训练的特征文件名。如果为空，则使用最新的特征文件。')
+    parser_train.add_argument('--save-oof', action='store_true', help='是否保存OOF预测文件。')
+    parser_train.add_argument('--save-model', action='store_true', help='是否保存训练好的模型文件。')
 
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+        
     args = parser.parse_args()
+    
+    # 根据命令选择 logger
+    log_file_path = None # 初始化
+    if args.command in ['gen-feats', 'del-feats']:
+        logger, log_file_path = utils.get_logger('FeatureEng', config.FEATURE_LOG_DIR)
+    else: # train
+        logger, log_file_path = utils.get_logger('Training', config.TRAINING_LOG_DIR)
 
-    # 设置日志
-    logger = utils.setup_logger()
-    logger.info("=======================================")
+    features.logger = logger
+    train.logger = logger
+    data.logger = logging.getLogger('data') # data模块日志较为简单，直接使用标准logger
+    
     logger.info(f"========== Running Command: {args.command} ==========")
+    logger.info(f"Args: {vars(args)}")
     logger.info("=======================================")
 
     if args.command == 'gen-feats':
-        logger.info("开始特征生成流程...")
         X_train, _ = data.load_data()
-        features.generate_features(X_train, funcs_to_run=args.funcs)
-        logger.info("特征生成完成。")
+        features.generate_features(X_train, funcs_to_run=args.funcs, base_feature_file=args.base_file)
 
     elif args.command == 'del-feats':
-        logger.info("开始特征删除流程...")
-        features.delete_features(funcs_to_delete=args.funcs)
-        logger.info("特征删除完成。")
+        features.delete_features(funcs_to_delete=args.funcs, base_feature_file=args.base_file)
 
     elif args.command == 'train':
-        logger.info("开始模型训练流程...")
-        models, oof_auc = train.train_and_evaluate()
+        models, oof_auc = train.train_and_evaluate(
+            feature_file_name=args.feature_file,
+            save_oof=args.save_oof,
+            save_model=args.save_model
+        )
+        
+        # 训练成功后重命名日志文件
         if oof_auc is not None:
-            logger.info(f"模型训练完成。Final OOF AUC: {oof_auc:.5f}")
-        else:
-            logger.info("模型训练因故中止。")
+            # 1. 关闭 logger 的文件处理器，释放对文件的占用
+            for handler in logger.handlers[:]:
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
+                    logger.removeHandler(handler)
+            
+            # 2. 重命名文件
+            auc_str = f"{oof_auc:.5f}".replace('.', '_')
+            new_log_path = log_file_path.with_name(f"{log_file_path.stem}_auc_{auc_str}{log_file_path.suffix}")
+            try:
+                log_file_path.rename(new_log_path)
+                print(f"Log file renamed to: {new_log_path.name}")
+            except OSError as e:
+                print(f"Error renaming log file: {e}")
 
 if __name__ == '__main__':
     main() 

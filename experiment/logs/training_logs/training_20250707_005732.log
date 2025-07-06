@@ -1,0 +1,22 @@
+2025-07-07 00:57:32 - Training-20250707_005732 - INFO - =======================================
+2025-07-07 00:57:32 - Training-20250707_005732 - INFO - ========== Running Command: train ==========
+2025-07-07 00:57:32 - Training-20250707_005732 - INFO - Args: {'command': 'train', 'save_oof': False}
+2025-07-07 00:57:32 - Training-20250707_005732 - INFO - =======================================
+2025-07-07 00:57:32 - Training-20250707_005732 - INFO - 开始模型训练流程...
+2025-07-07 00:57:32 - Training-20250707_005732 - INFO - Starting training and evaluation pipeline...
+2025-07-07 00:57:32 - Training-20250707_005732 - INFO - 正在从 E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\features.parquet 加载特征...
+2025-07-07 00:57:33 - Training-20250707_005732 - INFO - 特征加载成功，共 60 个特征。
+2025-07-07 00:57:34 - Training-20250707_005732 - INFO - 训练数据已对齐. X shape: (10001, 60), y shape: (10001,)
+2025-07-07 00:57:34 - Training-20250707_005732 - INFO - Starting 5-fold cross-validation with LightGBM...
+2025-07-07 00:57:34 - Training-20250707_005732 - INFO - --- Fold 1/5 ---
+2025-07-07 00:57:39 - Training-20250707_005732 - INFO - Fold 1 AUC: 0.69899
+2025-07-07 00:57:39 - Training-20250707_005732 - INFO - --- Fold 2/5 ---
+2025-07-07 00:57:43 - Training-20250707_005732 - INFO - Fold 2 AUC: 0.67277
+2025-07-07 00:57:43 - Training-20250707_005732 - INFO - --- Fold 3/5 ---
+2025-07-07 00:57:46 - Training-20250707_005732 - INFO - Fold 3 AUC: 0.70941
+2025-07-07 00:57:46 - Training-20250707_005732 - INFO - --- Fold 4/5 ---
+2025-07-07 00:57:50 - Training-20250707_005732 - INFO - Fold 4 AUC: 0.68964
+2025-07-07 00:57:50 - Training-20250707_005732 - INFO - --- Fold 5/5 ---
+2025-07-07 00:57:54 - Training-20250707_005732 - INFO - Fold 5 AUC: 0.67579
+2025-07-07 00:57:54 - Training-20250707_005732 - INFO - Overall OOF AUC: 0.68844
+2025-07-07 00:57:54 - Training-20250707_005732 - INFO - 模型训练完成。Final OOF AUC: 0.68844

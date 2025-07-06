@@ -13,15 +13,17 @@ FEATURE_DIR = PROJECT_ROOT / 'feature_dfs'
 FEATURE_BACKUP_DIR = FEATURE_DIR / 'backups'
 
 # --- Output & Log Dirs ---
-OUTPUT_DIR = PROJECT_ROOT / 'output'
+OUTPUT_DIR = ROOT_DIR / 'output'
 LOG_DIR = ROOT_DIR / 'logs'
+
+# 新增：为不同类型的日志创建专门的子目录
+FEATURE_LOG_DIR = LOG_DIR / 'feature_logs'
+TRAINING_LOG_DIR = LOG_DIR / 'training_logs'
 
 # --- Files ---
 TRAIN_X_FILE = DATA_DIR / 'X_train.parquet'
 TRAIN_Y_FILE = DATA_DIR / 'y_train.parquet'
-FEATURE_FILE = FEATURE_DIR / 'features.parquet' # 持久化的特征文件
-LOG_FILE = LOG_DIR / 'experiment.log'
-
+# 不再有固定的特征文件
 
 # --- Model ---
 LGBM_PARAMS = {

@@ -1,0 +1,10 @@
+2025-07-06 22:57:46,911 - INFO - =======================================
+2025-07-06 22:57:46,912 - INFO - ========== New Experiment Run ==========
+2025-07-06 22:57:46,912 - INFO - =======================================
+2025-07-06 22:57:46,913 - INFO - Loading data...
+2025-07-06 22:57:46,915 - ERROR - Error loading data: [Errno 2] No such file or directory: './data/X_train.parquet'
+2025-07-06 22:58:53,129 - INFO - =======================================
+2025-07-06 22:58:53,129 - INFO - ========== New Experiment Run ==========
+2025-07-06 22:58:53,129 - INFO - =======================================
+2025-07-06 22:58:53,129 - INFO - Loading data...
+2025-07-06 22:58:53,131 - ERROR - Error loading data: [Errno 2] No such file or directory: 'E:\\CSworks\\2025spring\\crunch\\repo\\ADIA-Lab-Structural-Break\\data\\X_train.parquet'

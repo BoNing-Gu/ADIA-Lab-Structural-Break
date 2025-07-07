@@ -1,0 +1,36 @@
+2025-07-07 13:43:47 - Training-20250707_134347 - INFO - ========== Running Command: train ==========
+2025-07-07 13:43:47 - Training-20250707_134347 - INFO - Args: {'command': 'train', 'feature_file': None, 'save_oof': False, 'save_model': False}
+2025-07-07 13:43:47 - Training-20250707_134347 - INFO - =======================================
+2025-07-07 13:43:47 - Training-20250707_134347 - INFO - Starting training and evaluation pipeline...
+2025-07-07 13:43:47 - Training-20250707_134347 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "random_state": 42,
+    "n_estimators": 1000,
+    "learning_rate": 0.005,
+    "num_leaves": 31,
+    "n_jobs": -1
+}
+2025-07-07 13:43:47 - Training-20250707_134347 - INFO - 未指定特征文件，将尝试加载最新版本。
+2025-07-07 13:43:47 - Training-20250707_134347 - INFO - 正在从 features_20250707_134243.parquet 加载特征...
+2025-07-07 13:43:48 - Training-20250707_134347 - INFO - 特征加载成功，共 62 个特征。
+2025-07-07 13:43:48 - Training-20250707_134347 - INFO - Successfully loaded features from: features_20250707_134243.parquet
+2025-07-07 13:43:50 - Training-20250707_134347 - INFO - 训练数据已对齐. X shape: (10001, 62), y shape: (10001, 1)
+2025-07-07 13:43:50 - Training-20250707_134347 - INFO - --- 使用的特征列表 (共 62 个) ---
+2025-07-07 13:43:50 - Training-20250707_134347 - INFO - ['sum_diff', 'cumsum_max_diff', 'zero_cross_diff', 'autocorr_lag1_diff', 'diff_var_diff', 'dominant_freq_diff', 'max_power_diff', 'ptp_diff', 'iqr_diff', 'cv_diff', 'rolling_std_diff', 'theil_sen_slope_diff', 'ar_resid_std_diff', 'ar_aic_diff', 'ar_predict_mse', 'shannon_entropy_0', 'shannon_entropy_1', 'shannon_entropy_diff', 'perm_entropy_0', 'perm_entropy_1', 'perm_entropy_diff', 'spectral_entropy_0', 'spectral_entropy_1', 'spectral_entropy_diff', 'svd_entropy_0', 'svd_entropy_1', 'svd_entropy_diff', 'approx_entropy_0', 'approx_entropy_1', 'approx_entropy_diff', 'sample_entropy_0', 'sample_entropy_1', 'sample_entropy_diff', 'hjorth_mobility_0', 'hjorth_complexity_0', 'hjorth_mobility_1', 'hjorth_complexity_1', 'hjorth_mobility_diff', 'hjorth_complexity_diff', 'num_zerocross_0', 'num_zerocross_1', 'num_zerocross_diff', 'lziv_complexity_0', 'lziv_complexity_1', 'lziv_complexity_diff', 'cond_entropy_0', 'cond_entropy_1', 'cond_entropy_diff', 'petrosian_fd_diff', 'katz_fd_diff', 'higuchi_fd_diff', 'detrended_fluctuation_diff', 'mean_diff', 'std_diff', 'std_ratio', 'skew_diff', 'kurt_diff', 'ks_stat', 'ks_pvalue', 'ttest_pvalue', 'ad_stat', 'ad_pvalue']
+2025-07-07 13:43:50 - Training-20250707_134347 - INFO - -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2025-07-07 13:43:50 - Training-20250707_134347 - INFO - Starting 5-fold cross-validation with LightGBM...
+2025-07-07 13:43:50 - Training-20250707_134347 - INFO - --- Fold 1/5 ---
+2025-07-07 13:43:59 - Training-20250707_134347 - INFO - Fold 1 AUC: 0.70271
+2025-07-07 13:43:59 - Training-20250707_134347 - INFO - --- Fold 2/5 ---
+2025-07-07 13:44:07 - Training-20250707_134347 - INFO - Fold 2 AUC: 0.67742
+2025-07-07 13:44:07 - Training-20250707_134347 - INFO - --- Fold 3/5 ---
+2025-07-07 13:44:17 - Training-20250707_134347 - INFO - Fold 3 AUC: 0.71059
+2025-07-07 13:44:17 - Training-20250707_134347 - INFO - --- Fold 4/5 ---
+2025-07-07 13:44:24 - Training-20250707_134347 - INFO - Fold 4 AUC: 0.69325
+2025-07-07 13:44:24 - Training-20250707_134347 - INFO - --- Fold 5/5 ---
+2025-07-07 13:44:32 - Training-20250707_134347 - INFO - Fold 5 AUC: 0.67501
+2025-07-07 13:44:32 - Training-20250707_134347 - INFO - Overall OOF AUC: 0.69158
+2025-07-07 13:44:32 - Training-20250707_134347 - INFO - 所有产出物将保存到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\experiment\output\train_20250707_134432_auc_0_69158
+2025-07-07 13:44:34 - Training-20250707_134347 - INFO - 特征重要性图已保存到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\experiment\output\train_20250707_134432_auc_0_69158\feature_importance.png
+2025-07-07 13:44:34 - Training-20250707_134347 - INFO - 训练流程结束，总耗时: 46.51 秒。

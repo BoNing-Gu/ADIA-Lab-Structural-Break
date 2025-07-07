@@ -46,5 +46,5 @@ CV_PARAMS = {
 # --- Features ---
 EXPERIMENTAL_FEATURES = [
     # 在这里添加实验性特征函数的名称, e.g.,
-    'new_awesome_feature',
+    'mean_abs_diff_features',
 ] 

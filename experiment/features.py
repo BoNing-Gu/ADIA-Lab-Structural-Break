@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 import logging
 import inspect
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -387,11 +388,15 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         logger.info(f"未指定特征函数，将运行所有 {len(funcs_to_run)} 个非实验性特征。")
     
     # 验证请求的函数是否都已注册
+    valid_funcs_to_run = []
     for func_name in funcs_to_run:
         if func_name not in FEATURE_REGISTRY:
             logger.warning(f"函数 {func_name} 未在注册表中找到，已跳过。")
-            continue
+        else:
+            valid_funcs_to_run.append(func_name)
     
+    funcs_to_run = valid_funcs_to_run
+
     # 1. 确定基础特征文件
     if base_feature_file:
         base_path = config.FEATURE_DIR / base_feature_file
@@ -406,28 +411,46 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         _backup_feature_file(base_path)
     else:
         logger.info("未找到基础特征文件，将创建全新的特征集。")
-        feature_df, metadata = pd.DataFrame(), {}
+        feature_df, metadata = pd.DataFrame(index=X_df['series_id'].unique()), {}
 
-    # 4. 逐个生成新特征并更新
+    # 2. 逐个生成新特征并更新
+    initial_feature_count = len(feature_df.columns)
+
     for func_name in funcs_to_run:
-        func = FEATURE_REGISTRY.get(func_name)
-        if not func:
-            logger.warning(f"函数 {func_name} 未在注册表中找到，已跳过。")
-            continue
-        
         logger.info(f"--- 开始生成特征: {func_name} ---")
-        if func_name in metadata:
-            cols_to_drop = [col for col in metadata[func_name] if col in feature_df.columns]
-            if cols_to_drop:
-                feature_df.drop(columns=cols_to_drop, inplace=True)
+        start_time = time.time()
         
-        new_feature_df = _apply_feature_func_parallel(func, X_df)
-        feature_df = feature_df.join(new_feature_df, how='outer')
-        metadata[func_name] = new_feature_df.columns.tolist()
+        func = FEATURE_REGISTRY[func_name]
+        new_features_df = _apply_feature_func_parallel(func, X_df)
+        
+        # 记录日志
+        duration = time.time() - start_time
+        logger.info(f"'{func_name}' 生成完毕，耗时: {duration:.2f} 秒。")
+        logger.info(f"  新生成特征列名: {new_features_df.columns.tolist()}")
+        
+        for col in new_features_df.columns:
+            null_ratio = new_features_df[col].isnull().sum() / len(new_features_df)
+            zero_ratio = (new_features_df[col] == 0).sum() / len(new_features_df)
+            logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
 
-    # 4. 保存到新文件
-    new_path = _save_feature_file(feature_df, metadata)
-    logger.info(f"生成/更新完成。新文件: {new_path.name}, 总特征数: {len(feature_df.columns)}")
+        # 删除旧版本特征（如果存在），然后合并
+        feature_df = feature_df.drop(columns=new_features_df.columns, errors='ignore')
+        feature_df = feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
+
+    # 3. 保存结果
+    new_feature_count = len(feature_df.columns)
+    if new_feature_count > initial_feature_count:
+        metadata['last_updated_funcs'] = funcs_to_run
+        new_file_path = _save_feature_file(feature_df, metadata)
+        logger.info(f"特征已保存到新文件: {new_file_path.name}")
+        logger.info("--- 生成后完整特征列表 ---")
+        logger.info(f"{feature_df.columns.tolist()}")
+        logger.info("-----------------------------")
+    else:
+        logger.info("没有新特征生成，文件未保存。")
+
+    final_feature_count = len(feature_df.columns)
+    logger.info(f"生成/更新完成。新文件: {new_file_path.name if new_feature_count > initial_feature_count else 'N/A'}, 总特征数: {final_feature_count}")
 
 def delete_features(funcs_to_delete: list, base_feature_file: str):
     """

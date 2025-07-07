@@ -1,0 +1,7 @@
+2025-07-07 13:20:53 - FeatureEng-20250707_132053 - INFO - ========== Running Command: del-feats ==========
+2025-07-07 13:20:53 - FeatureEng-20250707_132053 - INFO - Args: {'command': 'del-feats', 'funcs': ['mean_abs_diff_features'], 'base_file': 'features_20250707_125602.parquet'}
+2025-07-07 13:20:53 - FeatureEng-20250707_132053 - INFO - =======================================
+2025-07-07 13:20:53 - FeatureEng-20250707_132053 - INFO - 将从文件 features_20250707_125602.parquet 中删除特征: ['mean_abs_diff_features']
+2025-07-07 13:20:53 - FeatureEng-20250707_132053 - INFO - 已将文件 features_20250707_125602.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-07 13:20:53 - FeatureEng-20250707_132053 - INFO - 特征已保存到新文件: features_20250707_132053.parquet
+2025-07-07 13:20:53 - FeatureEng-20250707_132053 - INFO - 删除完成。新文件: features_20250707_132053.parquet, 总特征数: 60

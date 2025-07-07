@@ -5,8 +5,8 @@ feature_dfs/
 *.csv
 *.parquet
 *.pkl
-*.png
 *.jpg
 *.jpeg
 *.gif
 *.bmp
+.cursor/

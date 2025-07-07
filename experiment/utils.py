@@ -4,6 +4,11 @@ from pathlib import Path
 from datetime import datetime
 from . import config
 
+def ensure_feature_dirs():
+    """确保特征目录和备份目录存在"""
+    config.FEATURE_DIR.mkdir(parents=True, exist_ok=True)
+    config.FEATURE_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+
 def get_logger(name: str, log_dir: Path):
     """
     获取一个配置好的 logger 实例，它会生成带时间戳的详细日志。

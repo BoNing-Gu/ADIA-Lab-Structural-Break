@@ -65,9 +65,13 @@ def new_awesome_feature(df: pl.DataFrame) -> pl.DataFrame:
     ])
 ```
 
+#### 第1.5步
+在 config.py 中,将新的特征添加为实验性特征,这样此特征在进行全部生成的时候,不会使用实验性特征.后续需要显式指定,生成额外的实验性特征.
+
 #### 第2步: 生成包含新特征的新版特征集
 
-打开终端，运行 `gen-feats` 命令。这会基于最新的特征文件，加入你的新特征，并生成一个全新的、带时间戳的特征文件。
+
+打开终端，运行 `gen-feats` 命令, 并指定 `--extra-features` 参数, 如 `--extra-features new_awesome_feature`, 这会基于最新的特征文件，加入你的新特征，并生成一个全新的、带时间戳的特征文件。
 
 ```bash
 # 该命令会自动找到 experiment/feature_dfs/ 中最新的文件作为基础

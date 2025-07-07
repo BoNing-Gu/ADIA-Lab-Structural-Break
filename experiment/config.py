@@ -42,3 +42,9 @@ CV_PARAMS = {
     'shuffle': True,
     'random_state': 42
 } 
+
+# --- Features ---
+EXPERIMENTAL_FEATURES = [
+    # 在这里添加实验性特征函数的名称, e.g.,
+    'new_awesome_feature',
+] 

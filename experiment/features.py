@@ -366,8 +366,32 @@ def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
 
 def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None):
     """
-    生成特征，并输出到一个新的带时间戳的文件中。
+    生成指定的特征，或者如果未指定，则生成所有已注册的特征。
+    可以基于一个现有的特征文件进行增量更新。
+
+    Args:
+        X_df (pd.DataFrame): 包含 `series_id` 和 `time_step` 的输入数据。
+        funcs_to_run (list, optional): 要运行的特征函数名称列表。
+            如果为 None，则运行所有在 `FEATURE_REGISTRY` 中注册的、且不在 `EXPERIMENTAL_FEATURES` 中的函数。
+        base_feature_file (str, optional): 基础特征文件名。如果提供，
+            将加载此文件并在此基础上添加或更新特征。否则，将创建一个新的特征集。
     """
+    utils.ensure_feature_dirs()
+    
+    if funcs_to_run is None:
+        # 如果未指定函数，则运行所有非实验性特征
+        funcs_to_run = [
+            f for f in FEATURE_REGISTRY.keys() 
+            if f not in config.EXPERIMENTAL_FEATURES
+        ]
+        logger.info(f"未指定特征函数，将运行所有 {len(funcs_to_run)} 个非实验性特征。")
+    
+    # 验证请求的函数是否都已注册
+    for func_name in funcs_to_run:
+        if func_name not in FEATURE_REGISTRY:
+            logger.warning(f"函数 {func_name} 未在注册表中找到，已跳过。")
+            continue
+    
     # 1. 确定基础特征文件
     if base_feature_file:
         base_path = config.FEATURE_DIR / base_feature_file
@@ -384,10 +408,6 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         logger.info("未找到基础特征文件，将创建全新的特征集。")
         feature_df, metadata = pd.DataFrame(), {}
 
-    # 3. 确定要运行的函数
-    if funcs_to_run is None:
-        funcs_to_run = list(FEATURE_REGISTRY.keys())
-    
     # 4. 逐个生成新特征并更新
     for func_name in funcs_to_run:
         func = FEATURE_REGISTRY.get(func_name)

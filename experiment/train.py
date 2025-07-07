@@ -6,6 +6,7 @@ from sklearn.metrics import roc_auc_score
 import logging
 import json
 import time
+import joblib
 from datetime import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -55,7 +56,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     # 确保对齐
     common_index = feature_df.index.intersection(y_train.index)
     feature_df = feature_df.loc[common_index]
-    y_train = y_train.loc[common_index]
+    y_train = y_train.loc[common_index]['structural_breakpoint'].astype(int)
     
     logger.info(f"训练数据已对齐. X shape: {feature_df.shape}, y shape: {y_train.shape}")
     logger.info(f"--- 使用的特征列表 (共 {len(feature_df.columns)} 个) ---")
@@ -109,7 +110,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     # 4. 保存模型
     if save_model:
         for i, model in enumerate(models):
-            model.booster_.save_model(run_output_dir / f'model_fold_{i+1}.txt')
+            joblib.dump(model, run_output_dir / f'model_fold_{i+1}.pkl')
         logger.info("Models saved.")
 
     # 5. 可选地保存 OOF

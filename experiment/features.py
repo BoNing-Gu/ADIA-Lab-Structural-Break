@@ -315,6 +315,32 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
+@register_feature
+def ad_test_features(u: pd.DataFrame) -> dict:
+    """
+    使用 Anderson-Darling 检验来比较两个周期的分布。
+    """
+    s1 = u['value'][u['period'] == 0]
+    s2 = u['value'][u['period'] == 1]
+    feats = {}
+
+    # AD检验要求每个样本至少有2个观测值
+    if len(s1) > 1 and len(s2) > 1:
+        try:
+            ad_stat, _, ad_pvalue = scipy.stats.anderson_ksamp([s1.to_numpy(), s2.to_numpy()])
+            feats['ad_stat'] = ad_stat
+            # p-value 越小，说明差异越显著，我们希望特征值越大，所以取负
+            feats['ad_pvalue'] = -ad_pvalue
+        except ValueError:
+            # 当样本中所有值都相同时，会抛出 ValueError
+            feats['ad_stat'] = 0
+            feats['ad_pvalue'] = 0
+    else:
+        feats['ad_stat'] = 0
+        feats['ad_pvalue'] = 0
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
 # --- 特征管理核心逻辑 ---
 
 def _get_latest_feature_file() -> Path | None:

@@ -7,10 +7,12 @@ from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 import logging
 import inspect
+import re
 import json
 import time
 from datetime import datetime
 from pathlib import Path
+from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
 
 from . import config, utils
 
@@ -315,6 +317,7 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
+# --- 10. AD Test ---
 @register_feature
 def ad_test_features(u: pd.DataFrame) -> dict:
     """
@@ -341,8 +344,119 @@ def ad_test_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 特征管理核心逻辑 ---
+# --- 11. tsfresh --- 
+@register_feature
+def tsfresh_features(u: pd.DataFrame) -> dict:
+    """基于tsfresh的特征工程"""
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    feats = {}
 
+    funcs = {
+        tsfresh_fe.ratio_value_number_to_time_series_length: None,
+        tsfresh_fe.ratio_beyond_r_sigma: [6, 1.5],
+        tsfresh_fe.quantile: [0.6, 0.4, 0.1],
+        tsfresh_fe.percentage_of_reoccurring_values_to_all_values: None,
+        tsfresh_fe.percentage_of_reoccurring_datapoints_to_all_datapoints: None,
+        tsfresh_fe.last_location_of_maximum: None,
+        tsfresh_fe.first_location_of_maximum: None,
+        tsfresh_fe.partial_autocorrelation: [{"lag": 2}],
+        tsfresh_fe.linear_trend: [{"attr": "slope"}, {"attr": "rvalue"}, {"attr": "intercept"}],
+        tsfresh_fe.fft_coefficient: [{"coeff": 3, "attr": "imag"}, {"coeff": 2, "attr": "imag"}, {"coeff": 1, "attr": "imag"}],
+        tsfresh_fe.change_quantiles: [
+            {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.4},
+            {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.2},
+            {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.6},
+            {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.4},
+            {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.2},
+            {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.4},
+            {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.2},
+            {"f_agg": "var", "isabs": True,  "qh": 0.4, "ql": 0.2},
+            {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.4},
+            {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.2},
+            {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.4},
+            {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.2},
+            {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.0},
+            {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.4},
+            {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.2},
+            {"f_agg": "var", "isabs": False, "qh": 0.4, "ql": 0.2},
+            {"f_agg": "mean","isabs": True,  "qh": 1.0, "ql": 0.4},
+            {"f_agg": "mean","isabs": True,  "qh": 0.6, "ql": 0.4},
+        ],
+        tsfresh_fe.ar_coefficient: [{"coeff": 2, "k": 10}],
+        tsfresh_fe.agg_linear_trend: [
+            {"attr": "slope", "chunk_len": 50, "f_agg": "mean"},
+            {"attr": "slope", "chunk_len": 5,  "f_agg": "mean"},
+            {"attr": "slope", "chunk_len": 10, "f_agg": "mean"},
+            {"attr": "rvalue", "chunk_len": 50, "f_agg": "mean"},
+            {"attr": "rvalue", "chunk_len": 50, "f_agg": "max"},
+            {"attr": "rvalue", "chunk_len": 5,  "f_agg": "mean"},
+            {"attr": "rvalue", "chunk_len": 5,  "f_agg": "max"},
+            {"attr": "rvalue", "chunk_len": 10, "f_agg": "mean"},
+            {"attr": "rvalue", "chunk_len": 10, "f_agg": "max"},
+            {"attr": "intercept", "chunk_len": 50, "f_agg": "mean"},
+            {"attr": "intercept", "chunk_len": 50, "f_agg": "max"},
+            {"attr": "intercept", "chunk_len": 5,  "f_agg": "mean"},
+            {"attr": "intercept", "chunk_len": 5,  "f_agg": "max"},
+            {"attr": "intercept", "chunk_len": 10, "f_agg": "mean"},
+            {"attr": "intercept", "chunk_len": 10, "f_agg": "max"},
+        ]
+    }
+
+    def param_to_str(param):
+        if isinstance(param, dict):
+            return '_'.join([f"{k}_{v}" for k, v in param.items()])
+        else:
+            return str(param)
+
+    def cal_func_diff_as_feature(func, param=None):
+        if param is None:
+            # Simple function: return a scalar
+            try:
+                return {func.__name__: func(s2) - func(s1)}
+            except:
+                return {func.__name__: np.nan}
+            
+        elif isinstance(param, dict):
+            try:
+                # Combiner function: return a list of (name, value)
+                s1_result = dict(func(s1, [param]))
+                s2_result = dict(func(s2, [param]))
+                result = {}
+                for k in s1_result.keys():
+                    # print(s1_result[k], s2_result[k], k)
+                    feat_name = f"{func.__name__}_{k}"
+                    result[feat_name] = s2_result[k] - s1_result[k]
+                return result
+            except TypeError:
+                # Simple function with multiple kwargs
+                val = func(s2, **param) - func(s1, **param)
+                feat_name = f"{func.__name__}_{param_to_str(param)}"
+                return {feat_name: val}
+            except Exception as e:
+                # print(e)
+                feat_name = f"{func.__name__}_{param_to_str(param)}"
+                return {feat_name: np.nan}
+            
+        else:
+            # Simple function with parameter
+            try:
+                feat_name = f"{func.__name__}_{param_to_str(param)}"
+                return {feat_name: func(s2, param) - func(s1, param)}
+            except:
+                return {feat_name: np.nan}
+
+    for func, params in funcs.items():
+        if params is None:
+            feats.update(cal_func_diff_as_feature(func))
+        else:
+            for param in params:
+                feats.update(cal_func_diff_as_feature(func, param))
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+
+# --- 特征管理核心逻辑 ---
 def _get_latest_feature_file() -> Path | None:
     """查找并返回最新的特征文件路径"""
     feature_files = list(config.FEATURE_DIR.glob('features_*.parquet'))
@@ -371,7 +485,6 @@ def _save_feature_file(df: pd.DataFrame, metadata: dict) -> Path:
     
     df.attrs['feature_metadata'] = json.dumps(metadata)
     df.to_parquet(new_feature_path)
-    logger.info(f"特征已保存到新文件: {new_feature_path.name}")
     return new_feature_path
 
 def _backup_feature_file(file_path: Path):
@@ -390,6 +503,60 @@ def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
         for id_val in tqdm(all_ids, desc=f"Running {func.__name__}")
     )
     return pd.DataFrame(results).set_index('id')
+
+def check_new_features_corr(feature_df, loaded_features, drop_flag=False, threshold=0.95):
+    """检查新特征与已加载特征的相关性"""
+    new_features = [col for col in feature_df.columns if col not in loaded_features]
+    logger.info(f"\nNumber of new features: {len(new_features)}")
+    logger.info(f"Number of loaded features: {len(loaded_features)}")
+    
+    # 计算新特征与已加载特征的相关性
+    corr_matrix = feature_df[new_features + list(loaded_features)].corr()
+    cross_corr = corr_matrix.loc[new_features, loaded_features]
+    high_corr_features = cross_corr[(cross_corr.abs() > 0.7).any(axis=1)]
+    
+    if not high_corr_features.empty:
+        logger.info("\nNew features with high correlation (|corr| > 0.7) to loaded features:")
+        # 打印每个高相关性新特征及其相关特征
+        for new_feat in high_corr_features.index:
+            correlated_with = high_corr_features.columns[high_corr_features.loc[new_feat].abs() > 0.7]
+            corr_values = high_corr_features.loc[new_feat, high_corr_features.loc[new_feat].abs() > 0.7]
+            
+            logger.info(f"\n{new_feat} is highly correlated with:")
+            for loaded_feat, corr in zip(correlated_with, corr_values):
+                logger.info(f"  - {loaded_feat}: {corr:.3f}")
+    else:
+        logger.info("\nNo new features show high correlation (|corr| > 0.7) with loaded features.")
+        
+    # 删除高度相关的新特征（严格大于 threshold）
+    dropped_features = []
+    if drop_flag:
+        high_corr_to_drop = cross_corr[(cross_corr.abs() > threshold).any(axis=1)]
+        dropped_features = list(high_corr_to_drop.index)
+        if dropped_features:
+            logger.info(f"\nDropping {len(dropped_features)} new features with |corr| > {threshold}:")
+            for feat in dropped_features:
+                logger.info(f"  - {feat}")
+            feature_df = feature_df.drop(columns=dropped_features)
+        else:
+            logger.info(f"\nNo new features exceeded threshold |corr| > {threshold}, nothing dropped.")
+
+    return feature_df, dropped_features
+
+def clean_feature_names(df: pd.DataFrame, prefix: str = "f") -> pd.DataFrame:
+    """清理特征名称，确保它们是合法的列名。"""
+    cleaned_columns = []
+    for i, col in enumerate(df.columns):
+        # 替换非法字符为 _
+        cleaned = re.sub(r'[^\w]', '_', col)
+        # 防止开头是数字（如 "123_feature"）非法
+        if re.match(r'^\d', cleaned):
+            cleaned = f"{prefix}_{cleaned}"
+        # 多个连续 _ 合并为一个
+        cleaned = re.sub(r'__+', '_', cleaned)
+        cleaned_columns.append(cleaned)
+    df.columns = cleaned_columns
+    return df
 
 def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None):
     """
@@ -437,9 +604,10 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         _backup_feature_file(base_path)
     else:
         logger.info("未找到基础特征文件，将创建全新的特征集。")
-        feature_df, metadata = pd.DataFrame(index=X_df['series_id'].unique()), {}
+        feature_df, metadata = pd.DataFrame(index=X_df['id'].unique()), {}
 
     # 2. 逐个生成新特征并更新
+    loaded_features = feature_df.columns.tolist()
     initial_feature_count = len(feature_df.columns)
 
     for func_name in funcs_to_run:
@@ -462,6 +630,9 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         # 删除旧版本特征（如果存在），然后合并
         feature_df = feature_df.drop(columns=new_features_df.columns, errors='ignore')
         feature_df = feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
+        feature_df, removed_features = check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95)
+        feature_df = clean_feature_names(feature_df)
+        loaded_features = feature_df.columns.tolist()
 
     # 3. 保存结果
     new_feature_count = len(feature_df.columns)

@@ -3,6 +3,7 @@ import argparse
 import sys
 import logging
 from . import utils, data, features, train, config
+warnings.filterwarnings("ignore", category=UserWarning, module="tsfresh")
 
 def main():
     """主函数，根据命令行参数调度实验流程"""

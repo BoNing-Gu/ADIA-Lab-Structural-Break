@@ -1,0 +1,27 @@
+2025-07-08 14:28:14 - FeatureEng-20250708_142814 - INFO - ========== Running Command: gen-feats ==========
+2025-07-08 14:28:14 - FeatureEng-20250708_142814 - INFO - Args: {'command': 'gen-feats', 'funcs': ['volatility_of_volatility_features'], 'base_file': None}
+2025-07-08 14:28:14 - FeatureEng-20250708_142814 - INFO - =======================================
+2025-07-08 14:28:16 - FeatureEng-20250708_142814 - INFO - 将基于特征文件进行更新: features_20250707_134243.parquet
+2025-07-08 14:28:16 - FeatureEng-20250708_142814 - INFO - 已将文件 features_20250707_134243.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-08 14:28:16 - FeatureEng-20250708_142814 - INFO - --- 开始生成特征: volatility_of_volatility_features ---
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - 'volatility_of_volatility_features' 生成完毕，耗时: 21.73 秒。
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO -   新生成特征列名: ['rolling_std_w50_mean_diff']
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO -     - 'rolling_std_w50_mean_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - 
+Number of new features: 1
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - Number of loaded features: 62
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - 
+rolling_std_w50_mean_diff is highly correlated with:
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO -   - ptp_diff: 0.753
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO -   - rolling_std_diff: 0.908
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO -   - mean_diff: 0.726
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO -   - std_diff: 0.845
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - 特征已保存到新文件: features_20250708_142838.parquet
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - --- 生成后完整特征列表 ---
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - ['sum_diff', 'cumsum_max_diff', 'zero_cross_diff', 'autocorr_lag1_diff', 'diff_var_diff', 'dominant_freq_diff', 'max_power_diff', 'ptp_diff', 'iqr_diff', 'cv_diff', 'rolling_std_diff', 'theil_sen_slope_diff', 'ar_resid_std_diff', 'ar_aic_diff', 'ar_predict_mse', 'shannon_entropy_0', 'shannon_entropy_1', 'shannon_entropy_diff', 'perm_entropy_0', 'perm_entropy_1', 'perm_entropy_diff', 'spectral_entropy_0', 'spectral_entropy_1', 'spectral_entropy_diff', 'svd_entropy_0', 'svd_entropy_1', 'svd_entropy_diff', 'approx_entropy_0', 'approx_entropy_1', 'approx_entropy_diff', 'sample_entropy_0', 'sample_entropy_1', 'sample_entropy_diff', 'hjorth_mobility_0', 'hjorth_complexity_0', 'hjorth_mobility_1', 'hjorth_complexity_1', 'hjorth_mobility_diff', 'hjorth_complexity_diff', 'num_zerocross_0', 'num_zerocross_1', 'num_zerocross_diff', 'lziv_complexity_0', 'lziv_complexity_1', 'lziv_complexity_diff', 'cond_entropy_0', 'cond_entropy_1', 'cond_entropy_diff', 'petrosian_fd_diff', 'katz_fd_diff', 'higuchi_fd_diff', 'detrended_fluctuation_diff', 'mean_diff', 'std_diff', 'std_ratio', 'skew_diff', 'kurt_diff', 'ks_stat', 'ks_pvalue', 'ttest_pvalue', 'ad_stat', 'ad_pvalue', 'rolling_std_w50_mean_diff']
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - -----------------------------
+2025-07-08 14:28:38 - FeatureEng-20250708_142814 - INFO - 生成/更新完成。新文件: features_20250708_142838.parquet, 总特征数: 63

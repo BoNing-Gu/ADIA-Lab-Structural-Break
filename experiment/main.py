@@ -42,22 +42,27 @@ def main():
     else: # train
         logger, log_file_path = utils.get_logger('Training', config.TRAINING_LOG_DIR)
 
-    features.logger = logger
-    train.logger = logger
-    data.logger = logging.getLogger('data') # data模块日志较为简单，直接使用标准logger
     
     logger.info(f"========== Running Command: {args.command} ==========")
     logger.info(f"Args: {vars(args)}")
     logger.info("=======================================")
 
     if args.command == 'gen-feats':
+        from . import data, features
+        features.logger = logger
+        data.logger = logging.getLogger('data')
         X_train, _ = data.load_data()
         features.generate_features(X_train, funcs_to_run=args.funcs, base_feature_file=args.base_file)
 
     elif args.command == 'del-feats':
+        from . import features
+        features.logger = logger
         features.delete_features(funcs_to_delete=args.funcs, base_feature_file=args.base_file)
 
     elif args.command == 'train':
+        from . import train, features
+        train.logger = logger
+        features.logger = logger
         models, oof_auc = train.train_and_evaluate(
             feature_file_name=args.feature_file,
             save_oof=args.save_oof,

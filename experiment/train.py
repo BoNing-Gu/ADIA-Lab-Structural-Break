@@ -8,32 +8,20 @@ import json
 import time
 import joblib
 from datetime import datetime
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from . import config, features, data
 
 # logger 将由 main.py 在运行时注入
 logger = None
 
-def plot_feature_importance(feature_importances, feature_names, output_dir):
-    """绘制并保存特征重要性图"""
+def save_feature_importance(feature_importances, feature_names, output_dir):
+    """将特征重要性降序保存为 tsv 文件。"""
     df = pd.DataFrame({'feature': feature_names, 'importance': feature_importances})
     df = df.sort_values('importance', ascending=False)
     
-    # 动态调整图形高度
-    num_features = len(df)
-    fig_height = max(10, num_features * 0.25)
-    
-    plt.figure(figsize=(12, fig_height))
-    sns.barplot(x='importance', y='feature', data=df)
-    plt.title('Feature Importance (averaged over folds)')
-    plt.tight_layout() # 自动调整布局，防止标签重叠
-    
-    save_path = output_dir / 'feature_importance.png'
-    plt.savefig(save_path)
-    plt.close()
-    logger.info(f"特征重要性图已保存到: {save_path}")
+    save_path = output_dir / 'feature_importance.tsv'
+    df.to_csv(save_path, sep='\t', index=False)
+    logger.info(f"特征重要性已保存到: {save_path}")
 
 def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_model: bool = False):
     """
@@ -103,9 +91,9 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     run_output_dir.mkdir(exist_ok=True, parents=True)
     logger.info(f"所有产出物将保存到: {run_output_dir}")
 
-    # 3. 计算并绘制特征重要性
+    # 3. 计算并保存特征重要性
     mean_importance = feature_importances.mean(axis=1)
-    plot_feature_importance(mean_importance, feature_df.columns, run_output_dir)
+    save_feature_importance(mean_importance, feature_df.columns, run_output_dir)
 
     # 4. 保存模型
     if save_model:

@@ -1,0 +1,20 @@
+2025-07-08 20:50:21 - FeatureEng-20250708_205021 - INFO - ========== Running Command: gen-feats ==========
+2025-07-08 20:50:21 - FeatureEng-20250708_205021 - INFO - Args: {'command': 'gen-feats', 'funcs': ['ar_model_residual_features'], 'base_file': None}
+2025-07-08 20:50:21 - FeatureEng-20250708_205021 - INFO - =======================================
+2025-07-08 20:50:23 - FeatureEng-20250708_205021 - INFO - 将基于特征文件进行更新: features_20250708_143209.parquet
+2025-07-08 20:50:23 - FeatureEng-20250708_205021 - INFO - 已将文件 features_20250708_143209.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-08 20:50:23 - FeatureEng-20250708_205021 - INFO - --- 开始生成特征: ar_model_residual_features ---
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO - 'ar_model_residual_features' 生成完毕，耗时: 9.84 秒。
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO -   新生成特征列名: ['ar_resid_std_diff', 'ar_aic_diff', 'ar_predict_mse']
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO -     - 'ar_resid_std_diff': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO -     - 'ar_aic_diff': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO -     - 'ar_predict_mse': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO - 
+Number of new features: 0
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO - Number of loaded features: 114
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO - 
+No new features show high correlation (|corr| > 0.7) with loaded features.
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO - 没有新特征生成，文件未保存。
+2025-07-08 20:50:33 - FeatureEng-20250708_205021 - INFO - 生成/更新完成。新文件: N/A, 总特征数: 114

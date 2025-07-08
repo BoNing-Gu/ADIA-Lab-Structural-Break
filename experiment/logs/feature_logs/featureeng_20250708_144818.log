@@ -1,0 +1,6 @@
+2025-07-08 14:48:18 - FeatureEng-20250708_144818 - INFO - ========== Running Command: gen-feats ==========
+2025-07-08 14:48:18 - FeatureEng-20250708_144818 - INFO - Args: {'command': 'gen-feats', 'funcs': ['time_series_mismatch_features'], 'base_file': None}
+2025-07-08 14:48:18 - FeatureEng-20250708_144818 - INFO - =======================================
+2025-07-08 14:48:21 - FeatureEng-20250708_144818 - INFO - 将基于特征文件进行更新: features_20250708_143209.parquet
+2025-07-08 14:48:21 - FeatureEng-20250708_144818 - INFO - 已将文件 features_20250708_143209.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-08 14:48:21 - FeatureEng-20250708_144818 - INFO - --- 开始生成特征: time_series_mismatch_features ---

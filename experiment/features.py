@@ -18,10 +18,18 @@ logger = None
 # --- 特征函数注册表 ---
 FEATURE_REGISTRY = {}
 
-def register_feature(func):
-    """一个用于注册特征函数的装饰器"""
-    FEATURE_REGISTRY[func.__name__] = func
-    return func
+def register_feature(_func=None, *, parallelizable=True):
+    """一个用于注册特征函数的装饰器，可以标记特征是否可并行化。"""
+    def decorator_register(func):
+        FEATURE_REGISTRY[func.__name__] = {"func": func, "parallelizable": parallelizable}
+        return func
+
+    if _func is None:
+        # Used as @register_feature(parallelizable=...)
+        return decorator_register
+    else:
+        # Used as @register_feature
+        return decorator_register(_func)
 
 # --- 1. 分布统计特征 ---
 @register_feature
@@ -215,54 +223,88 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
 
 # --- 8. 时间序列建模 ---
 @register_feature
-def ar_model_residual_features(u: pd.DataFrame) -> dict:
-    import statsmodels.tsa.api as tsa
-    s1 = u['value'][u['period'] == 0].reset_index(drop=True)
-    s2 = u['value'][u['period'] == 1].reset_index(drop=True)
+def ar_model_features(u: pd.DataFrame) -> dict:
+    """
+    基于AR模型派生特征。
+    1. 在 period 0 上训练模型，预测 period 1，计算残差统计量。
+    2. 在 period 1 上训练模型，预测 period 0，计算残差统计量。
+    3. 分别在 period 0 和 1 上训练模型，比较模型参数、残差和信息准则(AIC/BIC)。
+    """
+    from statsmodels.tsa.ar_model import AutoReg
+
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
     feats = {}
+    lags = 5 # 固定阶数以保证可比性
 
-    def fit_ar(s, lags=10):
-        if len(s) <= lags + 1:
-            return None
+    # --- 特征组1: 用 s1 训练，预测 s2 ---
+    if len(s1) > lags and len(s2) > 0:
         try:
-            return tsa.ar_model.AutoReg(s, lags=lags, old_names=False).fit()
+            model1_fit = AutoReg(s1, lags=lags).fit()
+            predictions = model1_fit.predict(start=len(s1), end=len(s1) + len(s2) - 1, dynamic=True)
+            residuals = s2 - predictions
+            feats['residuals_s2_pred_mean'] = np.mean(residuals)
+            feats['residuals_s2_pred_std'] = np.std(residuals)
+            feats['residuals_s2_pred_skew'] = pd.Series(residuals).skew()
+            feats['residuals_s2_pred_kurt'] = pd.Series(residuals).kurt()
         except Exception:
-            return None
-
-    model1 = fit_ar(s1)
-    model2 = fit_ar(s2)
-
-    if model1 is not None and model2 is not None:
-        feats['ar_resid_std_diff'] = model2.resid.std() - model1.resid.std()
-        feats['ar_aic_diff'] = model2.aic - model1.aic
+            # 宽泛地捕获异常，防止因数值问题中断
+            feats.update({'residuals_s2_pred_mean': 0, 'residuals_s2_pred_std': 0, 'residuals_s2_pred_skew': 0, 'residuals_s2_pred_kurt': 0})
     else:
-        feats['ar_resid_std_diff'] = 0.0
-        feats['ar_aic_diff'] = 0.0
+        feats.update({'residuals_s2_pred_mean': 0, 'residuals_s2_pred_std': 0, 'residuals_s2_pred_skew': 0, 'residuals_s2_pred_kurt': 0})
 
-    if model1 is not None and len(s2) > 0:
+    # --- 特征组2: 用 s2 训练，预测 s1 ---
+    if len(s2) > lags and len(s1) > 0:
         try:
-            max_lag = max(model1.model.ar_lags)
-            history = s1.iloc[-max_lag:].tolist()
-            preds = []
-
-            for t in range(len(s2)):
-                lagged_vals = history[-max_lag:]
-                pred = model1.params['const'] if 'const' in model1.params else 0.0
-                for i, lag in enumerate(model1.model.ar_lags):
-                    pred += model1.params[f'value.L{lag}'] * lagged_vals[-lag]
-                preds.append(pred)
-                history.append(s2.iloc[t])
-
-            preds = np.array(preds)
-            mse = np.mean((preds - s2.values[:len(preds)]) ** 2)
-            feats['ar_predict_mse'] = mse
-        except Exception as e:
-            logger.warning(f"AR prediction error: {e}")
-            feats['ar_predict_mse'] = 0.0
+            model2_fit = AutoReg(s2, lags=lags).fit()
+            predictions_on_s1 = model2_fit.predict(start=len(s2), end=len(s2) + len(s1) - 1, dynamic=True)
+            residuals_s1_pred = s1 - predictions_on_s1
+            feats['residuals_s1_pred_mean'] = np.mean(residuals_s1_pred)
+            feats['residuals_s1_pred_std'] = np.std(residuals_s1_pred)
+            feats['residuals_s1_pred_skew'] = pd.Series(residuals_s1_pred).skew()
+            feats['residuals_s1_pred_kurt'] = pd.Series(residuals_s1_pred).kurt()
+        except Exception:
+            feats.update({'residuals_s1_pred_mean': 0, 'residuals_s1_pred_std': 0, 'residuals_s1_pred_skew': 0, 'residuals_s1_pred_kurt': 0})
     else:
-        feats['ar_predict_mse'] = 0.0
+        feats.update({'residuals_s1_pred_mean': 0, 'residuals_s1_pred_std': 0, 'residuals_s1_pred_skew': 0, 'residuals_s1_pred_kurt': 0})
+
+
+    # --- 特征组3: 分别建模，比较差异 ---
+    s1_resid_std, s1_params = np.nan, np.zeros(lags + 1)
+    s1_aic, s1_bic = np.nan, np.nan
+    if len(s1) > lags:
+        try:
+            fit1 = AutoReg(s1, lags=lags).fit()
+            s1_resid_std = np.std(fit1.resid)
+            s1_params = fit1.params
+            s1_aic = fit1.aic
+            s1_bic = fit1.bic
+        except Exception:
+            pass
+
+    s2_resid_std, s2_params = np.nan, np.zeros(lags + 1)
+    s2_aic, s2_bic = np.nan, np.nan
+    if len(s2) > lags:
+        try:
+            fit2 = AutoReg(s2, lags=lags).fit()
+            s2_resid_std = np.std(fit2.resid)
+            s2_params = fit2.params
+            s2_aic = fit2.aic
+            s2_bic = fit2.bic
+        except Exception:
+            pass
+            
+    feats['resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    feats['aic_diff'] = (s2_aic - s1_aic) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    feats['bic_diff'] = (s2_bic - s1_bic) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    
+    # 比较模型系数
+    param_diff = s2_params - s1_params
+    for i in range(len(param_diff)):
+        feats[f'param_{i}_diff'] = param_diff[i]
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
 
 # --- 9. 熵信息 ---
 @register_feature
@@ -533,6 +575,15 @@ def _backup_feature_file(file_path: Path):
         file_path.rename(backup_path)
         logger.info(f"已将文件 {file_path.name} 备份到: {config.FEATURE_BACKUP_DIR}")
 
+def _apply_feature_func_sequential(func, X_df: pd.DataFrame) -> pd.DataFrame:
+    """顺序应用单个特征函数"""
+    all_ids = X_df.index.get_level_values("id").unique()
+    results = [
+        {**{'id': id_val}, **func(X_df.loc[id_val])}
+        for id_val in tqdm(all_ids, desc=f"Running {func.__name__} (sequentially)")
+    ]
+    return pd.DataFrame(results).set_index('id')
+
 def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
     """并行应用单个特征函数"""
     all_ids = X_df.index.get_level_values("id").unique()
@@ -639,10 +690,11 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         logger.info(f"将基于特征文件进行更新: {base_path.name}")
         feature_df, metadata = _load_feature_file(base_path)
         # 更新操作需要备份旧文件
-        _backup_feature_file(base_path)
+        # _backup_feature_file(base_path) # <<< 移除此处的调用
     else:
         logger.info("未找到基础特征文件，将创建全新的特征集。")
         feature_df, metadata = pd.DataFrame(index=X_df['id'].unique()), {}
+        base_path = None # 确保后续不会尝试备份一个不存在的文件
 
     # 2. 逐个生成新特征并更新
     loaded_features = feature_df.columns.tolist()
@@ -652,8 +704,15 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         logger.info(f"--- 开始生成特征: {func_name} ---")
         start_time = time.time()
         
-        func = FEATURE_REGISTRY[func_name]
-        new_features_df = _apply_feature_func_parallel(func, X_df)
+        feature_info = FEATURE_REGISTRY[func_name]
+        func = feature_info['func']
+        is_parallelizable = feature_info['parallelizable']
+        
+        if is_parallelizable:
+            new_features_df = _apply_feature_func_parallel(func, X_df)
+        else:
+            logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
+            new_features_df = _apply_feature_func_sequential(func, X_df)
         
         # 记录日志
         duration = time.time() - start_time
@@ -675,6 +734,10 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
     # 3. 保存结果
     new_feature_count = len(feature_df.columns)
     if new_feature_count > initial_feature_count:
+        # 只有在成功生成新特征后，才备份旧文件
+        if base_path and base_path.exists():
+            _backup_feature_file(base_path)
+            
         metadata['last_updated_funcs'] = funcs_to_run
         new_file_path = _save_feature_file(feature_df, metadata)
         logger.info(f"特征已保存到新文件: {new_file_path.name}")
@@ -687,28 +750,77 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
     final_feature_count = len(feature_df.columns)
     logger.info(f"生成/更新完成。新文件: {new_file_path.name if new_feature_count > initial_feature_count else 'N/A'}, 总特征数: {final_feature_count}")
 
-def delete_features(funcs_to_delete: list, base_feature_file: str):
+def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_to_delete: list = None):
     """
     从指定的特征文件中删除特征，并生成一个新的带时间戳的文件。
+    可以按函数名删除，也可以按特定的列名删除。
     """
     base_path = config.FEATURE_DIR / base_feature_file
     if not base_path.exists():
         logger.error(f"指定的特征文件不存在: {base_feature_file}")
         return
 
-    logger.info(f"将从文件 {base_feature_file} 中删除特征: {funcs_to_delete}")
+    logger.info(f"将从文件 {base_feature_file} 中删除特征...")
     feature_df, metadata = _load_feature_file(base_path)
+    
+    if feature_df.empty:
+        logger.error(f"无法从 {base_feature_file} 加载数据，操作中止。")
+        return
+
     _backup_feature_file(base_path)
     
+    initial_columns = set(feature_df.columns)
     cols_to_drop = []
-    for func_name in funcs_to_delete:
-        if func_name in metadata:
-            cols_to_drop.extend(metadata.pop(func_name))
 
-    feature_df.drop(columns=[c for c in cols_to_drop if c in feature_df.columns], inplace=True)
+    if funcs_to_delete:
+        logger.info(f"按函数名删除: {funcs_to_delete}")
+        # 修复逻辑: 检查 metadata['last_updated_funcs'] 中生成的列
+        # 旧逻辑依赖于 metadata[func_name]，但这个key没有被创建
+        generated_cols_by_func = {}
+        # 假设 metadata['generated_by'][col] = func_name 的结构，需要先改造 generate_features
+        # 当前元数据不健全，无法安全地按函数名删除。
+        # 作为一个临时的、更鲁棒的方案，我们基于函数名约定来猜测列名
+        for func_name in funcs_to_delete:
+            # 这是一个简化的匹配，可能会误删。更可靠的方式是改造 generate_features 来记录每个特征由谁生成。
+            # 例如，'distributional_stats' 会匹配 'distributional_stats_mean_diff' 等
+            # 为了安全，我们只匹配以函数名开头的列
+            matched_cols = [col for col in feature_df.columns if col.startswith(func_name)]
+            if matched_cols:
+                logger.info(f"  函数 '{func_name}' 匹配到 {len(matched_cols)} 列: {matched_cols}")
+                cols_to_drop.extend(matched_cols)
+            else:
+                logger.warning(f"  未找到与函数 '{func_name}' 相关的特征列。")
+
+
+    if cols_to_delete:
+        logger.info(f"按列名删除: {cols_to_delete}")
+        # 验证列名是否存在
+        valid_cols = [c for c in cols_to_delete if c in feature_df.columns]
+        invalid_cols = set(cols_to_delete) - set(valid_cols)
+        if invalid_cols:
+            logger.warning(f"  以下列名不存在，将被忽略: {list(invalid_cols)}")
+        cols_to_drop.extend(valid_cols)
+
+    # 去重并执行删除
+    final_cols_to_drop = sorted(list(set(cols_to_drop)))
+    if not final_cols_to_drop:
+        logger.warning("没有找到任何要删除的特征列，操作中止。")
+        # 恢复备份，因为没有变化
+        backup_path = config.FEATURE_BACKUP_DIR / base_path.name
+        if backup_path.exists():
+            backup_path.rename(base_path)
+            logger.info("已恢复原始文件。")
+        return
+        
+    logger.info(f"总计将删除 {len(final_cols_to_drop)} 个特征列: {final_cols_to_drop}")
+    feature_df.drop(columns=final_cols_to_drop, inplace=True)
+    
+    # 更新元数据（简单地移除一个标记，表示文件被修改过）
+    metadata['last_deleted_features'] = final_cols_to_drop
     
     new_path = _save_feature_file(feature_df, metadata)
     logger.info(f"删除完成。新文件: {new_path.name}, 总特征数: {len(feature_df.columns)}")
+
 
 def load_features(feature_file: str = None) -> tuple[pd.DataFrame | None, str | None]:
     """加载指定的或最新的特征文件。"""

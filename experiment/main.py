@@ -1,9 +1,12 @@
 import warnings
+from statsmodels.tools.sm_exceptions import InterpolationWarning
 import argparse
 import sys
 import logging
-from . import utils, config
-warnings.filterwarnings("ignore", category=UserWarning, module="tsfresh")
+from . import utils, data, features, train, config
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.simplefilter("ignore", InterpolationWarning)
+warnings.simplefilter("ignore", FutureWarning)
 
 def main():
     """主函数，根据命令行参数调度实验流程"""

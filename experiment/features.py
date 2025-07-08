@@ -1,5 +1,9 @@
 import pandas as pd
 import numpy as np
+import scipy.stats
+import statsmodels as sm
+import statsmodels.tsa.api as tsa
+import antropy
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 import logging
@@ -7,10 +11,16 @@ import inspect
 import re
 import json
 import time
+import warnings
+from statsmodels.tools.sm_exceptions import InterpolationWarning
 from datetime import datetime
 from pathlib import Path
 
 from . import config, utils
+
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.simplefilter("ignore", InterpolationWarning)
+warnings.simplefilter("ignore", FutureWarning)
 
 # logger 将由 main.py 在运行时注入
 logger = None
@@ -534,6 +544,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
                 feats.update(cal_func_diff_as_feature(func, param))
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
 
 
 # --- 特征管理核心逻辑 ---

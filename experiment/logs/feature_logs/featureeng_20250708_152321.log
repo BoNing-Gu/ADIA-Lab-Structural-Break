@@ -1,0 +1,109 @@
+2025-07-08 15:23:21 - FeatureEng-20250708_152321 - INFO - ========== Running Command: gen-feats ==========
+2025-07-08 15:23:21 - FeatureEng-20250708_152321 - INFO - Args: {'command': 'gen-feats', 'funcs': ['more_distributional_stats'], 'base_file': None}
+2025-07-08 15:23:21 - FeatureEng-20250708_152321 - INFO - =======================================
+2025-07-08 15:23:23 - FeatureEng-20250708_152321 - INFO - 将基于特征文件进行更新: features_20250707_235000.parquet
+2025-07-08 15:23:23 - FeatureEng-20250708_152321 - INFO - 已将文件 features_20250707_235000.parquet 备份到: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-08 15:23:23 - FeatureEng-20250708_152321 - INFO - --- 开始生成特征: more_distributional_stats ---
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 'more_distributional_stats' 生成完毕，耗时: 119.70 秒。
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   新生成特征列名: ['ttest_pvalue', 'ttest_stat', 'mannwhitney_pvalue', 'mannwhitney_stat', 'wilcoxon_pvalue', 'wilcoxon_stat', 'ks_pvalue', 'ks_stat', 'anderson_pvalue', 'anderson_stat', 'levene_pvalue', 'levene_stat', 'bartlett_pvalue', 'bartlett_stat', 'f_test_pvalue', 'f_test_stat', 'skew_diff', 'kurtosis_diff', 'jb_pvalue_diff', 'shapiro_pvalue_diff', 'median_diff', 'iqr_diff', 'ljungbox_pvalue_diff_lag1', 'ljungbox_pvalue_diff_lag2', 'ljungbox_pvalue_diff_lag3', 'ljungbox_pvalue_diff_lag4', 'ljungbox_pvalue_diff_lag5', 'ljungbox_pvalue_diff_lag6', 'ljungbox_pvalue_diff_lag7', 'ljungbox_pvalue_diff_lag8', 'ljungbox_pvalue_diff_lag9', 'ljungbox_pvalue_diff_lag10', 'adf_pvalue_diff', 'adf_stat_diff', 'adf_lag_diff', 'adf_icbest_diff', 'adf_stat_relative_diff', 'adf_reject_flag_diff', 'kpss_pvalue_diff', 'kpss_stat_diff', 'kpss_lag_diff', 'kpss_stat_relative_diff', 'kpss_reject_flag_diff', 'granger_fwd_min_pval', 'granger_bwd_min_pval', 'granger_pval_diff', 'granger_avg_pval_diff', 'granger_best_lag_diff', 'granger_asym_causal', 'mean_diff', 'std_diff', 'cv_diff', 'max_diff', 'min_diff', 'range_diff']
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ttest_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ttest_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'mannwhitney_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'mannwhitney_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'wilcoxon_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'wilcoxon_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ks_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ks_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'anderson_pvalue': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'anderson_stat': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'levene_pvalue': 空值比例=0.00%, 零值比例=0.02%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'levene_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'bartlett_pvalue': 空值比例=0.00%, 零值比例=1.28%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'bartlett_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'f_test_pvalue': 空值比例=0.00%, 零值比例=0.95%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'f_test_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'skew_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'kurtosis_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'jb_pvalue_diff': 空值比例=0.00%, 零值比例=18.02%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'shapiro_pvalue_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'median_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'iqr_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag1': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag2': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag3': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag4': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag5': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag6': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag7': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag8': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag9': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'ljungbox_pvalue_diff_lag10': 空值比例=0.00%, 零值比例=100.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'adf_pvalue_diff': 空值比例=0.00%, 零值比例=26.41%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'adf_stat_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'adf_lag_diff': 空值比例=0.00%, 零值比例=22.61%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'adf_icbest_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'adf_stat_relative_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'adf_reject_flag_diff': 空值比例=0.00%, 零值比例=99.89%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'kpss_pvalue_diff': 空值比例=0.00%, 零值比例=81.62%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'kpss_stat_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'kpss_lag_diff': 空值比例=0.00%, 零值比例=7.06%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'kpss_stat_relative_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'kpss_reject_flag_diff': 空值比例=0.00%, 零值比例=90.60%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'granger_fwd_min_pval': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'granger_bwd_min_pval': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'granger_pval_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'granger_avg_pval_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'granger_best_lag_diff': 空值比例=0.00%, 零值比例=29.47%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'granger_asym_causal': 空值比例=0.00%, 零值比例=91.33%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'mean_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'cv_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'max_diff': 空值比例=0.00%, 零值比例=0.04%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'min_diff': 空值比例=0.00%, 零值比例=0.06%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -     - 'range_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+Number of new features: 47
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - Number of loaded features: 113
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+mannwhitney_stat is highly correlated with:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - num_zerocross_1: 0.757
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+levene_stat is highly correlated with:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - ks_stat: 0.731
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - ad_stat: 0.914
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+bartlett_stat is highly correlated with:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - ad_stat: 0.706
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+f_test_stat is highly correlated with:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - sum_diff: -0.764
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - cumsum_max_diff: -0.766
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - max_power_diff: -0.930
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_mean_: 0.717
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+kurtosis_diff is highly correlated with:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - kurt_diff: -1.000
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+max_diff is highly correlated with:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - diff_var_diff: -0.976
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - ptp_diff: -1.000
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - std_diff: 0.967
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.758
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+range_diff is highly correlated with:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - diff_var_diff: -0.975
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - ptp_diff: -1.000
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - std_diff: 0.968
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.760
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO - 
+Dropping 3 new features with |corr| > 0.95:
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - kurtosis_diff
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - max_diff
+2025-07-08 15:25:23 - FeatureEng-20250708_152321 - INFO -   - range_diff
+2025-07-08 15:25:24 - FeatureEng-20250708_152321 - INFO - 特征已保存到新文件: features_20250708_152523.parquet
+2025-07-08 15:25:24 - FeatureEng-20250708_152321 - INFO - --- 生成后完整特征列表 ---
+2025-07-08 15:25:24 - FeatureEng-20250708_152321 - INFO - ['sum_diff', 'cumsum_max_diff', 'zero_cross_diff', 'autocorr_lag1_diff', 'diff_var_diff', 'dominant_freq_diff', 'max_power_diff', 'ptp_diff', 'rolling_std_diff', 'theil_sen_slope_diff', 'ar_resid_std_diff', 'ar_aic_diff', 'ar_predict_mse', 'shannon_entropy_0', 'shannon_entropy_1', 'shannon_entropy_diff', 'perm_entropy_0', 'perm_entropy_1', 'perm_entropy_diff', 'spectral_entropy_0', 'spectral_entropy_1', 'spectral_entropy_diff', 'svd_entropy_0', 'svd_entropy_1', 'svd_entropy_diff', 'approx_entropy_0', 'approx_entropy_1', 'approx_entropy_diff', 'sample_entropy_0', 'sample_entropy_1', 'sample_entropy_diff', 'hjorth_mobility_0', 'hjorth_complexity_0', 'hjorth_mobility_1', 'hjorth_complexity_1', 'hjorth_mobility_diff', 'hjorth_complexity_diff', 'num_zerocross_0', 'num_zerocross_1', 'num_zerocross_diff', 'lziv_complexity_0', 'lziv_complexity_1', 'lziv_complexity_diff', 'cond_entropy_0', 'cond_entropy_1', 'cond_entropy_diff', 'petrosian_fd_diff', 'katz_fd_diff', 'higuchi_fd_diff', 'detrended_fluctuation_diff', 'std_ratio', 'kurt_diff', 'ad_stat', 'ad_pvalue', 'ratio_value_number_to_time_series_length', 'ratio_beyond_r_sigma_6', 'ratio_beyond_r_sigma_1_5', 'quantile_0_6', 'quantile_0_4', 'quantile_0_1', 'percentage_of_reoccurring_values_to_all_values', 'percentage_of_reoccurring_datapoints_to_all_datapoints', 'last_location_of_maximum', 'first_location_of_maximum', 'partial_autocorrelation_lag_2', 'linear_trend_attr_slope_', 'linear_trend_attr_rvalue_', 'linear_trend_attr_intercept_', 'fft_coefficient_attr_imag_coeff_3', 'fft_coefficient_attr_imag_coeff_2', 'fft_coefficient_attr_imag_coeff_1', 'change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_6', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_4_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_0', 'change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_4_ql_0_2', 'change_quantiles_f_agg_mean_isabs_True_qh_1_0_ql_0_4', 'change_quantiles_f_agg_mean_isabs_True_qh_0_6_ql_0_4', 'ar_coefficient_coeff_2_k_10', 'agg_linear_trend_attr_slope_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_slope_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_slope_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_max_', 'agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_', 'agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_5_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_10_f_agg_max_', 'ttest_pvalue', 'ttest_stat', 'mannwhitney_pvalue', 'mannwhitney_stat', 'wilcoxon_pvalue', 'wilcoxon_stat', 'ks_pvalue', 'ks_stat', 'anderson_pvalue', 'anderson_stat', 'levene_pvalue', 'levene_stat', 'bartlett_pvalue', 'bartlett_stat', 'f_test_pvalue', 'f_test_stat', 'skew_diff', 'jb_pvalue_diff', 'shapiro_pvalue_diff', 'median_diff', 'iqr_diff', 'ljungbox_pvalue_diff_lag1', 'ljungbox_pvalue_diff_lag2', 'ljungbox_pvalue_diff_lag3', 'ljungbox_pvalue_diff_lag4', 'ljungbox_pvalue_diff_lag5', 'ljungbox_pvalue_diff_lag6', 'ljungbox_pvalue_diff_lag7', 'ljungbox_pvalue_diff_lag8', 'ljungbox_pvalue_diff_lag9', 'ljungbox_pvalue_diff_lag10', 'adf_pvalue_diff', 'adf_stat_diff', 'adf_lag_diff', 'adf_icbest_diff', 'adf_stat_relative_diff', 'adf_reject_flag_diff', 'kpss_pvalue_diff', 'kpss_stat_diff', 'kpss_lag_diff', 'kpss_stat_relative_diff', 'kpss_reject_flag_diff', 'granger_fwd_min_pval', 'granger_bwd_min_pval', 'granger_pval_diff', 'granger_avg_pval_diff', 'granger_best_lag_diff', 'granger_asym_causal', 'mean_diff', 'std_diff', 'cv_diff', 'min_diff']
+2025-07-08 15:25:24 - FeatureEng-20250708_152321 - INFO - -----------------------------
+2025-07-08 15:25:24 - FeatureEng-20250708_152321 - INFO - 生成/更新完成。新文件: features_20250708_152523.parquet, 总特征数: 157

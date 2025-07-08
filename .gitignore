@@ -1,6 +1,8 @@
 data/
 .crunchdao/
 feature_dfs/
+__pycache__/
+try_features/
 
 *.csv
 *.parquet
@@ -10,4 +12,4 @@ feature_dfs/
 *.gif
 *.bmp
 .cursor/
-
+*.pyc

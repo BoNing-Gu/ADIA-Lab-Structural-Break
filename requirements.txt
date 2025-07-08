@@ -15,3 +15,5 @@ fastparquet
 ipywidgets
 ipykernel
 ydata_profiling
+sktime==0.38.3
+skchange[numba]==0.13.0

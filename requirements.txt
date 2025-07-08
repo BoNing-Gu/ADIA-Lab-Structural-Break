@@ -13,3 +13,5 @@ scikit-learn==1.6.1
 tsfresh==0.21.0
 pyarrow
 fastparquet
+sktime==0.38.3
+skchange[numba]==0.13.0

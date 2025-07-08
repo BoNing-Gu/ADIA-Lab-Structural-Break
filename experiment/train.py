@@ -61,7 +61,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     logger.info(f"训练数据已对齐. X shape: {feature_df.shape}, y shape: {y_train.shape}")
     logger.info(f"--- 使用的特征列表 (共 {len(feature_df.columns)} 个) ---")
     logger.info(feature_df.columns.tolist())
-    logger.info("-" * (len(str(feature_df.columns.tolist()))))
+    logger.info("-" * min(50, len(str(feature_df.columns.tolist()))))
     
     logger.info("Starting 5-fold cross-validation with LightGBM...")
 

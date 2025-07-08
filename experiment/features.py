@@ -181,7 +181,36 @@ def higher_order_stats_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 7. 时间序列建模 ---
+# --- 7. 波动性的波动性特征 ---
+@register_feature
+def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
+    """
+    计算滚动标准差序列的统计特征，以捕捉“波动性的波动性”。
+    在Period 0和Period 1内部，分别计算小窗口（如长度为50）的滚动标准差。
+    然后比较这两条新的滚动标准差序列的均值和方差。
+    """
+    s1 = u['value'][u['period'] == 0]
+    s2 = u['value'][u['period'] == 1]
+    feats = {}
+    window = 50
+
+    def get_rolling_stats(s, w):
+        if len(s) < w:
+            return 0.0, 0.0
+        rolling_std = s.rolling(window=w).std().dropna()
+        if rolling_std.empty:
+            return 0.0, 0.0
+        return rolling_std.mean(), rolling_std.var()
+
+    mean1, var1 = get_rolling_stats(s1, window)
+    mean2, var2 = get_rolling_stats(s2, window)
+    
+    feats[f'rolling_std_w{window}_mean_diff'] = mean2 - mean1
+    feats[f'rolling_std_w{window}_var_diff'] = var2 - var1
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 8. 时间序列建模 ---
 @register_feature
 def ar_model_residual_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
@@ -231,7 +260,7 @@ def ar_model_residual_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 8. 熵信息 ---
+# --- 9. 熵信息 ---
 @register_feature
 def entropy_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].to_numpy()
@@ -303,7 +332,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 9. 分形 ---
+# --- 10. 分形 ---
 @register_feature
 def fractal_dimension_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].to_numpy()
@@ -317,7 +346,7 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 10. AD Test ---
+# --- 11. AD Test ---
 @register_feature
 def ad_test_features(u: pd.DataFrame) -> dict:
     """
@@ -344,7 +373,7 @@ def ad_test_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 11. tsfresh --- 
+# --- 12. tsfresh --- 
 @register_feature
 def tsfresh_features(u: pd.DataFrame) -> dict:
     """基于tsfresh的特征工程"""

@@ -1,8 +1,5 @@
 import pandas as pd
 import numpy as np
-import scipy.stats
-import statsmodels.tsa.api as tsa
-import antropy
 from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 import logging
@@ -12,7 +9,6 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
-from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
 
 from . import config, utils
 
@@ -30,6 +26,7 @@ def register_feature(func):
 # --- 1. 分布统计特征 ---
 @register_feature
 def distributional_stats(u: pd.DataFrame) -> dict:
+    import scipy.stats
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     feats = {}
@@ -134,6 +131,7 @@ def cyclic_features(u: pd.DataFrame) -> dict:
 # --- 5. 振幅特征 ---
 @register_feature
 def amplitude_features(u: pd.DataFrame) -> dict:
+    import scipy.stats
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     feats = {}
@@ -150,6 +148,7 @@ def amplitude_features(u: pd.DataFrame) -> dict:
 # --- 6. 高阶统计量与非线性趋势变化特征---
 @register_feature
 def higher_order_stats_features(u: pd.DataFrame) -> dict:
+    import scipy.stats
     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
     s2 = u['value'][u['period'] == 1].reset_index(drop=True)
     feats = {}
@@ -185,34 +184,39 @@ def higher_order_stats_features(u: pd.DataFrame) -> dict:
 @register_feature
 def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
     """
-    计算滚动标准差序列的统计特征，以捕捉“波动性的波动性”。
-    在Period 0和Period 1内部，分别计算小窗口（如长度为50）的滚动标准差。
-    然后比较这两条新的滚动标准差序列的均值和方差。
+    计算滚动标准差序列的统计特征，以捕捉“波动性的波动性”的变化。
+    在Period 0和Period 1内部，分别计算小窗口（如长度为50）的滚动标准差，
+    然后比较这两条新的滚动标准差序列的均值，生成四个相关特征：
+    1. Period 0 的滚动标准差均值
+    2. Period 1 的滚动标准差均值
+    3. 两者之差
+    4. 两者之比
     """
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     feats = {}
     window = 50
 
-    def get_rolling_stats(s, w):
+    def get_rolling_std_mean(s, w):
         if len(s) < w:
-            return 0.0, 0.0
+            return 0.0
         rolling_std = s.rolling(window=w).std().dropna()
         if rolling_std.empty:
-            return 0.0, 0.0
-        return rolling_std.mean(), rolling_std.var()
+            return 0.0
+        return rolling_std.mean()
 
-    mean1, var1 = get_rolling_stats(s1, window)
-    mean2, var2 = get_rolling_stats(s2, window)
-    
+    mean1 = get_rolling_std_mean(s1, window)
+    mean2 = get_rolling_std_mean(s2, window)
+
     feats[f'rolling_std_w{window}_mean_diff'] = mean2 - mean1
-    feats[f'rolling_std_w{window}_var_diff'] = var2 - var1
+    
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 8. 时间序列建模 ---
 @register_feature
 def ar_model_residual_features(u: pd.DataFrame) -> dict:
+    import statsmodels.tsa.api as tsa
     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
     s2 = u['value'][u['period'] == 1].reset_index(drop=True)
     feats = {}
@@ -263,6 +267,8 @@ def ar_model_residual_features(u: pd.DataFrame) -> dict:
 # --- 9. 熵信息 ---
 @register_feature
 def entropy_features(u: pd.DataFrame) -> dict:
+    import scipy.stats
+    import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     feats = {}
@@ -335,6 +341,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
 # --- 10. 分形 ---
 @register_feature
 def fractal_dimension_features(u: pd.DataFrame) -> dict:
+    import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     feats = {}
@@ -349,6 +356,7 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
 # --- 11. AD Test ---
 @register_feature
 def ad_test_features(u: pd.DataFrame) -> dict:
+    import scipy.stats
     """
     使用 Anderson-Darling 检验来比较两个周期的分布。
     """
@@ -376,6 +384,7 @@ def ad_test_features(u: pd.DataFrame) -> dict:
 # --- 12. tsfresh --- 
 @register_feature
 def tsfresh_features(u: pd.DataFrame) -> dict:
+    from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
     """基于tsfresh的特征工程"""
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()

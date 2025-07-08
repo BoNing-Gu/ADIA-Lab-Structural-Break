@@ -1,0 +1,43 @@
+2025-07-08 14:16:14 - FeatureEng-20250708_141614 - INFO - ========== Running Command: gen-feats ==========
+2025-07-08 14:16:14 - FeatureEng-20250708_141614 - INFO - Args: {'command': 'gen-feats', 'funcs': ['volatility_of_volatility_features'], 'base_file': None}
+2025-07-08 14:16:14 - FeatureEng-20250708_141614 - INFO - =======================================
+2025-07-08 14:16:16 - FeatureEng-20250708_141614 - INFO - 将基于特征文件进行更新: features_20250708_135210.parquet
+2025-07-08 14:16:16 - FeatureEng-20250708_141614 - INFO - 已将文件 features_20250708_135210.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-08 14:16:16 - FeatureEng-20250708_141614 - INFO - --- 开始生成特征: volatility_of_volatility_features ---
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO - 'volatility_of_volatility_features' 生成完毕，耗时: 63.96 秒。
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO -   新生成特征列名: ['rolling_std_w50_mean_p0', 'rolling_std_w50_mean_p1', 'rolling_std_w50_mean_diff', 'rolling_std_w50_mean_ratio']
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO -     - 'rolling_std_w50_mean_p0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO -     - 'rolling_std_w50_mean_p1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO -     - 'rolling_std_w50_mean_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO -     - 'rolling_std_w50_mean_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO - 
+Number of new features: 4
+2025-07-08 14:17:20 - FeatureEng-20250708_141614 - INFO - Number of loaded features: 113
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - 
+rolling_std_w50_mean_p0 is highly correlated with:
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - diff_var_diff: -0.715
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - ptp_diff: -0.772
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - std_diff: -0.758
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - 
+rolling_std_w50_mean_diff is highly correlated with:
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - ptp_diff: 0.753
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - rolling_std_diff: 0.908
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - mean_diff: 0.726
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - std_diff: 0.845
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: 0.714
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - 
+rolling_std_w50_mean_ratio is highly correlated with:
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - std_ratio: 0.994
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - agg_linear_trend_attr_slope_chunk_len_50_f_agg_mean_: 0.811
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - agg_linear_trend_attr_slope_chunk_len_5_f_agg_mean_: 0.704
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - agg_linear_trend_attr_slope_chunk_len_10_f_agg_mean_: 0.732
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - 
+Dropping 1 new features with |corr| > 0.95:
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO -   - rolling_std_w50_mean_ratio
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - 特征已保存到新文件: features_20250708_141721.parquet
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - --- 生成后完整特征列表 ---
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - ['sum_diff', 'cumsum_max_diff', 'zero_cross_diff', 'autocorr_lag1_diff', 'diff_var_diff', 'dominant_freq_diff', 'max_power_diff', 'ptp_diff', 'iqr_diff', 'cv_diff', 'rolling_std_diff', 'theil_sen_slope_diff', 'ar_resid_std_diff', 'ar_aic_diff', 'ar_predict_mse', 'shannon_entropy_0', 'shannon_entropy_1', 'shannon_entropy_diff', 'perm_entropy_0', 'perm_entropy_1', 'perm_entropy_diff', 'spectral_entropy_0', 'spectral_entropy_1', 'spectral_entropy_diff', 'svd_entropy_0', 'svd_entropy_1', 'svd_entropy_diff', 'approx_entropy_0', 'approx_entropy_1', 'approx_entropy_diff', 'sample_entropy_0', 'sample_entropy_1', 'sample_entropy_diff', 'hjorth_mobility_0', 'hjorth_complexity_0', 'hjorth_mobility_1', 'hjorth_complexity_1', 'hjorth_mobility_diff', 'hjorth_complexity_diff', 'num_zerocross_0', 'num_zerocross_1', 'num_zerocross_diff', 'lziv_complexity_0', 'lziv_complexity_1', 'lziv_complexity_diff', 'cond_entropy_0', 'cond_entropy_1', 'cond_entropy_diff', 'petrosian_fd_diff', 'katz_fd_diff', 'higuchi_fd_diff', 'detrended_fluctuation_diff', 'mean_diff', 'std_diff', 'std_ratio', 'skew_diff', 'kurt_diff', 'ks_stat', 'ks_pvalue', 'ttest_pvalue', 'ad_stat', 'ad_pvalue', 'ratio_value_number_to_time_series_length', 'ratio_beyond_r_sigma_6', 'ratio_beyond_r_sigma_1_5', 'quantile_0_6', 'quantile_0_4', 'quantile_0_1', 'percentage_of_reoccurring_values_to_all_values', 'percentage_of_reoccurring_datapoints_to_all_datapoints', 'last_location_of_maximum', 'first_location_of_maximum', 'partial_autocorrelation_lag_2', 'linear_trend_attr_slope_', 'linear_trend_attr_rvalue_', 'linear_trend_attr_intercept_', 'fft_coefficient_attr_imag_coeff_3', 'fft_coefficient_attr_imag_coeff_2', 'fft_coefficient_attr_imag_coeff_1', 'change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_6', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_4_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_0', 'change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_4_ql_0_2', 'change_quantiles_f_agg_mean_isabs_True_qh_1_0_ql_0_4', 'change_quantiles_f_agg_mean_isabs_True_qh_0_6_ql_0_4', 'ar_coefficient_coeff_2_k_10', 'agg_linear_trend_attr_slope_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_slope_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_slope_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_max_', 'agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_', 'agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_5_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_10_f_agg_max_', 'rolling_std_w50_mean_p0', 'rolling_std_w50_mean_p1', 'rolling_std_w50_mean_diff']
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - -----------------------------
+2025-07-08 14:17:21 - FeatureEng-20250708_141614 - INFO - 生成/更新完成。新文件: features_20250708_141721.parquet, 总特征数: 116

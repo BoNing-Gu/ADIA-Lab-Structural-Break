@@ -4,17 +4,19 @@ import scipy.stats
 import statsmodels as sm
 import statsmodels.tsa.api as tsa
 import antropy
-from joblib import Parallel, delayed
-from tqdm.auto import tqdm
-import logging
-import inspect
+from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
+
 import re
 import json
 import time
+import logging
+import inspect
+from pathlib import Path
+from tqdm.auto import tqdm
+from datetime import datetime
+from joblib import Parallel, delayed
 import warnings
 from statsmodels.tools.sm_exceptions import InterpolationWarning
-from datetime import datetime
-from pathlib import Path
 
 from . import config, utils
 
@@ -35,14 +37,27 @@ def register_feature(func):
 
 # --- 1. 分布统计特征 ---
 @register_feature
-def distributional_stats(u: pd.DataFrame) -> dict:
-    import scipy.stats
+def distribution_stats_features(u: pd.DataFrame) -> dict:
+    """统计量的Diff"""
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     feats = {}
-    
+
     mean1, mean2 = s1.mean(), s2.mean()
     feats['mean_diff'] = mean2 - mean1
+
+    median_diff = np.median(s1) - np.median(s2)
+    feats['median_diff'] = median_diff if not np.isnan(median_diff) else 0
+
+    max_diff = np.max(s1) - np.max(s2)
+    feats['max_diff'] = max_diff if not np.isnan(max_diff) else 0
+    
+    min_diff = np.min(s1) - np.min(s2)
+    feats['min_diff'] = min_diff if not np.isnan(min_diff) else 0
+    
+    range1 = np.max(s1) - np.min(s1)
+    range2 = np.max(s2) - np.min(s2)
+    feats['range_diff'] = range1 - range2 if not (np.isnan(range1) or np.isnan(range2)) else 0
     
     std1, std2 = s1.std(), s2.std()
     feats['std_diff'] = std2 - std1
@@ -53,21 +68,159 @@ def distributional_stats(u: pd.DataFrame) -> dict:
     
     feats['skew_diff'] = s2.skew() - s1.skew()
     feats['kurt_diff'] = s2.kurt() - s1.kurt()
-    
-    if len(s1) > 1 and len(s2) > 1:
-        ks_stat, ks_pvalue = scipy.stats.ks_2samp(s1, s2)
-        feats['ks_stat'] = ks_stat
-        feats['ks_pvalue'] = -ks_pvalue
-    else:
-        feats['ks_stat'] = 0
-        feats['ks_pvalue'] = 0
 
+    def safe_cv(s):
+        m = s.mean()
+        std = s.std()
+        return std / m if abs(m) > 1e-6 else 0.0
+    feats['cv_diff'] = safe_cv(s2) - safe_cv(s1)
+
+    def rolling_std_mean(s, window=5):
+        if len(s) < window:
+            return 0.0
+        return s.rolling(window=window).std().dropna().mean()
+    feats['rolling_std_diff'] = rolling_std_mean(s2) - rolling_std_mean(s1)
+
+    def slope_theil_sen(s):
+        if len(s) < 2:
+            return 0.0
+        try:
+            slope, intercept, _, _ = scipy.stats.theilslopes(s.values, np.arange(len(s)))
+            return slope
+        except Exception:
+            return 0.0
+    feats['theil_sen_slope_diff'] = slope_theil_sen(s2) - slope_theil_sen(s1)
+    
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+    
+# --- 2. 假设检验统计量特征 ---
+@register_feature
+def test_stats_features(u: pd.DataFrame) -> dict:
+    """假设检验统计量 & 分段假设检验统计量的Diff"""
+    s1 = u['value'][u['period'] == 0]
+    s2 = u['value'][u['period'] == 1]
+    feats = {}
+
+    # KS检验
+    ks_stat, ks_pvalue = scipy.stats.ks_2samp(s1, s2)
+    feats['ks_stat'] = ks_stat
+    feats['ks_pvalue'] = -ks_pvalue
+
+    # T检验
     ttest_stat, ttest_pvalue = scipy.stats.ttest_ind(s1, s2, equal_var=False)
-    feats['ttest_pvalue'] = -ttest_pvalue if not np.isnan(ttest_pvalue) else 0
+    feats['ttest_pvalue'] = -ttest_pvalue if not np.isnan(ttest_pvalue) else 1
+
+    # AD检验
+    ad_stat, _, ad_pvalue = scipy.stats.anderson_ksamp([s1.to_numpy(), s2.to_numpy()])
+    feats['ad_stat'] = ad_stat
+    feats['ad_pvalue'] = -ad_pvalue
+
+    # Mann-Whitney U检验 (非参数，不假设分布)
+    mw_stat, mw_pvalue = scipy.stats.mannwhitneyu(s1, s2, alternative='two-sided')
+    feats['mannwhitney_stat'] = mw_stat if not np.isnan(mw_stat) else 0
+    feats['mannwhitney_pvalue'] = -mw_pvalue if not np.isnan(mw_pvalue) else 1
+    
+    # Wilcoxon秩和检验
+    w_stat, w_pvalue = scipy.stats.ranksums(s1, s2)
+    feats['wilcoxon_stat'] = w_stat if not np.isnan(w_stat) else 0
+    feats['wilcoxon_pvalue'] = -w_pvalue if not np.isnan(w_pvalue) else 1
+
+    # Levene检验
+    levene_stat, levene_pvalue = scipy.stats.levene(s1, s2)
+    feats['levene_stat'] = levene_stat if not np.isnan(levene_stat) else 0
+    feats['levene_pvalue'] = -levene_pvalue if not np.isnan(levene_pvalue) else 1
+    
+    # Bartlett检验
+    bartlett_stat, bartlett_pvalue = scipy.stats.bartlett(s1, s2)
+    feats['bartlett_stat'] = bartlett_stat if not np.isnan(bartlett_stat) else 0
+    feats['bartlett_pvalue'] = -bartlett_pvalue if not np.isnan(bartlett_pvalue) else 1
+    
+    # Shapiro-Wilk检验
+    if len(s1) <= 5000 and len(s2) <= 5000:  # Shapiro有样本大小限制
+        sw1_stat, sw1_pvalue = scipy.stats.shapiro(s1)
+        sw2_stat, sw2_pvalue = scipy.stats.shapiro(s2)
+        feats['shapiro_pvalue_0'] = sw1_pvalue
+        feats['shapiro_pvalue_1'] = sw2_pvalue
+        feats['shapiro_pvalue_diff'] = sw1_pvalue - sw2_pvalue if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
+    else:
+        feats['shapiro_pvalue_0'] = 1
+        feats['shapiro_pvalue_1'] = 1
+        feats['shapiro_pvalue_diff'] = 0
+
+    # Jarque-Bera检验差异
+    try:
+        jb1_stat, jb1_pvalue = scipy.stats.jarque_bera(s1)
+        jb2_stat, jb2_pvalue = scipy.stats.jarque_bera(s2)
+        feats['jb_pvalue_0'] = jb1_pvalue
+        feats['jb_pvalue_1'] = jb2_pvalue
+        feats['jb_pvalue_diff'] = jb1_pvalue - jb2_pvalue if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
+    except:
+        feats['jb_pvalue_0'] = 1
+        feats['jb_pvalue_1'] = 1
+        feats['jb_pvalue_diff'] = 0
+
+    # KPSS检验
+    def extract_kpss_features(s):
+        if len(s) <= 12:
+            return {'p': 0.1, 'stat': 0.0, 'lag': 0, 'crit_5pct': 0.0, 'reject_5pct': 0}
+        kpss = tsa.stattools.kpss(s, regression='c', nlags='auto')
+        stat, p, lag, crit = kpss
+        crit_5pct = crit['5%']
+        return {
+            'p': p,
+            'stat': stat,
+            'lag': lag,
+            'crit_5pct': crit_5pct,
+            'reject_5pct': int(stat > crit_5pct)  # KPSS原假设是“平稳”，所以 > 临界值 拒绝平稳
+        }
+    try:
+        k1 = extract_kpss_features(s1)
+        k2 = extract_kpss_features(s2)
+
+        feats['kpss_pvalue_0'] = k1['p']
+        feats['kpss_pvalue_1'] = k2['p']
+        feats['kpss_pvalue_diff'] = k1['p'] - k2['p']
+        feats['kpss_stat_diff'] = k1['stat'] - k2['stat']
+    except:
+        feats['kpss_pvalue_0'] = 1
+        feats['kpss_pvalue_1'] = 1
+        feats['kpss_pvalue_diff'] = 0
+        feats['kpss_stat_diff'] = 0
+
+    # 平稳性检验 (ADF)
+    def extract_adf_features(s):
+        if len(s) <= 12:
+            return {'p': 1.0, 'stat': 0.0, 'lag': 0, 'ic': 0.0, 'crit_5pct': 0.0, 'reject_5pct': 0}
+        adf = tsa.stattools.adfuller(s, autolag='AIC')
+        stat, p, lag, _, crit, ic = adf
+        crit_5pct = crit['5%']
+        return {
+            'p': p,
+            'stat': stat,
+            'lag': lag,
+            'ic': ic,
+            'crit_5pct': crit_5pct,
+            'reject_5pct': int(stat < crit_5pct)
+        }
+    try:
+        f1 = extract_adf_features(s1)
+        f2 = extract_adf_features(s2)
+
+        feats['adf_pvalue_0'] = f1['p']
+        feats['adf_pvalue_1'] = f2['p']
+        feats['adf_pvalue_diff'] = f1['p'] - f2['p']
+        feats['adf_stat_diff'] = f1['stat'] - f2['stat']
+        feats['adf_icbest_diff'] = f1['ic'] - f2['ic']
+    except:
+        feats['adf_pvalue_0'] = 1
+        feats['adf_pvalue_1'] = 1
+        feats['adf_pvalue_diff'] = 0
+        feats['adf_stat_diff'] = 0
+        feats['adf_icbest_diff'] = 0
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 2. 累积和特征 ---
+# --- 3. 累积和特征 ---
 @register_feature
 def cumulative_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
@@ -83,7 +236,7 @@ def cumulative_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 3. 振荡特征 ---
+# --- 4. 振荡特征 ---
 @register_feature
 def oscillation_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
@@ -109,7 +262,7 @@ def oscillation_features(u: pd.DataFrame) -> dict:
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 4. 周期性特征 ---
+# --- 5. 周期性特征 ---
 @register_feature
 def cyclic_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
@@ -138,10 +291,9 @@ def cyclic_features(u: pd.DataFrame) -> dict:
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 5. 振幅特征 ---
+# --- 6. 振幅特征 ---
 @register_feature
 def amplitude_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     feats = {}
@@ -153,41 +305,6 @@ def amplitude_features(u: pd.DataFrame) -> dict:
         feats['ptp_diff'] = 0
         feats['iqr_diff'] = 0
     
-    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
-
-# --- 6. 高阶统计量与非线性趋势变化特征---
-@register_feature
-def higher_order_stats_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
-    s1 = u['value'][u['period'] == 0].reset_index(drop=True)
-    s2 = u['value'][u['period'] == 1].reset_index(drop=True)
-    feats = {}
-
-    def safe_cv(s):
-        m = s.mean()
-        std = s.std()
-        return std / m if abs(m) > 1e-6 else 0.0
-
-    feats['cv_diff'] = safe_cv(s2) - safe_cv(s1)
-
-    def rolling_std_mean(s, window=5):
-        if len(s) < window:
-            return 0.0
-        return s.rolling(window=window).std().dropna().mean()
-
-    feats['rolling_std_diff'] = rolling_std_mean(s2) - rolling_std_mean(s1)
-
-    def slope_theil_sen(s):
-        if len(s) < 2:
-            return 0.0
-        try:
-            slope, intercept, _, _ = scipy.stats.theilslopes(s.values, np.arange(len(s)))
-            return slope
-        except Exception:
-            return 0.0
-
-    feats['theil_sen_slope_diff'] = slope_theil_sen(s2) - slope_theil_sen(s1)
-
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 7. 波动性的波动性特征 ---
@@ -225,8 +342,7 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
 
 # --- 8. 时间序列建模 ---
 @register_feature
-def ar_model_residual_features(u: pd.DataFrame) -> dict:
-    import statsmodels.tsa.api as tsa
+def ar_model_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
     s2 = u['value'][u['period'] == 1].reset_index(drop=True)
     feats = {}
@@ -235,23 +351,34 @@ def ar_model_residual_features(u: pd.DataFrame) -> dict:
         if len(s) <= lags + 1:
             return None
         try:
-            return tsa.ar_model.AutoReg(s, lags=lags, old_names=False).fit()
+            # from statsmodels.tsa.ar_model import AutoReg
+            return tsa.AutoReg(s, lags=lags, old_names=False).fit()
         except Exception:
             return None
 
-    model1 = fit_ar(s1)
-    model2 = fit_ar(s2)
+    lags = 10
+    model1 = fit_ar(s1, lags)
+    model2 = fit_ar(s2, lags)
 
+    # 残差标准差 & AIC 差异
     if model1 is not None and model2 is not None:
         feats['ar_resid_std_diff'] = model2.resid.std() - model1.resid.std()
         feats['ar_aic_diff'] = model2.aic - model1.aic
+        feats['ar_const_diff'] = model2.params['const'] - model1.params['const']
+        for i in range(1, lags + 1):
+            feats[f'ar_param_diff_{i}'] = model2.params[f'value.L{i}'] - model1.params[f'value.L{i}']
     else:
         feats['ar_resid_std_diff'] = 0.0
         feats['ar_aic_diff'] = 0.0
+        feats['ar_const_diff'] = 0.0
+        for i in range(1, lags + 1):
+            feats[f'ar_param_diff_{i}'] = 0.0
 
+    # period=0 拟合后预测 period=1 前 len(s2) 步
     if model1 is not None and len(s2) > 0:
         try:
             max_lag = max(model1.model.ar_lags)
+            # 获取 period=0 的尾部作为预测初值
             history = s1.iloc[-max_lag:].tolist()
             preds = []
 
@@ -261,13 +388,13 @@ def ar_model_residual_features(u: pd.DataFrame) -> dict:
                 for i, lag in enumerate(model1.model.ar_lags):
                     pred += model1.params[f'value.L{lag}'] * lagged_vals[-lag]
                 preds.append(pred)
-                history.append(s2.iloc[t])
+                history.append(s2.iloc[t])  # 模拟滚动更新
 
             preds = np.array(preds)
             mse = np.mean((preds - s2.values[:len(preds)]) ** 2)
             feats['ar_predict_mse'] = mse
         except Exception as e:
-            logger.warning(f"AR prediction error: {e}")
+            print(f"[WARN] Prediction error: {e}")
             feats['ar_predict_mse'] = 0.0
     else:
         feats['ar_predict_mse'] = 0.0
@@ -277,8 +404,6 @@ def ar_model_residual_features(u: pd.DataFrame) -> dict:
 # --- 9. 熵信息 ---
 @register_feature
 def entropy_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
-    import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     feats = {}
@@ -351,7 +476,6 @@ def entropy_features(u: pd.DataFrame) -> dict:
 # --- 10. 分形 ---
 @register_feature
 def fractal_dimension_features(u: pd.DataFrame) -> dict:
-    import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     feats = {}
@@ -363,38 +487,9 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 11. AD Test ---
-@register_feature
-def ad_test_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
-    """
-    使用 Anderson-Darling 检验来比较两个周期的分布。
-    """
-    s1 = u['value'][u['period'] == 0]
-    s2 = u['value'][u['period'] == 1]
-    feats = {}
-
-    # AD检验要求每个样本至少有2个观测值
-    if len(s1) > 1 and len(s2) > 1:
-        try:
-            ad_stat, _, ad_pvalue = scipy.stats.anderson_ksamp([s1.to_numpy(), s2.to_numpy()])
-            feats['ad_stat'] = ad_stat
-            # p-value 越小，说明差异越显著，我们希望特征值越大，所以取负
-            feats['ad_pvalue'] = -ad_pvalue
-        except ValueError:
-            # 当样本中所有值都相同时，会抛出 ValueError
-            feats['ad_stat'] = 0
-            feats['ad_pvalue'] = 0
-    else:
-        feats['ad_stat'] = 0
-        feats['ad_pvalue'] = 0
-
-    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
-
-# --- 12. tsfresh --- 
+# --- 11. tsfresh --- 
 @register_feature
 def tsfresh_features(u: pd.DataFrame) -> dict:
-    from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
     """基于tsfresh的特征工程"""
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
@@ -653,7 +748,8 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         _backup_feature_file(base_path)
     else:
         logger.info("未找到基础特征文件，将创建全新的特征集。")
-        feature_df, metadata = pd.DataFrame(index=X_df['id'].unique()), {}
+        feature_df, metadata = pd.DataFrame(index=X_df.index.get_level_values('id').unique()), {}
+    logger.info(f"基础特征文件格式：{feature_df.shape}")
 
     # 2. 逐个生成新特征并更新
     loaded_features = feature_df.columns.tolist()

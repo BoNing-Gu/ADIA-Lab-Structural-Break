@@ -1,0 +1,29 @@
+2025-07-08 22:22:29 - FeatureEng-20250708_222229 - INFO - ========== Running Command: gen-feats ==========
+2025-07-08 22:22:29 - FeatureEng-20250708_222229 - INFO - Args: {'command': 'gen-feats', 'funcs': None, 'base_file': None}
+2025-07-08 22:22:29 - FeatureEng-20250708_222229 - INFO - =======================================
+2025-07-08 22:22:31 - FeatureEng-20250708_222229 - INFO - 未指定特征函数，将运行所有 11 个非实验性特征。
+2025-07-08 22:22:31 - FeatureEng-20250708_222229 - INFO - 未找到基础特征文件，将创建全新的特征集。
+2025-07-08 22:22:32 - FeatureEng-20250708_222229 - INFO - 基础特征文件格式：(10001, 0)
+2025-07-08 22:22:32 - FeatureEng-20250708_222229 - INFO - --- 开始生成特征: distribution_stats_features ---
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO - 'distribution_stats_features' 生成完毕，耗时: 185.25 秒。
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -   新生成特征列名: ['mean_diff', 'median_diff', 'max_diff', 'min_diff', 'range_diff', 'std_diff', 'std_ratio', 'skew_diff', 'kurt_diff', 'cv_diff', 'rolling_std_diff', 'theil_sen_slope_diff']
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'mean_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'median_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'max_diff': 空值比例=0.00%, 零值比例=0.04%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'min_diff': 空值比例=0.00%, 零值比例=0.06%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'range_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'std_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'skew_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'kurt_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'cv_diff': 空值比例=0.00%, 零值比例=0.13%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'rolling_std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO -     - 'theil_sen_slope_diff': 空值比例=0.00%, 零值比例=0.03%
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO - 
+Number of new features: 12
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO - Number of loaded features: 0
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO - 
+No new features show high correlation (|corr| > 0.7) with loaded features.
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-08 22:25:37 - FeatureEng-20250708_222229 - INFO - --- 开始生成特征: test_stats_features ---

@@ -1,0 +1,16 @@
+2025-07-08 22:15:55 - Training-20250708_221555 - INFO - ========== Running Command: train ==========
+2025-07-08 22:15:55 - Training-20250708_221555 - INFO - Args: {'command': 'train', 'feature_file': None, 'save_oof': True, 'save_model': True}
+2025-07-08 22:15:55 - Training-20250708_221555 - INFO - =======================================
+2025-07-08 22:15:55 - Training-20250708_221555 - INFO - Starting training and evaluation pipeline...
+2025-07-08 22:15:55 - Training-20250708_221555 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "random_state": 42,
+    "n_estimators": 1000,
+    "learning_rate": 0.005,
+    "num_leaves": 31,
+    "n_jobs": -1
+}
+2025-07-08 22:15:55 - Training-20250708_221555 - INFO - 未指定特征文件，将尝试加载最新版本。
+2025-07-08 22:15:55 - Training-20250708_221555 - ERROR - 无法找到要加载的特征文件: None
+2025-07-08 22:15:55 - Training-20250708_221555 - ERROR - 特征加载失败，训练中止。

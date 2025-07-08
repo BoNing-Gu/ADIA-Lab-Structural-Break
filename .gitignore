@@ -2,6 +2,7 @@ data/
 .crunchdao/
 feature_dfs/
 __pycache__/
+try_features/
 
 *.csv
 *.parquet

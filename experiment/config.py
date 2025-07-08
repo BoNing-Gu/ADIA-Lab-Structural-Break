@@ -44,6 +44,9 @@ CV_PARAMS = {
 } 
 
 # --- Features ---
+# 在这里定义不希望在 "一键生成所有特征" 时运行的函数名称
+# 如果要运行这些特征，需要在命令行中通过 --funcs 参数明确指定
+# 例如: python -m experiment.main gen-feats --funcs ar_model_features
 EXPERIMENTAL_FEATURES = [
-    # 在这里添加实验性特征函数的名称, e.g.
+    "arima_model_features",
 ] 

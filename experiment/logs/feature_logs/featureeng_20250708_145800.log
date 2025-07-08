@@ -1,0 +1,6 @@
+2025-07-08 14:58:00 - FeatureEng-20250708_145800 - INFO - ========== Running Command: gen-feats ==========
+2025-07-08 14:58:00 - FeatureEng-20250708_145800 - INFO - Args: {'command': 'gen-feats', 'funcs': ['arima_garch_mismatch_features'], 'base_file': None}
+2025-07-08 14:58:00 - FeatureEng-20250708_145800 - INFO - =======================================
+2025-07-08 14:58:02 - FeatureEng-20250708_145800 - INFO - 将基于特征文件进行更新: features_20250708_143209.parquet
+2025-07-08 14:58:02 - FeatureEng-20250708_145800 - INFO - 已将文件 features_20250708_143209.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-08 14:58:02 - FeatureEng-20250708_145800 - INFO - --- 开始生成特征: arima_garch_mismatch_features ---

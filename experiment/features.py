@@ -20,6 +20,18 @@ from statsmodels.tools.sm_exceptions import InterpolationWarning
 
 from . import config, utils
 
+# --- GPU 加速配置 ---
+# 尝试导入GPU相关库并检查可用性
+try:
+    import cudf
+    import cupy
+    from numba import cuda
+    GPU_AVAILABLE = cuda.is_available()
+except ImportError:
+    GPU_AVAILABLE = False
+# --- END ---
+
+
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.simplefilter("ignore", InterpolationWarning)
 warnings.simplefilter("ignore", FutureWarning)
@@ -30,10 +42,18 @@ logger = None
 # --- 特征函数注册表 ---
 FEATURE_REGISTRY = {}
 
-def register_feature(func):
-    """一个用于注册特征函数的装饰器"""
-    FEATURE_REGISTRY[func.__name__] = func
-    return func
+def register_feature(_func=None, *, parallelizable=True):
+    """一个用于注册特征函数的装饰器，可以标记特征是否可并行化。"""
+    def decorator_register(func):
+        FEATURE_REGISTRY[func.__name__] = {"func": func, "parallelizable": parallelizable}
+        return func
+
+    if _func is None:
+        # Used as @register_feature(parallelizable=...)
+        return decorator_register
+    else:
+        # Used as @register_feature
+        return decorator_register(_func)
 
 # --- 1. 分布统计特征 ---
 @register_feature
@@ -397,11 +417,94 @@ def ar_model_features(u: pd.DataFrame) -> dict:
             print(f"[WARN] Prediction error: {e}")
             feats['ar_predict_mse'] = 0.0
     else:
-        feats['ar_predict_mse'] = 0.0
+        feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+
+    # --- 特征组2: 用 s2 训练，预测 s1 ---
+    if len(s2_pd) > min_len and len(s1_pd) > 0:
+        try:
+            sf2 = StatsForecast(models=[ARIMA(order=order, season_length=0)], freq=1)
+            sf2.fit(df2)
+            forecasts_on_s1 = sf2.predict(h=len(s1_pd))
+            predictions_on_s1 = forecasts_on_s1['ARIMA'].to_cupy().get()
+            residuals_s1_pred = s1_pd.values - predictions_on_s1
+            feats['arima_residuals_s1_pred_mean'] = np.mean(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_std'] = np.std(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_skew'] = pd.Series(residuals_s1_pred).skew()
+            feats['arima_residuals_s1_pred_kurt'] = pd.Series(residuals_s1_pred).kurt()
+        except Exception:
+            feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+
+    # --- 特征组3: 分别建模，比较差异 ---
+    s1_resid_std, s2_resid_std = np.nan, np.nan
+    s1_params, s2_params = {}, {}
+
+    if len(s1_pd) > min_len:
+        try:
+            sf1 = StatsForecast(models=[ARIMA(order=order, season_length=0)], freq=1)
+            fitted_vals_df1 = sf1.fit(df1).predict(h=0, fitted=True)
+            if not fitted_vals_df1.empty:
+                fitted_vals1 = fitted_vals_df1['ARIMA'].to_cupy().get()
+                s1_resid = s1_pd.values[-len(fitted_vals1):] - fitted_vals1
+                s1_resid_std = np.std(s1_resid)
+                params_cupy = sf1.models[0].model_
+                s1_params = {k: v.get() if hasattr(v, 'get') else v for k,v in params_cupy.items()}
+        except Exception:
+            pass
+
+    if len(s2_pd) > min_len:
+        try:
+            sf2 = StatsForecast(models=[ARIMA(order=order, season_length=0)], freq=1)
+            fitted_vals_df2 = sf2.fit(df2).predict(h=0, fitted=True)
+            if not fitted_vals_df2.empty:
+                fitted_vals2 = fitted_vals_df2['ARIMA'].to_cupy().get()
+                s2_resid = s2_pd.values[-len(fitted_vals2):] - fitted_vals2
+                s2_resid_std = np.std(s2_resid)
+                params_cupy = sf2.models[0].model_
+                s2_params = {k: v.get() if hasattr(v, 'get') else v for k,v in params_cupy.items()}
+        except Exception:
+            pass
+            
+    feats['arima_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    
+    all_param_names = sorted(list(set(s1_params.keys()) | set(s2_params.keys())))
+    if 'constant' in all_param_names: all_param_names.remove('constant')
+    
+    # 统一AR和MA系数的名称和长度
+    max_ar = max(len(s1_params.get('ar', [])), len(s2_params.get('ar', [])))
+    max_ma = max(len(s1_params.get('ma', [])), len(s2_params.get('ma', [])))
+
+    p1_ar = np.resize(s1_params.get('ar', []), max_ar)
+    p2_ar = np.resize(s2_params.get('ar', []), max_ar)
+    p1_ma = np.resize(s1_params.get('ma', []), max_ma)
+    p2_ma = np.resize(s2_params.get('ma', []), max_ma)
+
+    for i in range(max_ar):
+        feats[f'arima_param_ar_{i+1}_diff'] = p2_ar[i] - p1_ar[i]
+    for i in range(max_ma):
+        feats[f'arima_param_ma_{i+1}_diff'] = p2_ma[i] - p1_ma[i]
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 9. 熵信息 ---
+
+@register_feature
+def arima_model_features(u: pd.DataFrame) -> dict:
+    """
+    ARIMA 特征提取的动态调度器。
+    如果检测到GPU，则使用`StatsForecast`进行加速计算，否则回退到
+    使用`statsmodels`的CPU版本。
+    """
+    if GPU_AVAILABLE:
+        # logger is not available here, print for now
+        # logger.info("GPU detected, using arima_model_features_gpu.")
+        return arima_model_features_gpu(u)
+    else:
+        # logger.info("No GPU detected, using arima_model_features_cpu.")
+        return arima_model_features_cpu(u)
+
+
+# --- 10. 熵信息 ---
 @register_feature
 def entropy_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].to_numpy()
@@ -473,7 +576,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 10. 分形 ---
+# --- 11. 分形 ---
 @register_feature
 def fractal_dimension_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].to_numpy()
@@ -639,6 +742,15 @@ def _backup_feature_file(file_path: Path):
         file_path.rename(backup_path)
         logger.info(f"已将文件 {file_path.name} 备份到: {config.FEATURE_BACKUP_DIR}")
 
+def _apply_feature_func_sequential(func, X_df: pd.DataFrame) -> pd.DataFrame:
+    """顺序应用单个特征函数"""
+    all_ids = X_df.index.get_level_values("id").unique()
+    results = [
+        {**{'id': id_val}, **func(X_df.loc[id_val])}
+        for id_val in tqdm(all_ids, desc=f"Running {func.__name__} (sequentially)")
+    ]
+    return pd.DataFrame(results).set_index('id')
+
 def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
     """并行应用单个特征函数"""
     all_ids = X_df.index.get_level_values("id").unique()
@@ -745,7 +857,7 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         logger.info(f"将基于特征文件进行更新: {base_path.name}")
         feature_df, metadata = _load_feature_file(base_path)
         # 更新操作需要备份旧文件
-        _backup_feature_file(base_path)
+        # _backup_feature_file(base_path) # <<< 移除此处的调用
     else:
         logger.info("未找到基础特征文件，将创建全新的特征集。")
         feature_df, metadata = pd.DataFrame(index=X_df.index.get_level_values('id').unique()), {}
@@ -759,8 +871,15 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         logger.info(f"--- 开始生成特征: {func_name} ---")
         start_time = time.time()
         
-        func = FEATURE_REGISTRY[func_name]
-        new_features_df = _apply_feature_func_parallel(func, X_df)
+        feature_info = FEATURE_REGISTRY[func_name]
+        func = feature_info['func']
+        is_parallelizable = feature_info['parallelizable']
+        
+        if is_parallelizable:
+            new_features_df = _apply_feature_func_parallel(func, X_df)
+        else:
+            logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
+            new_features_df = _apply_feature_func_sequential(func, X_df)
         
         # 记录日志
         duration = time.time() - start_time
@@ -782,6 +901,10 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
     # 3. 保存结果
     new_feature_count = len(feature_df.columns)
     if new_feature_count > initial_feature_count:
+        # 只有在成功生成新特征后，才备份旧文件
+        if base_path and base_path.exists():
+            _backup_feature_file(base_path)
+            
         metadata['last_updated_funcs'] = funcs_to_run
         new_file_path = _save_feature_file(feature_df, metadata)
         logger.info(f"特征已保存到新文件: {new_file_path.name}")
@@ -794,28 +917,77 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
     final_feature_count = len(feature_df.columns)
     logger.info(f"生成/更新完成。新文件: {new_file_path.name if new_feature_count > initial_feature_count else 'N/A'}, 总特征数: {final_feature_count}")
 
-def delete_features(funcs_to_delete: list, base_feature_file: str):
+def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_to_delete: list = None):
     """
     从指定的特征文件中删除特征，并生成一个新的带时间戳的文件。
+    可以按函数名删除，也可以按特定的列名删除。
     """
     base_path = config.FEATURE_DIR / base_feature_file
     if not base_path.exists():
         logger.error(f"指定的特征文件不存在: {base_feature_file}")
         return
 
-    logger.info(f"将从文件 {base_feature_file} 中删除特征: {funcs_to_delete}")
+    logger.info(f"将从文件 {base_feature_file} 中删除特征...")
     feature_df, metadata = _load_feature_file(base_path)
+    
+    if feature_df.empty:
+        logger.error(f"无法从 {base_feature_file} 加载数据，操作中止。")
+        return
+
     _backup_feature_file(base_path)
     
+    initial_columns = set(feature_df.columns)
     cols_to_drop = []
-    for func_name in funcs_to_delete:
-        if func_name in metadata:
-            cols_to_drop.extend(metadata.pop(func_name))
 
-    feature_df.drop(columns=[c for c in cols_to_drop if c in feature_df.columns], inplace=True)
+    if funcs_to_delete:
+        logger.info(f"按函数名删除: {funcs_to_delete}")
+        # 修复逻辑: 检查 metadata['last_updated_funcs'] 中生成的列
+        # 旧逻辑依赖于 metadata[func_name]，但这个key没有被创建
+        generated_cols_by_func = {}
+        # 假设 metadata['generated_by'][col] = func_name 的结构，需要先改造 generate_features
+        # 当前元数据不健全，无法安全地按函数名删除。
+        # 作为一个临时的、更鲁棒的方案，我们基于函数名约定来猜测列名
+        for func_name in funcs_to_delete:
+            # 这是一个简化的匹配，可能会误删。更可靠的方式是改造 generate_features 来记录每个特征由谁生成。
+            # 例如，'distributional_stats' 会匹配 'distributional_stats_mean_diff' 等
+            # 为了安全，我们只匹配以函数名开头的列
+            matched_cols = [col for col in feature_df.columns if col.startswith(func_name)]
+            if matched_cols:
+                logger.info(f"  函数 '{func_name}' 匹配到 {len(matched_cols)} 列: {matched_cols}")
+                cols_to_drop.extend(matched_cols)
+            else:
+                logger.warning(f"  未找到与函数 '{func_name}' 相关的特征列。")
+
+
+    if cols_to_delete:
+        logger.info(f"按列名删除: {cols_to_delete}")
+        # 验证列名是否存在
+        valid_cols = [c for c in cols_to_delete if c in feature_df.columns]
+        invalid_cols = set(cols_to_delete) - set(valid_cols)
+        if invalid_cols:
+            logger.warning(f"  以下列名不存在，将被忽略: {list(invalid_cols)}")
+        cols_to_drop.extend(valid_cols)
+
+    # 去重并执行删除
+    final_cols_to_drop = sorted(list(set(cols_to_drop)))
+    if not final_cols_to_drop:
+        logger.warning("没有找到任何要删除的特征列，操作中止。")
+        # 恢复备份，因为没有变化
+        backup_path = config.FEATURE_BACKUP_DIR / base_path.name
+        if backup_path.exists():
+            backup_path.rename(base_path)
+            logger.info("已恢复原始文件。")
+        return
+        
+    logger.info(f"总计将删除 {len(final_cols_to_drop)} 个特征列: {final_cols_to_drop}")
+    feature_df.drop(columns=final_cols_to_drop, inplace=True)
+    
+    # 更新元数据（简单地移除一个标记，表示文件被修改过）
+    metadata['last_deleted_features'] = final_cols_to_drop
     
     new_path = _save_feature_file(feature_df, metadata)
     logger.info(f"删除完成。新文件: {new_path.name}, 总特征数: {len(feature_df.columns)}")
+
 
 def load_features(feature_file: str = None) -> tuple[pd.DataFrame | None, str | None]:
     """加载指定的或最新的特征文件。"""

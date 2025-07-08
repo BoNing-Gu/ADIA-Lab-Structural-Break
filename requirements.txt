@@ -6,12 +6,14 @@ seaborn==0.13.2
 pandas==2.2.3
 numpy==2.2.6
 scipy==1.15.3
-statsmodels==0.14.4
 tqdm==4.67.1
 lightgbm==4.6.0
 scikit-learn==1.6.1
 tsfresh==0.21.0
-pyarrow
+pyarrow==16.1.0
 fastparquet
+ipywidgets
+ipykernel
+ydata_profiling
 sktime==0.38.3
 skchange[numba]==0.13.0

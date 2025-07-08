@@ -20,8 +20,11 @@ def main():
 
     # --- 特征删除命令 ---
     parser_del = subparsers.add_parser('del-feats', help='从指定的特征文件中删除特征，并创建一个新的带时间戳的文件')
-    parser_del.add_argument('--funcs', nargs='+', required=True, help='要删除的特征函数名称列表。')
     parser_del.add_argument('--base-file', type=str, required=True, help='必须指定一个基础特征文件名进行操作。')
+    group = parser_del.add_mutually_exclusive_group(required=True)
+    group.add_argument('--funcs', nargs='+', help='要删除的特征函数名称列表。')
+    group.add_argument('--cols', nargs='+', help='要删除的特定特征列名列表。')
+
 
     # --- 训练命令 ---
     parser_train = subparsers.add_parser('train', help='使用特征文件进行训练')
@@ -57,7 +60,11 @@ def main():
     elif args.command == 'del-feats':
         from . import features
         features.logger = logger
-        features.delete_features(funcs_to_delete=args.funcs, base_feature_file=args.base_file)
+        features.delete_features(
+            base_feature_file=args.base_file,
+            funcs_to_delete=args.funcs, 
+            cols_to_delete=args.cols
+        )
 
     elif args.command == 'train':
         from . import train, features

@@ -1,0 +1,106 @@
+2025-07-09 11:29:35 - FeatureEng-20250709_112935 - INFO - ========== Running Command: gen-feats ==========
+2025-07-09 11:29:35 - FeatureEng-20250709_112935 - INFO - Args: {'command': 'gen-feats', 'funcs': ['ar_model_features'], 'base_file': None}
+2025-07-09 11:29:35 - FeatureEng-20250709_112935 - INFO - =======================================
+2025-07-09 11:29:36 - FeatureEng-20250709_112935 - INFO - 将基于特征文件进行更新: features_20250709_110124.parquet
+2025-07-09 11:29:36 - FeatureEng-20250709_112935 - INFO - 基础特征文件格式：(10001, 134)
+2025-07-09 11:29:36 - FeatureEng-20250709_112935 - INFO - --- 开始生成特征: ar_model_features ---
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 'ar_model_features' 生成完毕，耗时: 48.19 秒。
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   新生成特征列名: ['ar_residuals_s2_pred_mean', 'ar_residuals_s2_pred_std', 'ar_residuals_s2_pred_skew', 'ar_residuals_s2_pred_kurt', 'ar_residuals_s1_pred_mean', 'ar_residuals_s1_pred_std', 'ar_residuals_s1_pred_skew', 'ar_residuals_s1_pred_kurt', 'ar_resid_std_diff', 'ar_aic_diff', 'ar_bic_diff', 'param_0_diff', 'param_1_diff', 'param_2_diff', 'param_3_diff', 'param_4_diff', 'param_5_diff']
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s2_pred_mean': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s2_pred_std': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s2_pred_skew': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s2_pred_kurt': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s1_pred_mean': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s1_pred_std': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s1_pred_skew': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_residuals_s1_pred_kurt': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_resid_std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_aic_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'ar_bic_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'param_0_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'param_1_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'param_2_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'param_3_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'param_4_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -     - 'param_5_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+Number of new features: 17
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - Number of loaded features: 134
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_residuals_s2_pred_mean is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - adf_pvalue_0: -0.993
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - sum_diff: 0.795
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - cumsum_max_diff: 0.796
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - max_power_diff: 0.932
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_mean_: -0.722
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_residuals_s2_pred_std is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - adf_pvalue_0: 0.854
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - max_power_diff: -0.752
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_residuals_s1_pred_mean is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - mean_diff: -0.998
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - rolling_std_diff: -0.733
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - sum_diff: -0.828
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - cumsum_max_diff: -0.825
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - rolling_std_w50_mean_diff: -0.707
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - linear_trend_attr_slope_: -0.705
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - agg_linear_trend_attr_slope_chunk_len_5_f_agg_mean_: -0.724
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - agg_linear_trend_attr_slope_chunk_len_10_f_agg_mean_: -0.739
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_residuals_s1_pred_std is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - max_diff: 0.963
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - range_diff: 0.964
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - std_diff: -0.956
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - cumsum_max_diff: -0.702
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - rolling_std_w50_mean_diff: -0.702
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.720
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_residuals_s1_pred_skew is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - skew_diff: -0.789
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_residuals_s1_pred_kurt is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - kurt_diff: -0.925
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_resid_std_diff is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - max_diff: -0.989
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - range_diff: -0.990
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - std_diff: 0.984
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - rolling_std_w50_mean_diff: 0.834
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: 0.780
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_aic_diff is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - adf_icbest_diff: -1.000
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+ar_bic_diff is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - adf_icbest_diff: -1.000
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+param_0_diff is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - mean_diff: 0.706
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - rolling_std_diff: 0.782
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - rolling_std_w50_mean_diff: 0.855
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_4: 0.708
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2: 0.713
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2: 0.709
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_2: 0.706
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_0: 0.734
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+param_1_diff is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - autocorr_lag1_diff: 0.987
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - hjorth_complexity_diff: 0.878
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+param_2_diff is highly correlated with:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - partial_autocorrelation_lag_2: 0.982
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - ar_coefficient_coeff_2_k_10: 0.989
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO - 
+Dropping 8 new features with |corr| > 0.95:
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - ar_residuals_s2_pred_mean
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - ar_residuals_s1_pred_mean
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - ar_residuals_s1_pred_std
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - ar_resid_std_diff
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - ar_aic_diff
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - ar_bic_diff
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - param_1_diff
+2025-07-09 11:30:25 - FeatureEng-20250709_112935 - INFO -   - param_2_diff

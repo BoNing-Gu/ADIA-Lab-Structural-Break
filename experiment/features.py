@@ -645,7 +645,6 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-
 # --- 特征管理核心逻辑 ---
 def _get_latest_feature_file() -> Path | None:
     """查找并返回最新的特征文件路径"""

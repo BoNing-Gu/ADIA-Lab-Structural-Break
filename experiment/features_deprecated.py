@@ -357,6 +357,67 @@ def more_distributional_stats(u: pd.DataFrame) -> dict:
     # 清理NaN值
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
+
+def wavelet_features(u: pd.DataFrame) -> dict:
+    """
+    使用小波变换提取时频域特征。
+    对两个时期的数据分别进行多级小波分解，比较各层系数的统计特征。
+    """
+    import pywt
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    feats = {}
+    wavelet = 'db4'
+    
+    def get_wavelet_feats(series):
+        if len(series) < pywt.Wavelet(wavelet).dec_len + 1:
+            return {} # 数据太短无法分解
+        
+        # 自动决定分解层数
+        max_level = pywt.dwt_max_level(len(series), pywt.Wavelet(wavelet).dec_len)
+        levels = min(max_level, 4) # 限制最大层数为4，防止过分解
+        if levels == 0:
+            return {}
+            
+        coeffs = pywt.wavedec(series, wavelet, level=levels)
+        
+        w_feats = {}
+        for i, (cA, *cDs) in enumerate(zip([coeffs[0]], coeffs[1:])):
+            level = levels - i
+            # 近似系数
+            w_feats[f'wavelet_cA_energy_level{level}'] = np.sum(cA**2)
+            w_feats[f'wavelet_cA_std_level{level}'] = np.std(cA)
+            # 细节系数
+            for j, cD in enumerate(cDs):
+                detail_level = levels - j
+                w_feats[f'wavelet_cD_energy_level{detail_level}'] = np.sum(cD**2)
+                w_feats[f'wavelet_cD_std_level{detail_level}'] = np.std(cD)
+
+        # 仅使用最后一层(最粗糙的近似)和所有细节系数
+        last_cA = coeffs[0]
+        all_details = np.concatenate(coeffs[1:])
+        w_feats['wavelet_cA_last_energy'] = np.sum(last_cA**2)
+        w_feats['wavelet_cA_last_std'] = np.std(last_cA)
+        w_feats['wavelet_details_total_energy'] = np.sum(all_details**2)
+        w_feats['wavelet_details_total_std'] = np.std(all_details)
+        
+        return w_feats
+
+    s1_feats = get_wavelet_feats(s1)
+    s2_feats = get_wavelet_feats(s2)
+
+    all_keys = set(s1_feats.keys()) | set(s2_feats.keys())
+    
+    for key in all_keys:
+        v1 = s1_feats.get(key, 0)
+        v2 = s2_feats.get(key, 0)
+        feats[f'{key}_diff'] = v2 - v1
+        if abs(v1) > 1e-6:
+             feats[f'{key}_ratio'] = v2 / v1
+        else:
+             feats[f'{key}_ratio'] = 1.0 if abs(v2) < 1e-6 else 1e6
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 # # --- 11. 时间序列建模 ---
 # @register_feature
 # def ar_model_features(u: pd.DataFrame) -> dict:

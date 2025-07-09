@@ -1,0 +1,8 @@
+2025-07-09 12:46:04 - FeatureEng-20250709_124604 - INFO - ========== Running Command: gen-feats ==========
+2025-07-09 12:46:04 - FeatureEng-20250709_124604 - INFO - Args: {'command': 'gen-feats', 'funcs': ['distance_features'], 'base_file': None}
+2025-07-09 12:46:04 - FeatureEng-20250709_124604 - INFO - =======================================
+2025-07-09 12:46:05 - FeatureEng-20250709_124604 - WARNING - 函数 distance_features 未在注册表中找到，已跳过。
+2025-07-09 12:46:05 - FeatureEng-20250709_124604 - INFO - 将基于特征文件进行更新: features_20250709_113153.parquet
+2025-07-09 12:46:05 - FeatureEng-20250709_124604 - INFO - 基础特征文件格式：(10001, 143)
+2025-07-09 12:46:05 - FeatureEng-20250709_124604 - INFO - 没有新特征生成，文件未保存。
+2025-07-09 12:46:05 - FeatureEng-20250709_124604 - INFO - 生成/更新完成。新文件: N/A, 总特征数: 143

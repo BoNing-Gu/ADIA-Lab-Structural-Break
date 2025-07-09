@@ -162,8 +162,9 @@ python -m experiment.main train --save-model --save-oof --perm-imp
     *   `--funcs`: 指定要生成的一个或多个特征函数。**如果省略，则生成所有非实验性特征**。
     *   `--base-file <filename>`: 指定一个基础特征文件名进行更新，默认为最新。
 
-*   **删除特征**: `python -m experiment.main del-feats --funcs <func_name_1> ... --base-file <filename>`
+*   **删除特征**: `python -m experiment.main del-feats --funcs <func_name_1> --cols <col_name_1> ... --base-file <filename>`
     *   `--funcs`: 指定要删除的特征**函数名**。脚本会自动找到该函数生成的所有列并删除它们。
+    *   `--cols`: 指定要删除的特征**特征列名**。
     *   `--base-file <filename>`: **必须**指定要操作的基础特征文件名。
 
 *   **模型训练**: `python -m experiment.main train`

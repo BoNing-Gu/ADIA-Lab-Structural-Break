@@ -29,11 +29,18 @@ TRAIN_Y_FILE = DATA_DIR / 'y_train.parquet'
 LGBM_PARAMS = {
     'objective': 'binary',
     'metric': 'auc',
+    'boosting_type': 'gbdt',
     'random_state': 42,
     'n_estimators': 1000, 
     'learning_rate': 0.005,
     'num_leaves': 31,
     'n_jobs': -1,
+
+    # --- 正则化和采样 ---
+    'reg_alpha': 0.5,          # L1 正则化
+    'reg_lambda': 0.5,         # L2 正则化
+    'colsample_bytree': 0.8,   # 构建树时对特征的列采样率
+    'subsample': 0.8,          # 训练样本的采样率
 }
 
 # --- CV ---
@@ -48,5 +55,5 @@ CV_PARAMS = {
 # 如果要运行这些特征，需要在命令行中通过 --funcs 参数明确指定
 # 例如: python -m experiment.main gen-feats --funcs ar_model_features
 EXPERIMENTAL_FEATURES = [
-    "arima_model_features",
+    "wavelet_features",
 ] 

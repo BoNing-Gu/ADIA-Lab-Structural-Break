@@ -61,6 +61,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     
     for fold, (train_idx, val_idx) in enumerate(skf.split(feature_df, y_train)):
         logger.info(f"--- Fold {fold+1}/{config.CV_PARAMS['n_splits']} ---")
+        fold_start_time = time.time()
 
         X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
         X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]
@@ -69,7 +70,8 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
 
         model.fit(
             X_train_fold, y_train_fold,
-            eval_set=[(X_val_fold, y_val_fold)],
+            eval_set=[(X_train_fold, y_train_fold), (X_val_fold, y_val_fold)],
+            eval_names=['train', 'valid'],
             eval_metric='auc',
             callbacks=[lgb.early_stopping(100, verbose=False)]
         )
@@ -78,8 +80,13 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
         oof_preds[val_idx] = preds
         models.append(model)
         feature_importances[f'fold_{fold+1}'] = model.feature_importances_
+        
+        train_auc = model.best_score_['train']['auc']
         fold_auc = roc_auc_score(y_val_fold, preds)
-        logger.info(f"Fold {fold+1} AUC: {fold_auc:.5f}")
+        logger.info(f"Fold {fold+1} Train AUC: {train_auc:.5f}, Val AUC: {fold_auc:.5f}")
+
+        fold_duration = time.time() - fold_start_time
+        logger.info(f"Fold {fold+1} finished in {fold_duration:.2f}s")
 
     overall_oof_auc = roc_auc_score(y_train, oof_preds)
     logger.info(f"Overall OOF AUC: {overall_oof_auc:.5f}")

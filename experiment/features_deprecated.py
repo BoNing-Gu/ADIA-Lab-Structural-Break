@@ -356,3 +356,314 @@ def more_distributional_stats(u: pd.DataFrame) -> dict:
     
     # 清理NaN值
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# # --- 11. 时间序列建模 ---
+# @register_feature
+# def ar_model_features(u: pd.DataFrame) -> dict:
+#     import statsmodels.tsa.api as tsa
+#     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
+#     s2 = u['value'][u['period'] == 1].reset_index(drop=True)
+#     feats = {}
+
+#     def fit_ar(s, lags=10, trend='ct'):
+#         if len(s) <= lags + 1:
+#             return None
+#         try:
+#             return tsa.AutoReg(s, lags=lags, trend=trend, old_names=False).fit()
+#         except Exception:
+#             return None
+
+#     lags = 10
+#     trend = 'ct'
+#     model1_fwd = fit_ar(s1, lags, trend)
+#     model2_fwd = fit_ar(s2, lags, trend)
+#     model2_bwd = fit_ar(s2[::-1].reset_index(drop=True), lags, trend)
+
+#     # --- 特征组1: model1_fwd 多步预测 s2 ---
+#     try:
+#         predictions_model1_fwd = model1_fwd.predict(start=len(s1), end=len(s1) + len(s2) - 1, dynamic=True)
+#         residuals_model1_fwd = s2.to_numpy() - predictions_model1_fwd
+#         feats['ar_resid_m1_fwd_mean'] = np.mean(residuals_model1_fwd)
+#         feats['ar_resid_m1_fwd_std'] = np.std(residuals_model1_fwd)
+#         feats['ar_resid_m1_fwd_skew'] = pd.Series(residuals_model1_fwd).skew()
+#         feats['ar_resid_m1_fwd_kurt'] = pd.Series(residuals_model1_fwd).kurt()
+#     except Exception:
+#         feats.update({'ar_resid_m1_fwd_mean': 0, 'ar_resid_m1_fwd_std': 0, 'ar_resid_m1_fwd_skew': 0, 'ar_resid_m1_fwd_kurt': 0})
+
+#     # --- 特征组2: model2_bwd 多步预测 s1 ---
+#     try:
+#         predictions_model2_bwd = model2_bwd.predict(start=len(s2), end=len(s2) + len(s1) - 1, dynamic=True)
+#         residuals_model2_bwd = s1[::-1].to_numpy() - predictions_model2_bwd
+#         feats['ar_resid_m2_bwd_mean'] = np.mean(residuals_model2_bwd)
+#         feats['ar_resid_m2_bwd_std'] = np.std(residuals_model2_bwd)
+#         feats['ar_resid_m2_bwd_skew'] = pd.Series(residuals_model2_bwd).skew()
+#         feats['ar_resid_m2_bwd_kurt'] = pd.Series(residuals_model2_bwd).kurt()
+#     except Exception:
+#         feats.update({'ar_resid_m2_bwd_mean': 0, 'ar_resid_m2_bwd_std': 0, 'ar_resid_m2_bwd_skew': 0, 'ar_resid_m2_bwd_kurt': 0})
+
+#     # --- 特征组2.5: model2_fwd 多步预测 s1 ---
+#     try:
+#         predictions_model2_fwd = model2_fwd.predict(start=len(s2), end=len(s2) + len(s1) - 1, dynamic=True)
+#         residuals_model2_fwd = s1.to_numpy() - predictions_model2_fwd
+#         feats['ar_resid_m2_fwd_mean'] = np.mean(residuals_model2_fwd)
+#         feats['ar_resid_m2_fwd_std'] = np.std(residuals_model2_fwd)
+#         feats['ar_resid_m2_fwd_skew'] = pd.Series(residuals_model2_fwd).skew()
+#         feats['ar_resid_m2_fwd_kurt'] = pd.Series(residuals_model2_fwd).kurt()
+#     except Exception:
+#         feats.update({'ar_resid_m2_fwd_mean': 0, 'ar_resid_m2_fwd_std': 0, 'ar_resid_m2_fwd_skew': 0, 'ar_resid_m2_fwd_kurt': 0})
+
+#     # --- 特征组3: 分别建模，比较差异 ---
+#     if model1_fwd is not None and model2_fwd is not None:
+#         feats['ar_resid_std_diff'] = model2_fwd.resid.std() - model1_fwd.resid.std()
+#         feats['ar_aic_diff'] = model2_fwd.aic - model1_fwd.aic
+#         feats['ar_const_diff'] = model2_fwd.params['const'] - model1_fwd.params['const']
+#         feats['ar_trend_diff'] = model2_fwd.params['trend'] - model1_fwd.params['trend']
+#         for i in range(1, lags + 1):
+#             feats[f'ar_param_diff_{i}'] = model2_fwd.params[f'value.L{i}'] - model1_fwd.params[f'value.L{i}']
+#     else:
+#         feats['ar_resid_std_diff'] = 0.0
+#         feats['ar_aic_diff'] = 0.0
+#         feats['ar_const_diff'] = 0.0
+#         feats['ar_trend_diff'] = 0.0
+#         for i in range(1, lags + 1):
+#             feats[f'ar_param_diff_{i}'] = 0.0
+
+#     # --- 特征组4: model1 单步预测 s2 ---
+#     try:
+#         ar_lags = model1_fwd.model.ar_lags
+#         max_lag = max(ar_lags)
+#         history = s1[-max_lag:].tolist()
+#         preds_manual = []
+
+#         for t in range(len(s2)):
+#             lagged_vals = history[-max_lag:]
+#             pred = model1_fwd.params.get("const", 0.0)
+#             if "trend" in model1_fwd.params.index:
+#                 pred += model1_fwd.params["trend"] * (len(s1) + t)
+#             for lag in ar_lags:
+#                 pred += model1_fwd.params.get(f"value.L{lag}", 0.0) * lagged_vals[-lag]
+#             preds_manual.append(pred)
+#             history.append(s2[t])
+
+#         preds_manual = np.array(preds_manual)
+#         mse_manual = np.mean((preds_manual - s2.values[:len(preds_manual)]) ** 2)
+#         feats["ar_autoreg_predict_mse"] = mse_manual
+
+#     except Exception as e:
+#         print(f"[WARN] Prediction error: {e}")
+#         feats['ar_autoreg_predict_mse'] = 0.0
+
+#     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 9. ARIMA模型特征 ---
+def arima_model_features_cpu(u: pd.DataFrame) -> dict:
+    """
+    基于ARIMA模型派生特征 (CPU版, 使用statsmodels)。
+    1. 在 period 0 上训练模型，预测 period 1，计算残差统计量。
+    2. 在 period 1 上训练模型，预测 period 0，计算残差统计量。
+    3. 分别在 period 0 和 1 上训练模型，比较模型参数、残差和信息准则(AIC/BIC)。
+    """
+    from statsmodels.tsa.arima.model import ARIMA
+
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    feats = {}
+    order = (5, 1, 1) # (p, d, q)
+    p, d, q = order
+    min_len = p + d + 5 # A rough minimum length to fit ARIMA
+
+    # --- 特征组1: 用 s1 训练，预测 s2 ---
+    if len(s1) > min_len and len(s2) > 0:
+        try:
+            model1_fit = ARIMA(s1, order=order).fit()
+            predictions = model1_fit.forecast(steps=len(s2))
+            residuals = s2 - predictions
+            feats['arima_residuals_s2_pred_mean'] = np.mean(residuals)
+            feats['arima_residuals_s2_pred_std'] = np.std(residuals)
+            feats['arima_residuals_s2_pred_skew'] = pd.Series(residuals).skew()
+            feats['arima_residuals_s2_pred_kurt'] = pd.Series(residuals).kurt()
+        except Exception:
+            # 宽泛地捕获异常，防止因数值问题中断
+            feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+
+    # --- 特征组2: 用 s2 训练，预测 s1 ---
+    # This is less common but can capture reverse predictability changes.
+    if len(s2) > min_len and len(s1) > 0:
+        try:
+            model2_fit = ARIMA(s2, order=order).fit()
+            predictions_on_s1 = model2_fit.forecast(steps=len(s1))
+            residuals_s1_pred = s1 - predictions_on_s1
+            feats['arima_residuals_s1_pred_mean'] = np.mean(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_std'] = np.std(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_skew'] = pd.Series(residuals_s1_pred).skew()
+            feats['arima_residuals_s1_pred_kurt'] = pd.Series(residuals_s1_pred).kurt()
+        except Exception:
+            feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+
+    # --- 特征组3: 分别建模，比较差异 ---
+    s1_resid_std, s1_aic, s1_bic = np.nan, np.nan, np.nan
+    s1_params = {}
+    if len(s1) > min_len:
+        try:
+            fit1 = ARIMA(s1, order=order).fit()
+            s1_resid_std = np.std(fit1.resid)
+            s1_params = fit1.params.to_dict()
+            s1_aic = fit1.aic
+            s1_bic = fit1.bic
+        except Exception:
+            pass
+
+    s2_resid_std, s2_aic, s2_bic = np.nan, np.nan, np.nan
+    s2_params = {}
+    if len(s2) > min_len:
+        try:
+            fit2 = ARIMA(s2, order=order).fit()
+            s2_resid_std = np.std(fit2.resid)
+            s2_params = fit2.params.to_dict()
+            s2_aic = fit2.aic
+            s2_bic = fit2.bic
+        except Exception:
+            pass
+            
+    feats['arima_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    feats['arima_aic_diff'] = (s2_aic - s1_aic) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    feats['arima_bic_diff'] = (s2_bic - s1_bic) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    
+    # 比较模型系数
+    # Get all possible param names from both models
+    all_param_names = sorted(list(set(s1_params.keys()) | set(s2_params.keys())))
+    for name in all_param_names:
+        v1 = s1_params.get(name, 0)
+        v2 = s2_params.get(name, 0)
+        # Clean name for feature
+        clean_name = name.replace('.', '_')
+        feats[f'arima_param_{clean_name}_diff'] = v2 - v1
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+def arima_model_features_gpu(u: pd.DataFrame) -> dict:
+    """
+    基于ARIMA模型派生特征 (GPU加速版, 使用StatsForecast)。
+    注意: StatsForecast 不计算 AIC/BIC，因此相关特征在此版本中被省略。
+    """
+    from statsforecast import StatsForecast
+    from statsforecast.models import ARIMA
+
+    s1_pd = u['value'][u['period'] == 0]
+    s2_pd = u['value'][u['period'] == 1]
+    feats = {}
+    order = (5, 1, 1) # (p, d, q)
+    p, d, q = order
+    min_len = p + d + 5 # A rough minimum length to fit ARIMA
+
+    df1_pd = pd.DataFrame({'unique_id': 's1', 'ds': np.arange(len(s1_pd)), 'y': s1_pd.values})
+    df2_pd = pd.DataFrame({'unique_id': 's2', 'ds': np.arange(len(s2_pd)), 'y': s2_pd.values})
+    
+    df1 = cudf.from_pandas(df1_pd)
+    df2 = cudf.from_pandas(df2_pd)
+    
+    # --- 特征组1: 用 s1 训练，预测 s2 ---
+    if len(s1_pd) > min_len and len(s2_pd) > 0:
+        try:
+            sf1 = StatsForecast(models=[ARIMA(order=order, season_length=0)], freq=1)
+            sf1.fit(df1)
+            forecasts = sf1.predict(h=len(s2_pd))
+            predictions = forecasts['ARIMA'].to_cupy().get()
+            residuals = s2_pd.values - predictions
+            feats['arima_residuals_s2_pred_mean'] = np.mean(residuals)
+            feats['arima_residuals_s2_pred_std'] = np.std(residuals)
+            feats['arima_residuals_s2_pred_skew'] = pd.Series(residuals).skew()
+            feats['arima_residuals_s2_pred_kurt'] = pd.Series(residuals).kurt()
+        except Exception:
+            feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+
+    # --- 特征组2: 用 s2 训练，预测 s1 ---
+    if len(s2_pd) > min_len and len(s1_pd) > 0:
+        try:
+            sf2 = StatsForecast(models=[ARIMA(order=order, season_length=0)], freq=1)
+            sf2.fit(df2)
+            forecasts_on_s1 = sf2.predict(h=len(s1_pd))
+            predictions_on_s1 = forecasts_on_s1['ARIMA'].to_cupy().get()
+            residuals_s1_pred = s1_pd.values - predictions_on_s1
+            feats['arima_residuals_s1_pred_mean'] = np.mean(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_std'] = np.std(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_skew'] = pd.Series(residuals_s1_pred).skew()
+            feats['arima_residuals_s1_pred_kurt'] = pd.Series(residuals_s1_pred).kurt()
+        except Exception:
+            feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+
+    # --- 特征组3: 分别建模，比较差异 ---
+    s1_resid_std, s2_resid_std = np.nan, np.nan
+    s1_params, s2_params = {}, {}
+
+    if len(s1_pd) > min_len:
+        try:
+            sf1 = StatsForecast(models=[ARIMA(order=order, season_length=0)], freq=1)
+            fitted_vals_df1 = sf1.fit(df1).predict(h=0, fitted=True)
+            if not fitted_vals_df1.empty:
+                fitted_vals1 = fitted_vals_df1['ARIMA'].to_cupy().get()
+                s1_resid = s1_pd.values[-len(fitted_vals1):] - fitted_vals1
+                s1_resid_std = np.std(s1_resid)
+                params_cupy = sf1.models[0].model_
+                s1_params = {k: v.get() if hasattr(v, 'get') else v for k,v in params_cupy.items()}
+        except Exception:
+            pass
+
+    if len(s2_pd) > min_len:
+        try:
+            sf2 = StatsForecast(models=[ARIMA(order=order, season_length=0)], freq=1)
+            fitted_vals_df2 = sf2.fit(df2).predict(h=0, fitted=True)
+            if not fitted_vals_df2.empty:
+                fitted_vals2 = fitted_vals_df2['ARIMA'].to_cupy().get()
+                s2_resid = s2_pd.values[-len(fitted_vals2):] - fitted_vals2
+                s2_resid_std = np.std(s2_resid)
+                params_cupy = sf2.models[0].model_
+                s2_params = {k: v.get() if hasattr(v, 'get') else v for k,v in params_cupy.items()}
+        except Exception:
+            pass
+            
+    feats['arima_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    
+    all_param_names = sorted(list(set(s1_params.keys()) | set(s2_params.keys())))
+    if 'constant' in all_param_names: all_param_names.remove('constant')
+    
+    # 统一AR和MA系数的名称和长度
+    max_ar = max(len(s1_params.get('ar', [])), len(s2_params.get('ar', [])))
+    max_ma = max(len(s1_params.get('ma', [])), len(s2_params.get('ma', [])))
+
+    p1_ar = np.resize(s1_params.get('ar', []), max_ar)
+    p2_ar = np.resize(s2_params.get('ar', []), max_ar)
+    p1_ma = np.resize(s1_params.get('ma', []), max_ma)
+    p2_ma = np.resize(s2_params.get('ma', []), max_ma)
+
+    for i in range(max_ar):
+        feats[f'arima_param_ar_{i+1}_diff'] = p2_ar[i] - p1_ar[i]
+    for i in range(max_ma):
+        feats[f'arima_param_ma_{i+1}_diff'] = p2_ma[i] - p1_ma[i]
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+
+@register_feature
+def arima_model_features(u: pd.DataFrame) -> dict:
+    """
+    ARIMA 特征提取的动态调度器。
+    如果检测到GPU，则使用`StatsForecast`进行加速计算，否则回退到
+    使用`statsmodels`的CPU版本。
+    """
+    if GPU_AVAILABLE:
+        # logger is not available here, print for now
+        # logger.info("GPU detected, using arima_model_features_gpu.")
+        return arima_model_features_gpu(u)
+    else:
+        # logger.info("No GPU detected, using arima_model_features_cpu.")
+        return arima_model_features_cpu(u)
+

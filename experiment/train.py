@@ -3,6 +3,7 @@ import numpy as np
 import lightgbm as lgb
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
+from sklearn.inspection import permutation_importance
 import logging
 import json
 import time
@@ -23,7 +24,20 @@ def save_feature_importance(feature_importances, feature_names, output_dir):
     df.to_csv(save_path, sep='\t', index=False)
     logger.info(f"特征重要性已保存到: {save_path}")
 
-def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_model: bool = False):
+def save_permutation_importance(permutation_results, feature_names, output_dir):
+    """将permutation importance保存为 tsv 文件。"""
+    df = pd.DataFrame({
+        'feature': feature_names,
+        'permutation_importance_mean': permutation_results.mean(axis=1),
+        'permutation_importance_std': permutation_results.std(axis=1)
+    })
+    df = df.sort_values('permutation_importance_mean', ascending=False)
+    
+    save_path = output_dir / 'permutation_importance.tsv'
+    df.to_csv(save_path, sep='\t', index=False)
+    logger.info(f"Permutation importance已保存到: {save_path}")
+
+def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_model: bool = False, perm_imp: bool = False):
     """
     加载指定的特征文件和标签，进行交叉验证，并根据参数选择性保存产出物。
     """
@@ -58,6 +72,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     oof_preds = np.zeros(len(feature_df))
     models = []
     feature_importances = pd.DataFrame(index=feature_df.columns)
+    permutation_results = pd.DataFrame(index=feature_df.columns)
     
     for fold, (train_idx, val_idx) in enumerate(skf.split(feature_df, y_train)):
         logger.info(f"--- Fold {fold+1}/{config.CV_PARAMS['n_splits']} ---")
@@ -88,6 +103,23 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
         fold_duration = time.time() - fold_start_time
         logger.info(f"Fold {fold+1} finished in {fold_duration:.2f}s")
 
+        # 可选地计算permutation importance
+        if perm_imp:
+            logger.info(f"Calculate Fold {fold+1} permutation importance...")
+            perm_start_time = time.time()
+            # 在验证集上计算permutation importance
+            perm_result = permutation_importance(
+                model, X_val_fold, y_val_fold,
+                n_repeats=20,  # 可以根据需要调整重复次数
+                random_state=42,
+                scoring='roc_auc',
+                n_jobs=-1
+            )
+            # 保存每个fold的permutation importance
+            permutation_results[f'fold_{fold+1}'] = perm_result.importances_mean
+            perm_duration = time.time() - perm_start_time
+            logger.info(f"Fold {fold+1} permutation importance finished in {perm_duration:.2f}s")
+
     overall_oof_auc = roc_auc_score(y_train, oof_preds)
     logger.info(f"Overall OOF AUC: {overall_oof_auc:.5f}")
 
@@ -96,11 +128,12 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     auc_str = f"{overall_oof_auc:.5f}".replace('.', '_')
     run_output_dir = config.OUTPUT_DIR / f'train_{timestamp}_auc_{auc_str}'
     run_output_dir.mkdir(exist_ok=True, parents=True)
-    logger.info(f"所有产出物将保存到: {run_output_dir}")
+    logger.info(f"All outputs will be saved to: {run_output_dir}")
 
     # 3. 计算并保存特征重要性
     mean_importance = feature_importances.mean(axis=1)
     save_feature_importance(mean_importance, feature_df.columns, run_output_dir)
+    logger.info("feature importance saved.")
 
     # 4. 保存模型
     if save_model:
@@ -124,6 +157,11 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     }
     with open(run_output_dir / 'training_metadata.json', 'w') as f:
         json.dump(training_metadata, f, indent=4)
+
+    # 7. 保存permutation importance
+    if perm_imp:
+        save_permutation_importance(permutation_results, feature_df.columns, run_output_dir)
+        logger.info("permutation importance saved.")
 
     duration = time.time() - start_time
     logger.info(f"训练流程结束，总耗时: {duration:.2f} 秒。")

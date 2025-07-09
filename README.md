@@ -91,10 +91,11 @@ python -m experiment.main gen-feats --funcs new_awesome_feature
 
 ```bash
 # 自动使用最新的特征集进行训练
-python -m experiment.main train --save-model --save-oof
+python -m experiment.main train --save-model --save-oof --perm-imp
 ```
 *   `--save-model`: 保存训练好的模型文件。
 *   `--save-oof`: 保存OOF（Out-of-Fold）预测结果。
+*   `--perm-imp`: 计算permutation importance。
 
 #### 第4步: 评估结果
 

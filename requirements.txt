@@ -17,3 +17,9 @@ ipykernel
 ydata_profiling
 sktime==0.38.3
 skchange[numba]==0.13.0
+
+# Deep Learning
+torch
+lightning
+datasets
+swanlab

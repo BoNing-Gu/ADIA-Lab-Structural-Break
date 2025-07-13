@@ -5,6 +5,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 
 import torch
+from torch.nn.utils.rnn import pad_sequence
 import lightning.pytorch as pl
 from torch.utils.data import DataLoader
 from datasets import Dataset
@@ -13,41 +14,21 @@ from datasets import Dataset
 # Dataset & Model Preparation
 # -------------------------
 def process_func(X_df, y_value=None, config=None):
-    max_length = config.seq_length
     X_df = X_df.sort_index(level="time")
     id_ = X_df.index.get_level_values("id")[0]
     seq_len = len(X_df)
-    X_df['key_padding_mask'] = 0
 
-    if seq_len > max_length:
-        # truncate
-        X_df = X_df.iloc[-max_length:]
-        seq_len = max_length
-    if seq_len < max_length:
-        # padding
-        padding_len = max_length - seq_len
-        last_time = X_df.index.get_level_values('time')[-1]
-        padding_times = [last_time + i for i in range(1, padding_len + 1)]
-
-        padding_df = pd.DataFrame({
-            'value': [0.0] * padding_len,
-            'period': [1] * padding_len, 
-            'key_padding_mask': [1] * padding_len
-        }, index=pd.MultiIndex.from_arrays(
-            [[id_] * padding_len, padding_times],
-            names=["id", "time"]
-        ))
-
-        X_df = pd.concat([X_df, padding_df])
+    if y_value is not None:
+        # y_value为True->period就作为label / y_value为False->全部为0
+        label = X_df['period'].values.astype(np.float32) if y_value else np.zeros(seq_len, dtype=np.float32)
+    else:
+        label = None
 
     result = {
         'id': id_,
         'ts': X_df['value'].values.astype(np.float32),           # shape: [max_length]
-        'period': X_df['period'].values.astype(np.float32),
-        'key_padding_mask': X_df['key_padding_mask'].values.astype(bool)
+        'label': label
     }
-    if y_value is not None:
-        result['label'] = y_value
 
     return result
 
@@ -60,16 +41,17 @@ def create_structured_dataset(X_df, y_series, config=None):
     return Dataset.from_list(processed)
 
 def collate_fn(batch):
-    ts = torch.tensor([item['ts'] for item in batch], dtype=torch.float)
-    period = torch.tensor([item['period'] for item in batch], dtype=torch.long)
-    key_padding_mask = torch.tensor([item['key_padding_mask'] for item in batch], dtype=torch.bool)
-    label = torch.tensor([item['label'] for item in batch], dtype=torch.long) if 'label' in batch[0] else None
+    ts = [torch.tensor(item['ts'], dtype=torch.float) for item in batch]
+    label = [torch.tensor(item['label'], dtype=torch.float) for item in batch] if 'label' in batch[0] else None
+    id_ = torch.tensor([item['id'] for item in batch], dtype=torch.long)
+
+    padded_ts = pad_sequence(ts, batch_first=True)  # [B, L] or [B, L, D]
+    padded_label = pad_sequence(label, batch_first=True) if label is not None else None
 
     return {
-        'ts': ts.unsqueeze(-1),                # [B, L, 1]
-        'period': period,                      # [B, L]
-        'key_padding_mask': key_padding_mask,  # [B, L]
-        'label': label,                        # [B]
+        'ts': padded_ts.unsqueeze(-1),  # [B, L, nvars=1]
+        'label': padded_label,          # [B, L]
+        'id': id_
     }
     
 # -------------------------
@@ -92,7 +74,7 @@ class LightDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=True,
             drop_last=True, 
-            collate_fn=lambda batch: collate_fn(batch)
+            collate_fn=collate_fn
         )
 
     def valid_dataloader(self):
@@ -103,5 +85,5 @@ class LightDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=True,
             drop_last=False,  
-            collate_fn=lambda batch: collate_fn(batch)
+            collate_fn=collate_fn
         )

@@ -20,10 +20,10 @@ import torch.nn.functional as F
 import lightning.pytorch as pl
 
 from datasets import Dataset
-from module.data import create_structured_dataset, LightDataModule
-from module.PatchTST import Model
-from module.pl import PLModel
-from module.logger import CustomLogger
+from module_utime.data import create_structured_dataset, LightDataModule
+from module_utime.UTime import Model
+from module_utime.pl import PLModel
+from module_utime.logger import CustomLogger
 from swanlab.integration.pytorch_lightning import SwanLabLogger
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -56,45 +56,39 @@ def main(config):
     # for name, param in model.named_parameters():
     #     if not param.requires_grad:
     #         print(f"❌ 不可训练参数: {name}, shape={param.shape}, total={param.numel()}")
-
-    # Initialize Optimizer and Criterion
-    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=float(config.learning_rate), eps=1e-8)
-    criterion = nn.BCEWithLogitsLoss()
     
     # Initialize PLModel
     pl_model = PLModel(
         model=model, 
-        optimizer=optimizer,
-        criterion=criterion,
         config=config
     )
 
-    csv_logger = CustomLogger(
-        save_dir=os.path.join(config.log_dir, config.model_name), 
-        version=config.version,
-        resume=config.resume
-    )
+    # csv_logger = CustomLogger(
+    #     save_dir=os.path.join(config.log_dir, config.model_name), 
+    #     version=config.version,
+    #     resume=config.resume
+    # )
     swanlab_logger = SwanLabLogger(
         project=f"{config.model_name}",
         experiment_name=f"{config.version}"
     )
-    checkpoint_callback = ModelCheckpoint(
-        every_n_epochs=1,
-        monitor="val_auc",
-        save_top_k=3,
-        dirpath=os.path.join(config.ckpt_dir, config.model_name, config.version),
-        filename='epoch{epoch:02d}-valauc{val_auc:.4f}'
-    )
-    if config.resume:
-        ckpt_dir = checkpoint_callback.dirpath
-        list_of_files = glob.glob(os.path.join(ckpt_dir, '*.ckpt'))  
-        if list_of_files:
-            ckpt_path = max(list_of_files, key=os.path.getctime)
-            print(f"Resuming from checkpoint: {ckpt_path}")
-        else:
-            ckpt_path = None
-    else:
-        ckpt_path = None
+    # checkpoint_callback = ModelCheckpoint(
+    #     every_n_epochs=1,
+    #     monitor="validation/loss",
+    #     save_top_k=3,
+    #     dirpath=os.path.join(config.ckpt_dir, config.model_name, config.version),
+    #     filename='epoch{epoch:02d}-valauc{val_auc:.4f}'
+    # )
+    # if config.resume:
+    #     ckpt_dir = checkpoint_callback.dirpath
+    #     list_of_files = glob.glob(os.path.join(ckpt_dir, '*.ckpt'))  
+    #     if list_of_files:
+    #         ckpt_path = max(list_of_files, key=os.path.getctime)
+    #         print(f"Resuming from checkpoint: {ckpt_path}")
+    #     else:
+    #         ckpt_path = None
+    # else:
+    #     ckpt_path = None
     
     trainer = pl.Trainer(
         accelerator="gpu",
@@ -102,10 +96,10 @@ def main(config):
         strategy=DDPStrategy(find_unused_parameters=False),
         max_epochs=config.epochs,
         precision="32",
-        logger=[csv_logger, swanlab_logger],
+        logger=[swanlab_logger],  # csv_logger
         log_every_n_steps=1,
-        enable_checkpointing=True,
-        callbacks=[checkpoint_callback],
+        # enable_checkpointing=True,
+        # callbacks=[checkpoint_callback],
         # accumulate_grad_batches=config.grad_accumulate  # dp cannot use grad accumulate
     )
     
@@ -114,7 +108,7 @@ def main(config):
         model=pl_model, 
         train_dataloaders=train_dataloader,
         val_dataloaders=valid_dataloader,
-        ckpt_path=ckpt_path
+        # ckpt_path=ckpt_path
     )
 
 class Config:
@@ -123,62 +117,43 @@ class Config:
         self.seed = 42
         self.device = "cuda"  # or "cpu"
         self.num_workers = 4
-        self.debug = False
         
         # Data
         self.data_path = "./data"
         self.n_vars = 1   
-        self.seq_length = 3072
         self.train_batch_size = 32
         self.valid_batch_size = 64
-        self.patch_len = 4
-        self.stride = 0
-        self.padding_patch_method = 'drop' # 'end'
         
         # Model
-        self.model_name = "PatchCrossEncoder"
+        self.model_name = "UTime"
         self.num_classes = 2
-        ## decomposition
-        self.decomposition = True
-        self.kernel_size = 25
-        ## revin
-        self.revin = True
-        self.affine = False 
-        self.subtract_last = 0   # 0: subtract mean, 1: subtract last
         ## structure
-        self.encoder_layers = 4
-        self.d_model = 256
-        self.n_heads = 4
-        self.d_k = None
-        self.d_v = None
-        self.d_ff = 128
-        self.norm = 'BatchNorm'
-        self.attn_dropout = 0.
+        self.in_channels = 1
+        self.network_depth = 4
+        self.channels_size = 128
+        self.filters = [
+            self.channels_size * 2**i for i in range(self.network_depth)
+        ]
+        self.maxpool_kernels = [6, 6, 4, 2]
+        self.kernel_size = 4
+        self.dilation = 2
         self.dropout = 0.1
-        self.fc_dropout = 0.1
-        self.head_dropout = 0
-        self.act="gelu"
-        self.res_attention=True
-        self.pre_norm=False
-        self.store_attn=False
-        self.pe='sincos'
-        self.learn_pe=True
 
         # Training
         self.device = [0]
-        self.epochs = 100
-        self.learning_rate = 1e-2
+        self.verbose = False
+        self.epochs = 200
+        self.optimizer = "Adam" # or SGD
+        self.lr_scheduler = "CLR"  # or "ROP"
+        self.learning_rate = 1e-4
+        self.momentum = 0.9
         self.weight_decay = 1e-5
-        ## criterion
-        self.min_std = 0.2
-        self.factor = 10 
-        ## utils
+        self.val_loss_smooth_param = 0.25
         self.ckpt_dir = "./checkpoints"
         self.log_dir = "./logs"
-        self.version = "exp8"
-        self.verbose = False
+        self.version = "exp1"
         self.resume = False
-
+        
 
 if __name__ == "__main__":
     config = Config()

@@ -7,10 +7,13 @@ from torch import nn
 from torch import Tensor
 import torch.nn.functional as F
 import numpy as np
+torch.set_printoptions(threshold=float('inf'), linewidth=200, precision=1, sci_mode=False)
 
 #from collections import OrderedDict
 from module.layers.PatchTST_layers import *
 from module.layers.RevIN import RevIN
+
+from module.utils import plot_debug_zseq, plot_debug_attn
 
 # Cell
 class PatchTST_backbone(nn.Module):
@@ -23,6 +26,7 @@ class PatchTST_backbone(nn.Module):
         
         super().__init__()
         self.config = config
+        self.debug = self.config.debug
         # RevIn
         if self.config.revin: 
             self.revin_layer = RevIN(self.config.n_vars, affine=config.affine, subtract_last=config.subtract_last)
@@ -40,7 +44,7 @@ class PatchTST_backbone(nn.Module):
         
         # Backbone 
         self.backbone = TSTiEncoder(
-            config=config,  
+            config=config, debug=self.debug, 
             patch_num=self.patch_num+3, 
             n_layers=n_layers, d_model=d_model, n_heads=n_heads, d_k=d_k, d_v=d_v, d_ff=d_ff,
             norm=norm, attn_dropout=attn_dropout, dropout=dropout, act=act, 
@@ -69,7 +73,12 @@ class PatchTST_backbone(nn.Module):
     def forward(self, z, period=None, key_padding_mask=None):           
         # z: [bs, nvars, seq_len]
         # key_padding_mask: [bs, seq_len] (True indicates padding)
-        # period: [bs, seq_len]     
+        # period: [bs, seq_len]  
+        # print(f'[DEBUG]: z:{z}, z.shape:{z.shape}')
+        # print(f'[DEBUG]: period:{period}, period.shape:{period.shape}')
+        # print(f'[DEBUG]: key_padding_mask:{key_padding_mask}, key_padding_mask.shape:{key_padding_mask.shape}')
+        if self.debug:
+            plot_debug_zseq(z, period, key_padding_mask)
 
         # RevIn norm
         if self.config.revin: 
@@ -78,6 +87,8 @@ class PatchTST_backbone(nn.Module):
             z = z.permute(0,2,1)
 
         bs, n_vars, seq_len = z.shape
+        if self.debug:
+            print(f'[DEBUG]: bs, n_vars, seq_len: {bs, n_vars, seq_len}')
 
         z_list = []
         token_type_ids_list = []
@@ -146,13 +157,20 @@ class PatchTST_backbone(nn.Module):
         z = torch.stack(z_list, dim=0)                                # [bs, n_vars, patch_len, patch_num + 3]
         token_type_ids = torch.stack(token_type_ids_list, dim=0)      # [bs, n_vars, 1, patch_num + 3]
         key_padding_mask = torch.stack(key_padding_mask_list, dim=0)  # [bs, n_vars, 1, patch_num + 3]
+
+        # print(f'[DEBUG]: z:{z}, z.shape:{z.shape}')
+        # print(f'[DEBUG]: token_type_ids:{token_type_ids}, token_type_ids.shape:{token_type_ids.shape}')
+        # print(f'[DEBUG]: key_padding_mask:{key_padding_mask}, key_padding_mask.shape:{key_padding_mask.shape}')
         
         # model
         z = self.backbone(z, token_type_ids, key_padding_mask)             # z: [bs, nvars, d_model, patch_num]
+
+        # print(f'[DEBUG]: z:{z}, z.shape:{z.shape}')
         
         # Extract CLS token embedding
         cls_emb = z[:, :, :, 0]  # [bs, nvars, d_model]
         cls_emb = cls_emb.permute(0, 2, 1).reshape(bs, -1)  # flatten: [bs, d_model * nvars]
+        # print(f'[DEBUG]: cls_emb:{cls_emb}, cls_emb.shape:{cls_emb.shape}')
         logits = self.cls_head(cls_emb)  # [bs, 1]
         
         # # Extract flatten patch embedding
@@ -164,7 +182,7 @@ class PatchTST_backbone(nn.Module):
 
 
 class TSTiEncoder(nn.Module):  # i means channel-independent
-    def __init__(self, config, patch_num,
+    def __init__(self, config, debug, patch_num,
                  n_layers=3, d_model=128, n_heads=16, d_k=None, d_v=None,d_ff=256, 
                  norm='BatchNorm', attn_dropout=0., dropout=0., act="gelu",
                  res_attention=True, pre_norm=False, store_attn=False,
@@ -172,6 +190,7 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
         
         super().__init__()
         self.config = config
+        self.debug = debug
         # Input encoding
         self.seq_len = patch_num
         self.W_P = nn.Linear(self.config.patch_len, d_model)        # Eq 1: projection of feature vectors onto a d-dim vector space
@@ -187,7 +206,7 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
 
         # Encoder
         self.encoder = TSTEncoder(
-            self.seq_len, 
+            self.seq_len, debug = debug,
             n_layers=n_layers, d_model=d_model, n_heads=n_heads, d_k=d_k, d_v=d_v, d_ff=d_ff, 
             norm=norm, attn_dropout=attn_dropout, dropout=dropout, activation=act,
             res_attention=res_attention, pre_norm=pre_norm, store_attn=store_attn
@@ -241,15 +260,16 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
 
 # Cell
 class TSTEncoder(nn.Module):
-    def __init__(self, q_len, 
+    def __init__(self, q_len, debug,
                  n_layers=3, d_model=128, n_heads=16, d_k=None, d_v=None, d_ff=None, 
                  norm='BatchNorm', attn_dropout=0., dropout=0., activation='gelu',
                  res_attention=False, pre_norm=False, store_attn=False):
         super().__init__()
 
+        self.debug = debug
         self.layers = nn.ModuleList([
             TSTEncoderLayer(
-                q_len, 
+                q_len, debug,
                 d_model, n_heads=n_heads, d_k=d_k, d_v=d_v, d_ff=d_ff, 
                 norm=norm, attn_dropout=attn_dropout, dropout=dropout, activation=activation, 
                 res_attention=res_attention, pre_norm=pre_norm, store_attn=store_attn
@@ -268,16 +288,18 @@ class TSTEncoder(nn.Module):
             return output
 
 class TSTEncoderLayer(nn.Module):
-    def __init__(self, q_len, d_model, n_heads, d_k=None, d_v=None, d_ff=256, store_attn=False,
+    def __init__(self, q_len, debug, d_model, n_heads, d_k=None, d_v=None, d_ff=256, store_attn=False,
                  norm='BatchNorm', attn_dropout=0, dropout=0., bias=True, activation="gelu", res_attention=False, pre_norm=False):
         super().__init__()
+        self.debug = debug
+        
         assert not d_model%n_heads, f"d_model ({d_model}) must be divisible by n_heads ({n_heads})"
         d_k = d_model // n_heads if d_k is None else d_k
         d_v = d_model // n_heads if d_v is None else d_v
 
         # Multi-Head attention
         self.res_attention = res_attention
-        self.self_attn = _MultiheadAttention(d_model, n_heads, d_k, d_v, attn_dropout=attn_dropout, proj_dropout=dropout, res_attention=res_attention)
+        self.self_attn = _MultiheadAttention(debug, d_model, n_heads, d_k, d_v, attn_dropout=attn_dropout, proj_dropout=dropout, res_attention=res_attention)
 
         # Add & Norm
         self.dropout_attn = nn.Dropout(dropout)
@@ -312,6 +334,7 @@ class TSTEncoderLayer(nn.Module):
             src2, attn, scores = self.self_attn(src, src, src, prev, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
         else:
             src2, attn = self.self_attn(src, src, src, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
+
         if self.store_attn:
             self.attn = attn
         ## Add & Norm
@@ -335,7 +358,7 @@ class TSTEncoderLayer(nn.Module):
             return src
 
 class _MultiheadAttention(nn.Module):
-    def __init__(self, d_model, n_heads, d_k=None, d_v=None, res_attention=False, attn_dropout=0., proj_dropout=0., qkv_bias=True, lsa=False):
+    def __init__(self, debug, d_model, n_heads, d_k=None, d_v=None, res_attention=False, attn_dropout=0., proj_dropout=0., qkv_bias=True, lsa=False):
         """Multi Head Attention Layer
         Input shape:
             Q:       [batch_size (bs) x max_q_len x d_model]
@@ -343,6 +366,8 @@ class _MultiheadAttention(nn.Module):
             mask:    [q_len x q_len]
         """
         super().__init__()
+
+        self.debug = debug
         d_k = d_model // n_heads if d_k is None else d_k
         d_v = d_model // n_heads if d_v is None else d_v
 
@@ -354,7 +379,7 @@ class _MultiheadAttention(nn.Module):
 
         # Scaled Dot-Product Attention (multiple heads)
         self.res_attention = res_attention
-        self.sdp_attn = _ScaledDotProductAttention(d_model, n_heads, attn_dropout=attn_dropout, res_attention=self.res_attention, lsa=lsa)
+        self.sdp_attn = _ScaledDotProductAttention(debug, d_model, n_heads, attn_dropout=attn_dropout, res_attention=self.res_attention, lsa=lsa)
 
         # Poject output
         self.to_out = nn.Sequential(nn.Linear(n_heads * d_v, d_model), nn.Dropout(proj_dropout))
@@ -370,6 +395,11 @@ class _MultiheadAttention(nn.Module):
         q_s = self.W_Q(Q).view(bs, -1, self.n_heads, self.d_k).transpose(1,2)       # q_s    : [bs x n_heads x max_q_len x d_k]
         k_s = self.W_K(K).view(bs, -1, self.n_heads, self.d_k).permute(0,2,3,1)     # k_s    : [bs x n_heads x d_k x q_len] - transpose(1,2) + transpose(2,3)
         v_s = self.W_V(V).view(bs, -1, self.n_heads, self.d_v).transpose(1,2)       # v_s    : [bs x n_heads x q_len x d_v]
+
+        if self.debug:
+            plot_debug_attn(q_s, "Query")
+            plot_debug_attn(k_s, "Key")
+            plot_debug_attn(v_s, "Value")
 
         # Apply Scaled Dot-Product Attention (multiple heads)
         if self.res_attention:
@@ -390,8 +420,10 @@ class _ScaledDotProductAttention(nn.Module):
     (Realformer: Transformer likes residual attention by He et al, 2020) and locality self sttention (Vision Transformer for Small-Size Datasets
     by Lee et al, 2021)"""
 
-    def __init__(self, d_model, n_heads, attn_dropout=0., res_attention=False, lsa=False):
+    def __init__(self, debug, d_model, n_heads, attn_dropout=0., res_attention=False, lsa=False):
         super().__init__()
+
+        self.debug = debug
         self.attn_dropout = nn.Dropout(attn_dropout)
         self.res_attention = res_attention
         head_dim = d_model // n_heads
@@ -426,9 +458,18 @@ class _ScaledDotProductAttention(nn.Module):
             else:
                 attn_scores += attn_mask
 
+        if self.debug:
+            plot_debug_attn(attn_scores, "Attention Scores (before mask)")
+        # mask_row = key_padding_mask.unsqueeze(2)  # [bs, seq_len, 1]
+        # mask_col = key_padding_mask.unsqueeze(1)  # [bs, 1, seq_len]
+        # key_padding_mask = mask_row | mask_col           # [bs, seq_len, seq_len]
+        # key_padding_mask = key_padding_mask.unsqueeze(1) # [bs, 1, seq_len, seq_len]
+        key_padding_mask = key_padding_mask.unsqueeze(1).unsqueeze(2)       # [bs, 1, 1, seq_len]
         # Key padding mask (optional)
         if key_padding_mask is not None:                              # mask with shape [bs x q_len] (only when max_w_len == q_len)
-            attn_scores.masked_fill_(key_padding_mask.unsqueeze(1).unsqueeze(2), -np.inf)
+            attn_scores.masked_fill_(key_padding_mask, -np.inf)
+        if self.debug:
+            plot_debug_attn(attn_scores, "Attention Scores (after mask)")
 
         # normalize the attention weights
         attn_weights = F.softmax(attn_scores, dim=-1)                 # attn_weights   : [bs x n_heads x max_q_len x q_len]
@@ -436,6 +477,10 @@ class _ScaledDotProductAttention(nn.Module):
 
         # compute the new values given the attention weights
         output = torch.matmul(attn_weights, v)                        # output: [bs x n_heads x max_q_len x d_v]
+
+        if self.debug:
+            plot_debug_attn(output, title="Attention Output")
+            plot_debug_attn(attn_weights, title="Attention Map")
 
         if self.res_attention: return output, attn_weights, attn_scores
         else: return output, attn_weights

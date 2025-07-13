@@ -110,12 +110,12 @@ class PLModel(pl.LightningModule):
             "model", "validation_step_outputs", "config"
         ])
 
-    def on_before_optimizer_step(self, optimizer):
-        # Compute the 2-norm for each layer
-        # If using mixed precision, the gradients are already unscaled here
-        norms = grad_norm(self, norm_type=2)
+    # def on_before_optimizer_step(self, optimizer):
+    #     # Compute the 2-norm for each layer
+    #     # If using mixed precision, the gradients are already unscaled here
+    #     norms = grad_norm(self, norm_type=2)
 
-        self.log_dict(norms)
+    #     self.log_dict(norms)
 
     def configure_optimizers(self):
         if self.config.optimizer == "Adam":
@@ -175,93 +175,90 @@ class PLModel(pl.LightningModule):
 
         self.logger.experiment[name].append(fig)
 
-    def setup(self, stage):
-        self.val_loss_smooth = None
-
     def training_step(self, batch, batch_idx):
         inputs = batch['ts']
-        targets = batch['label']
+        targets = batch['target']
         metadata = batch['id'] 
 
         preds = self.model(inputs)
 
         loss = self.criterion(preds, targets)
 
-        self.log(
-            "training/loss",
-            loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
+        self.log("training/loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
 
         return {"loss": loss, "predicted": preds, "targets": targets}
 
-    def on_validation_epoch_start(self):
-        self.val_loss = []
+    def validation_step(self, batch, batch_idx, dataloader_idx=0):
+        if dataloader_idx != 0:
+            return None
 
-    def validation_step(self, batch, batch_idx):
-        inputs = batch['ts']
-        targets = batch['label']
-        metadata = batch['id'] 
+        inputs = batch['ts']         # [B, L, 2]
+        targets = batch['target']    # [B, L]
+        metadata = batch['id']
+        labels = batch['label']
 
-        preds = self.model(inputs)
-
+        preds = self.model(inputs)   # [B, 2, L]
         loss = self.criterion(preds, targets)
 
-        self.log(
-            "validation/loss",
-            loss,
-            on_epoch=True,
-            on_step=False,
-            prog_bar=True,
-            logger=True,
-        )
+        self.log("validation/loss", loss, on_epoch=True, on_step=False, prog_bar=True, logger=True, sync_dist=True)
 
-        # # Log a resulting image
-        # self.save_plot_prediction("validation/plot", inputs, targets, preds, metadata)
+        probs = preds[:, 1, :]       # [B, L]
+        periods = inputs[:, :, 1]    # [B, L]
 
-        self.val_loss.append(loss.cpu())
+        results = []
 
-        return {"loss": loss, "predicted": preds, "targets": targets}
+        for i in range(inputs.size(0)):
+            period_series = periods[i]
+            pred_series = probs[i]
 
+            transitions = (period_series[:-1] == 0) & (period_series[1:] == 1)
+            transition_idx = torch.where(transitions)[0] + 1
+
+            if len(transition_idx) == 0:
+                continue
+
+            t = transition_idx[0]
+
+            pred_prob = pred_series[t].item()
+            real_label = labels[i].item()
+            results.append([pred_prob, real_label])
+
+        if len(results) == 0:
+            return torch.empty((0, 2), device=self.device)
+
+        return torch.tensor(results, dtype=torch.float32, device=self.device)  # shape: [n, 2]
+
+    def on_validation_batch_end(self, validation_step_outputs, batch, batch_idx, dataloader_idx=0):
+        if dataloader_idx != 0:
+            return None
+        validation_step_outputs = self.trainer.strategy.all_gather(validation_step_outputs)
+        # print(f"[Debug] Rank {self.trainer.global_rank} collected {len(validation_step_outputs)} batches")
+        if self.trainer.is_global_zero:
+            # print(f"\n[Debug] Collected {len(validation_step_outputs)} test batches (from all GPUs)")
+            # for i, batch_output in enumerate(validation_step_outputs):
+            #     print(f"\n[Debug] --- Batch {i} ---")
+                
+            #     print(f"[Debug] batch output shape: {batch_output.shape} | dtype: {batch_output.dtype}")
+            self.validation_step_outputs.append(validation_step_outputs)
+        return validation_step_outputs
+    
     def on_validation_epoch_end(self):
-        val_loss = np.mean(self.val_loss)
+        if self.trainer.is_global_zero:
+            validation_step_outputs = [
+            batch.reshape(-1, batch.shape[-1])
+                for batch in self.validation_step_outputs
+            ]
+            all_outputs = torch.cat(validation_step_outputs, dim=0)  # [total_samples, 2]
 
-        # Compute smoother version of the validation loss as the original one
-        # frequently reaches newer lows by "luck"
-        if self.val_loss_smooth is None:
-            self.val_loss_smooth = val_loss
-        else:
-            self.val_loss_smooth = (
-                self.val_loss_smooth * (1 - self.config.val_loss_smooth_param)
-                + val_loss * self.config.val_loss_smooth_param
-            )
+            all_probs = all_outputs[:, 0]    # 概率列
+            all_labels = all_outputs[:, 1].long()  # 标签列，转成整型
+            
+            try:
+                auc = auroc(all_probs, all_labels.int(), task="binary")
+            except Exception as e:
+                auc = torch.tensor(0.0).to(self.device)
+                print(f"Warning: AUC computation failed: {e}")
 
-        self.log(
-            "validation/loss_smooth",
-            self.val_loss_smooth,
-            on_epoch=True,
-            on_step=False,
-            prog_bar=True,
-            logger=True,
-        )
+            self.log("val_auc", auc, prog_bar=True, sync_dist=True)
 
-    def test_step(self, batch, batch_index):
-        inputs = batch['ts']
-        targets = batch['label']
-        metadata = batch['id'] 
-
-        preds = self.model(inputs)
-
-        loss = self.criterion(preds, targets)
-
-        self.log(
-            "test/loss", loss, on_epoch=True, on_step=False, prog_bar=True, logger=True
-        )
-
-        # # Log a resulting image
-        # self.save_plot_prediction("test/plot", inputs, targets, preds, metadata)
-
-        return {"loss": loss, "predicted": preds, "targets": targets}
+            self.validation_step_outputs.clear()

@@ -120,15 +120,16 @@ class Config:
         
         # Data
         self.data_path = "./data"
-        self.n_vars = 1   
-        self.train_batch_size = 32
-        self.valid_batch_size = 64
+        self.n_vars = 2   
+        self.train_batch_size = 128
+        self.valid_batch_size = 128
+        self.spike_std = 64
         
         # Model
         self.model_name = "UTime"
         self.num_classes = 2
         ## structure
-        self.in_channels = 1
+        self.in_channels = 2
         self.network_depth = 4
         self.channels_size = 128
         self.filters = [
@@ -151,7 +152,7 @@ class Config:
         self.val_loss_smooth_param = 0.25
         self.ckpt_dir = "./checkpoints"
         self.log_dir = "./logs"
-        self.version = "exp1"
+        self.version = "exp2"
         self.resume = False
         
 

@@ -31,7 +31,7 @@ LGBM_PARAMS = {
     'metric': 'auc',
     'boosting_type': 'gbdt',
     'random_state': 42,
-    'n_estimators': 1000, 
+    'n_estimators': 4000, 
     'learning_rate': 0.005,
     'num_leaves': 31,
     'n_jobs': -1,

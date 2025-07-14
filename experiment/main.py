@@ -16,6 +16,7 @@ def main():
     # --- 特征生成命令 ---
     parser_gen = subparsers.add_parser('gen-feats', help='生成或更新特征，并创建一个新的带时间戳的特征文件')
     parser_gen.add_argument('--funcs', nargs='*', default=None, help='要生成/更新的特征函数名列表。如果为空，则运行所有注册的函数。')
+    parser_gen.add_argument('--decomp', nargs='*', default=None, help='要生成/更新的时序分解函数名列表。如果为空，则运行所有注册的函数。')
     parser_gen.add_argument('--base-file', type=str, default=None, help='可选，指定一个基础特征文件名进行更新。如果为空，则使用最新的特征文件。')
 
     # --- 特征删除命令 ---
@@ -56,7 +57,7 @@ def main():
         features.logger = logger
         data.logger = logging.getLogger('data')
         X_train, _ = data.load_data()
-        features.generate_features(X_train, funcs_to_run=args.funcs, base_feature_file=args.base_file)
+        features.generate_features(X_train, funcs_to_run=args.funcs, decomposes_to_run=args.decomp, base_feature_file=args.base_file)
 
     elif args.command == 'del-feats':
         from . import features

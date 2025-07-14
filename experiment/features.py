@@ -11,6 +11,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from datetime import datetime
 from joblib import Parallel, delayed
+from typing import List, Dict, Tuple, Optional
 import warnings
 from statsmodels.tools.sm_exceptions import InterpolationWarning
 
@@ -645,10 +646,80 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
+# --- 分解函数注册表 ---
+DECOMPOSE_REGISTRY = {}
+
+def register_decompose(_func=None, *, output_mode_names=[]):
+    """一个用于注册时序分解函数的装饰器。"""
+    def decorator_register(func):
+        DECOMPOSE_REGISTRY[func.__name__] = {
+            "func": func, 
+            "output_mode_names": output_mode_names
+        }
+        return func
+
+    if _func is None:
+        # Used as @register_decompose(output_mode_names=...)
+        return decorator_register
+    else:
+        # Used as @register_decompose
+        return decorator_register(_func)
+
+@register_decompose(output_mode_names=['RAW'])
+def no_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    原始时序
+    """
+    result_dfs = []
+    result_dfs.append(X_df)
+
+    return result_dfs
+
+@register_decompose(output_mode_names=['MAde_trend', 'MAde_resid'])
+def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    滑动平均分解
+    
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+        
+    Returns:
+        List[pd.DataFrame]: 包含两个数据框的列表 [趋势值, 残差值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
+    
+    # 为每个模态创建一个空的数据框
+    for mode_name in ['trend', 'resid']:
+        mode_df = X_df_sorted.copy()
+        mode_df['value'] = np.nan
+        result_dfs.append(mode_df)
+    
+    # 对每个id进行分解
+    for series_id in X_df_sorted.index.get_level_values('id').unique():
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        # 滑动平均分解
+        window_size = 200
+        trend = pd.Series(values).rolling(window=window_size, center=True, min_periods=1).mean()
+        trend.iloc[:window_size//2] = trend.iloc[window_size//2]
+        trend.iloc[-(window_size//2):] = trend.iloc[-(window_size//2)]
+        
+        residual = values - trend.values
+        
+        result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
+        result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
+    
+    return result_dfs
+
 # --- 特征管理核心逻辑 ---
 def _get_latest_feature_file() -> Path | None:
     """查找并返回最新的特征文件路径"""
+    # 获取特征文件目录下的所有特征文件
     feature_files = list(config.FEATURE_DIR.glob('features_*.parquet'))
+    # 如果没有特征文件，返回None
     if not feature_files:
         return None
     return max(feature_files, key=lambda p: p.stat().st_mtime)
@@ -701,6 +772,57 @@ def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
         for id_val in tqdm(all_ids, desc=f"Running {func.__name__}")
     )
     return pd.DataFrame(results).set_index('id')
+
+def _apply_decompose_func(func, X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """执行分解函数"""
+    return func(X_df)
+
+def apply_decomposition(X_df: pd.DataFrame, decompose_funcs: List[str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    应用时序分解
+    
+    Args:
+        X_df: 输入数据框
+        decompose_funcs: 要应用的分解函数名称列表，如果为None则应用所有注册的分解函数
+        
+    Returns:
+        Dict[str, pd.DataFrame]: 键为模态名称，值为对应的数据框
+    """
+    if decompose_funcs is None:
+        decompose_funcs = list(DECOMPOSE_REGISTRY.keys())
+    
+    # 验证分解函数是否存在
+    valid_decompose_funcs = []
+    for func_name in decompose_funcs:
+        if func_name not in DECOMPOSE_REGISTRY:
+            logger.warning(f"分解函数 {func_name} 未在注册表中找到，已跳过。")
+        else:
+            valid_decompose_funcs.append(func_name)
+    
+    decompose_funcs = valid_decompose_funcs
+    
+    # 存储所有模态的数据框
+    decomposed_data = {}
+    
+    for func_name in decompose_funcs:
+        logger.info(f"--- 开始应用分解函数: {func_name} ---")
+        start_time = time.time()
+        
+        decompose_info = DECOMPOSE_REGISTRY[func_name]
+        func = decompose_info['func']
+        output_mode_names = decompose_info['output_mode_names']
+        
+        # 执行分解
+        decomposed_results = _apply_decompose_func(func, X_df)
+        
+        # 存储结果
+        for mode_name, mode_df in zip(output_mode_names, decomposed_results):
+            decomposed_data[mode_name] = mode_df
+        
+        duration = time.time() - start_time
+        logger.info(f"'{func_name}' 分解完毕，耗时: {duration:.2f} 秒，生成模态: {output_mode_names}")
+    
+    return decomposed_data
 
 def check_new_features_corr(feature_df, loaded_features, drop_flag=False, threshold=0.95):
     """检查新特征与已加载特征的相关性"""
@@ -756,7 +878,12 @@ def clean_feature_names(df: pd.DataFrame, prefix: str = "f") -> pd.DataFrame:
     df.columns = cleaned_columns
     return df
 
-def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None):
+def generate_features(
+        X_df: pd.DataFrame, 
+        funcs_to_run: list = None, 
+        decomposes_to_run: list = None, 
+        base_feature_file: str = None
+    ):
     """
     生成指定的特征，或者如果未指定，则生成所有已注册的特征。
     可以基于一个现有的特征文件进行增量更新。
@@ -805,40 +932,48 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         feature_df, metadata = pd.DataFrame(index=X_df.index.get_level_values('id').unique()), {}
     logger.info(f"基础特征文件格式：{feature_df.shape}")
 
-    # 2. 逐个生成新特征并更新
+    # 3. 时序分解
+    logger.info("=== 开始时序分解 ===")
+    decomposed_data = apply_decomposition(X_df, decomposes_to_run)
+    logger.info(f"分解完成，共生成 {len(decomposed_data)} 个模态: {list(decomposed_data.keys())}")
+
+    # 4. 逐个生成新特征并更新
     loaded_features = feature_df.columns.tolist()
     initial_feature_count = len(feature_df.columns)
 
-    for func_name in funcs_to_run:
-        logger.info(f"--- 开始生成特征: {func_name} ---")
-        start_time = time.time()
-        
-        feature_info = FEATURE_REGISTRY[func_name]
-        func = feature_info['func']
-        is_parallelizable = feature_info['parallelizable']
-        
-        if is_parallelizable:
-            new_features_df = _apply_feature_func_parallel(func, X_df)
-        else:
-            logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
-            new_features_df = _apply_feature_func_sequential(func, X_df)
-        
-        # 记录日志
-        duration = time.time() - start_time
-        logger.info(f"'{func_name}' 生成完毕，耗时: {duration:.2f} 秒。")
-        logger.info(f"  新生成特征列名: {new_features_df.columns.tolist()}")
-        
-        for col in new_features_df.columns:
-            null_ratio = new_features_df[col].isnull().sum() / len(new_features_df)
-            zero_ratio = (new_features_df[col] == 0).sum() / len(new_features_df)
-            logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
+    for mode_name, mode_df in decomposed_data.items():
+        logger.info(f"=== 开始为模态 '{mode_name}' 生成特征 ===")
+        for func_name in funcs_to_run:
+            logger.info(f"--- 开始生成特征: {func_name} ---")
+            start_time = time.time()
+            
+            feature_info = FEATURE_REGISTRY[func_name]
+            func = feature_info['func']
+            is_parallelizable = feature_info['parallelizable']
+            
+            if is_parallelizable:
+                new_features_df = _apply_feature_func_parallel(func, mode_df)
+            else:
+                logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
+                new_features_df = _apply_feature_func_sequential(func, mode_df)
+            new_features_df.columns = [f"{mode_name}_{col}" for col in new_features_df.columns]
 
-        # 删除旧版本特征（如果存在），然后合并
-        feature_df = feature_df.drop(columns=new_features_df.columns, errors='ignore')
-        feature_df = feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
-        feature_df, removed_features = check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95)
-        feature_df = clean_feature_names(feature_df)
-        loaded_features = feature_df.columns.tolist()
+            # 记录日志
+            duration = time.time() - start_time
+            logger.info(f"'{func_name}' 生成完毕，耗时: {duration:.2f} 秒。")
+            logger.info(f"  新生成特征列名: {new_features_df.columns.tolist()}")
+            
+            for col in new_features_df.columns:
+                null_ratio = new_features_df[col].isnull().sum() / len(new_features_df)
+                zero_ratio = (new_features_df[col] == 0).sum() / len(new_features_df)
+                logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
+
+            # 删除旧版本特征（如果存在），然后合并
+            feature_df = feature_df.drop(columns=new_features_df.columns, errors='ignore')
+            feature_df = feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
+            feature_df, removed_features = check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95)
+            feature_df = clean_feature_names(feature_df)
+            loaded_features = feature_df.columns.tolist()
 
     # 3. 保存结果
     new_feature_count = len(feature_df.columns)

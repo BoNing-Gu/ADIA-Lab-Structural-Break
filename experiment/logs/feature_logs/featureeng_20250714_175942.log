@@ -1,0 +1,12 @@
+2025-07-14 17:59:42 - FeatureEng-20250714_175942 - INFO - ========== Running Command: gen-feats ==========
+2025-07-14 17:59:42 - FeatureEng-20250714_175942 - INFO - Args: {'command': 'gen-feats', 'funcs': None, 'decomp': None, 'base_file': None}
+2025-07-14 17:59:42 - FeatureEng-20250714_175942 - INFO - =======================================
+2025-07-14 17:59:43 - FeatureEng-20250714_175942 - INFO - 未指定特征函数，将运行所有 11 个非实验性特征。
+2025-07-14 17:59:43 - FeatureEng-20250714_175942 - INFO - 将基于特征文件进行更新: features_20250709_113153.parquet
+2025-07-14 17:59:43 - FeatureEng-20250714_175942 - INFO - 基础特征文件格式：(10001, 143)
+2025-07-14 17:59:43 - FeatureEng-20250714_175942 - INFO - === 开始时序分解 ===
+2025-07-14 17:59:43 - FeatureEng-20250714_175942 - INFO - --- 开始应用分解函数: moving_average_decomposition ---
+2025-07-14 17:59:57 - FeatureEng-20250714_175942 - INFO - 'moving_average_decomposition' 分解完毕，耗时: 14.46 秒，生成模态: ['MAde_trend', 'MAde_resid']
+2025-07-14 17:59:57 - FeatureEng-20250714_175942 - INFO - 分解完成，共生成 2 个模态: ['MAde_trend', 'MAde_resid']
+2025-07-14 17:59:57 - FeatureEng-20250714_175942 - INFO - === 开始为模态 'MAde_trend' 生成特征 ===
+2025-07-14 17:59:57 - FeatureEng-20250714_175942 - INFO - --- 开始生成特征: distribution_stats_features ---

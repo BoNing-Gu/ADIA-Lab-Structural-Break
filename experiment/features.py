@@ -645,6 +645,43 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
+# --- 预处理 ---
+def _clip_series_outliers(series: pd.Series, threshold: float) -> pd.Series:
+    """基于IQR方法裁剪单个序列的离群值。"""
+    q1 = series.quantile(0.25)
+    q3 = series.quantile(0.75)
+    iqr = q3 - q1
+    if iqr == 0:
+        return series # 如果IQR为0，不进行裁剪
+    
+    lower_bound = q1 - threshold * iqr
+    upper_bound = q3 + threshold * iqr
+    return series.clip(lower=lower_bound, upper=upper_bound)
+
+def preprocess_clip_outliers(df: pd.DataFrame, threshold: float = 5.0) -> pd.DataFrame:
+    """
+    在特征工程之前，对每个时间序列（按id和period分组）的值进行离群值裁剪。
+    这是一个可选的预处理步骤。
+    """
+    if logger:
+        logger.info(f"开始裁剪离群值 (IQR multiplier = {threshold})...")
+    
+    # 使用 groupby().transform() 来保持原始索引和形状
+    df_copy = df.copy()
+    df_copy['value'] = df_copy.groupby(['id', 'period'])['value'].transform(
+        lambda s: _clip_series_outliers(s, threshold)
+    )
+    
+    # 计算被裁剪的点的数量和比例
+    n_original = len(df)
+    n_clipped = (df['value'] != df_copy['value']).sum()
+    clip_ratio = n_clipped / n_original if n_original > 0 else 0
+    
+    if logger:
+        logger.info(f"裁剪完成。总共 {n_clipped} 个点 ({clip_ratio:.4%}) 被裁剪。")
+    
+    return df_copy
+
 # --- 特征管理核心逻辑 ---
 def _get_latest_feature_file() -> Path | None:
     """查找并返回最新的特征文件路径"""
@@ -756,7 +793,8 @@ def clean_feature_names(df: pd.DataFrame, prefix: str = "f") -> pd.DataFrame:
     df.columns = cleaned_columns
     return df
 
-def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None):
+def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None,
+                      clip_outliers: bool = False, clip_threshold: float = 5.0):
     """
     生成指定的特征，或者如果未指定，则生成所有已注册的特征。
     可以基于一个现有的特征文件进行增量更新。
@@ -767,8 +805,14 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
             如果为 None，则运行所有在 `FEATURE_REGISTRY` 中注册的、且不在 `EXPERIMENTAL_FEATURES` 中的函数。
         base_feature_file (str, optional): 基础特征文件名。如果提供，
             将加载此文件并在此基础上添加或更新特征。否则，将创建一个新的特征集。
+        clip_outliers (bool): 是否在特征工程前裁剪极端离群值。默认为 True。
+        clip_threshold (float): 定义离群值的IQR乘数。默认为 5.0。
     """
     utils.ensure_feature_dirs()
+    
+    # 1. (可选) 离群值处理
+    if clip_outliers:
+        X_df = preprocess_clip_outliers(X_df, threshold=clip_threshold)
     
     if funcs_to_run is None:
         # 如果未指定函数，则运行所有非实验性特征

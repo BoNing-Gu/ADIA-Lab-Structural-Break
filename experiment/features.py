@@ -646,6 +646,74 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
+# --- 12. 分段损失 ---
+class FeatureExtractor:
+    def __init__(self):
+        import ruptures as rpt
+        # 所有可用的cost类及其名称
+        self.cost_classes = {
+            'l1': rpt.costs.CostL1,               # 中位数
+            'l2': rpt.costs.CostL2,               # 均值
+            'clinear': rpt.costs.CostCLinear,     # 线性协方差
+            'rbf': rpt.costs.CostRbf,             # RBF核
+            'normal': rpt.costs.CostNormal,       # 协方差
+            'ar': rpt.costs.CostAR,               # 自回归
+            'mahalanobis': rpt.costs.CostMl,      # 马氏距离
+            'rank': rpt.costs.CostRank,           # 排名
+            'cosine': rpt.costs.CostCosine,       # 余弦距离
+        }
+
+    def calculate(self, cost, start, end):
+        result = cost.error(start, end)
+        if isinstance(result, (np.ndarray, list)) and np.array(result).size == 1:
+            return float(np.array(result).squeeze())
+        return result
+
+    def extract(self, signal, boundary):
+        """
+        输入：
+            signal: 1D numpy array，单变量时间序列
+            boundary: int，分割点
+        输出：
+            result: dict，格式为 {cost_name: {'left': value, 'right': value}}
+        """
+        signal = np.asarray(signal)
+        n = len(signal)
+        result = {}
+        for name, cls in self.cost_classes.items():
+            try:
+                if name == 'ar':
+                    cost = cls(order=4)
+                else:
+                    cost = cls()
+                cost.fit(signal)
+                left = self.calculate(cost, 0, boundary)
+                right = self.calculate(cost, boundary, n)
+                whole = self.calculate(cost, 0, n)
+            except Exception:
+                left = None
+                right = None
+                whole = None
+            result[name] = {'left': left, 'right': right, 'whole': whole}
+        return result
+
+@register_feature
+def rupture_cost_features(u: pd.DataFrame) -> dict:
+    value = u['value'].values.astype(np.float32)
+    period = u['period'].values.astype(np.float32)
+    boundary = np.where(np.diff(period) != 0)[0].item()
+    feats = {}
+
+    extractor = FeatureExtractor()
+    features = extractor.extract(value, boundary)
+
+    feats = {}
+    for k, v in features.items():
+        for seg, value in v.items():
+            feats[f'rpt_cost_{k}_{seg}'] = value
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
 # --- 分解函数注册表 ---
 DECOMPOSE_REGISTRY = {}
 
@@ -675,7 +743,7 @@ def no_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 
     return result_dfs
 
-@register_decompose(output_mode_names=['MAde_trend', 'MAde_resid'])
+# @register_decompose(output_mode_names=['MAde_trend', 'MAde_resid'])
 def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     """
     滑动平均分解

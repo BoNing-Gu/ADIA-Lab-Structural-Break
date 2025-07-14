@@ -1,0 +1,11 @@
+2025-07-14 23:05:43 - FeatureEng-20250714_230543 - INFO - ========== Running Command: gen-feats ==========
+2025-07-14 23:05:43 - FeatureEng-20250714_230543 - INFO - Args: {'command': 'gen-feats', 'funcs': ['rupture_cost_features'], 'decomp': None, 'base_file': None}
+2025-07-14 23:05:43 - FeatureEng-20250714_230543 - INFO - =======================================
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - 将基于特征文件进行更新: features_20250709_113153.parquet
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - 基础特征文件格式：(10001, 143)
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - === 开始时序分解 ===
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - --- 开始应用分解函数: no_decomposition ---
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - 'no_decomposition' 分解完毕，耗时: 0.00 秒，生成模态: ['RAW']
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - 分解完成，共生成 1 个模态: ['RAW']
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - === 开始为模态 'RAW' 生成特征 ===
+2025-07-14 23:05:44 - FeatureEng-20250714_230543 - INFO - --- 开始生成特征: rupture_cost_features ---

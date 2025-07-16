@@ -33,8 +33,8 @@ def save_permutation_importance(permutation_results, feature_names, output_dir):
     })
     df = df.sort_values('permutation_importance_mean', ascending=False)
     
-    # 找出permutation_importance_mean小于0的特征名
-    negative_importance_features = df[df['permutation_importance_mean'] <= 0]['feature'].tolist()
+    # 找出permutation_importance_mean小于0.0005的特征名
+    negative_importance_features = df[df['permutation_importance_mean'] <= 0.0005]['feature'].tolist()
     logger.info(f"permutation_importance_mean小于0的特征有: {negative_importance_features}")
 
     save_path = output_dir / 'permutation_importance.tsv'

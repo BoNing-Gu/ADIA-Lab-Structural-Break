@@ -161,6 +161,7 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     """假设检验统计量 & 分段假设检验统计量的Diff"""
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
     feats = {}
 
     # KS检验
@@ -183,9 +184,14 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     feats['mannwhitney_pvalue'] = -mw_pvalue if not np.isnan(mw_pvalue) else 1
     
     # Wilcoxon秩和检验
-    w_stat, w_pvalue = scipy.stats.ranksums(s1, s2)
-    feats['wilcoxon_stat'] = w_stat if not np.isnan(w_stat) else 0
-    feats['wilcoxon_pvalue'] = -w_pvalue if not np.isnan(w_pvalue) else 1
+    try:
+        w_stat, w_pvalue = scipy.stats.ranksums(s1, s2)
+        feats['wilcoxon_stat'] = w_stat if not np.isnan(w_stat) else 0
+        feats['wilcoxon_pvalue'] = -w_pvalue if not np.isnan(w_pvalue) else 1
+    except ValueError:
+        feats['wilcoxon_stat'] = 0
+        feats['wilcoxon_pvalue'] = 1
+
 
     # Levene检验
     levene_stat, levene_pvalue = scipy.stats.levene(s1, s2)
@@ -198,28 +204,34 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     feats['bartlett_pvalue'] = -bartlett_pvalue if not np.isnan(bartlett_pvalue) else 1
     
     # Shapiro-Wilk检验
-    if len(s1) <= 5000 and len(s2) <= 5000:  # Shapiro有样本大小限制
+    sw1_stat, sw1_pvalue, sw2_stat, sw2_pvalue, sw_whole_stat, sw_whole_pvalue = (np.nan,)*6
+    if len(s1) <= 5000 and len(s1) > 2:
         sw1_stat, sw1_pvalue = scipy.stats.shapiro(s1)
+    if len(s2) <= 5000 and len(s2) > 2:
         sw2_stat, sw2_pvalue = scipy.stats.shapiro(s2)
-        feats['shapiro_pvalue_left'] = sw1_pvalue
-        feats['shapiro_pvalue_right'] = sw2_pvalue
-        feats['shapiro_pvalue_diff'] = sw1_pvalue - sw2_pvalue if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
-    else:
-        feats['shapiro_pvalue_left'] = 1
-        feats['shapiro_pvalue_right'] = 1
-        feats['shapiro_pvalue_diff'] = 0
+    if len(s_whole) <= 5000 and len(s_whole) > 2:
+        sw_whole_stat, sw_whole_pvalue = scipy.stats.shapiro(s_whole)
+    
+    feats['shapiro_pvalue_left'] = sw1_pvalue
+    feats['shapiro_pvalue_right'] = sw2_pvalue
+    feats['shapiro_pvalue_whole'] = sw_whole_pvalue
+    feats['shapiro_pvalue_diff'] = sw2_pvalue - sw1_pvalue if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
+    feats['shapiro_pvalue_ratio'] = sw2_pvalue / (sw1_pvalue + 1e-6) if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
 
     # Jarque-Bera检验差异
+    jb1_stat, jb1_pvalue, jb2_stat, jb2_pvalue, jb_whole_stat, jb_whole_pvalue = (np.nan,)*6
     try:
-        jb1_stat, jb1_pvalue = scipy.stats.jarque_bera(s1)
-        jb2_stat, jb2_pvalue = scipy.stats.jarque_bera(s2)
-        feats['jb_pvalue_left'] = jb1_pvalue
-        feats['jb_pvalue_right'] = jb2_pvalue
-        feats['jb_pvalue_diff'] = jb1_pvalue - jb2_pvalue if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
+        if len(s1) > 2: jb1_stat, jb1_pvalue = scipy.stats.jarque_bera(s1)
+        if len(s2) > 2: jb2_stat, jb2_pvalue = scipy.stats.jarque_bera(s2)
+        if len(s_whole) > 2: jb_whole_stat, jb_whole_pvalue = scipy.stats.jarque_bera(s_whole)
     except:
-        feats['jb_pvalue_left'] = 1
-        feats['jb_pvalue_right'] = 1
-        feats['jb_pvalue_diff'] = 0
+        pass
+    
+    feats['jb_pvalue_left'] = jb1_pvalue
+    feats['jb_pvalue_right'] = jb2_pvalue
+    feats['jb_pvalue_whole'] = jb_whole_pvalue
+    feats['jb_pvalue_diff'] = jb2_pvalue - jb1_pvalue if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
+    feats['jb_pvalue_ratio'] = jb2_pvalue / (jb1_pvalue + 1e-6) if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
 
     # KPSS检验
     def extract_kpss_features(s):
@@ -238,16 +250,24 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     try:
         k1 = extract_kpss_features(s1)
         k2 = extract_kpss_features(s2)
+        k_whole = extract_kpss_features(s_whole)
 
         feats['kpss_pvalue_left'] = k1['p']
         feats['kpss_pvalue_right'] = k2['p']
-        feats['kpss_pvalue_diff'] = k1['p'] - k2['p']
-        feats['kpss_stat_diff'] = k1['stat'] - k2['stat']
+        feats['kpss_pvalue_whole'] = k_whole['p']
+        feats['kpss_pvalue_diff'] = k2['p'] - k1['p']
+        feats['kpss_pvalue_ratio'] = k2['p'] / (k1['p'] + 1e-6)
+
+        feats['kpss_stat_left'] = k1['stat']
+        feats['kpss_stat_right'] = k2['stat']
+        feats['kpss_stat_whole'] = k_whole['stat']
+        feats['kpss_stat_diff'] = k2['stat'] - k1['stat']
+        feats['kpss_stat_ratio'] = k2['stat'] / (k1['stat'] + 1e-6)
     except:
-        feats['kpss_pvalue_left'] = 1
-        feats['kpss_pvalue_right'] = 1
-        feats['kpss_pvalue_diff'] = 0
-        feats['kpss_stat_diff'] = 0
+        feats.update({
+            'kpss_pvalue_left': 1, 'kpss_pvalue_right': 1, 'kpss_pvalue_whole': 1, 'kpss_pvalue_diff': 0, 'kpss_pvalue_ratio': 0,
+            'kpss_stat_left': 0, 'kpss_stat_right': 0, 'kpss_stat_whole': 0, 'kpss_stat_diff': 0, 'kpss_stat_ratio': 0
+        })
 
     # 平稳性检验 (ADF)
     def extract_adf_features(s):
@@ -267,18 +287,32 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     try:
         f1 = extract_adf_features(s1)
         f2 = extract_adf_features(s2)
+        f_whole = extract_adf_features(s_whole)
 
         feats['adf_pvalue_left'] = f1['p']
         feats['adf_pvalue_right'] = f2['p']
-        feats['adf_pvalue_diff'] = f1['p'] - f2['p']
-        feats['adf_stat_diff'] = f1['stat'] - f2['stat']
-        feats['adf_icbest_diff'] = f1['ic'] - f2['ic']
+        feats['adf_pvalue_whole'] = f_whole['p']
+        feats['adf_pvalue_diff'] = f2['p'] - f1['p']
+        feats['adf_pvalue_ratio'] = f2['p'] / (f1['p'] + 1e-6)
+
+        feats['adf_stat_left'] = f1['stat']
+        feats['adf_stat_right'] = f2['stat']
+        feats['adf_stat_whole'] = f_whole['stat']
+        feats['adf_stat_diff'] = f2['stat'] - f1['stat']
+        feats['adf_stat_ratio'] = f2['stat'] / (f1['stat'] + 1e-6)
+
+        feats['adf_icbest_left'] = f1['ic']
+        feats['adf_icbest_right'] = f2['ic']
+        feats['adf_icbest_whole'] = f_whole['ic']
+        feats['adf_icbest_diff'] = f2['ic'] - f1['ic']
+        feats['adf_icbest_ratio'] = f2['ic'] / (f1['ic'] + 1e-6)
     except:
-        feats['adf_pvalue_left'] = 1
-        feats['adf_pvalue_right'] = 1
-        feats['adf_pvalue_diff'] = 0
-        feats['adf_stat_diff'] = 0
-        feats['adf_icbest_diff'] = 0
+        feats.update({
+            'adf_pvalue_left': 1, 'adf_pvalue_right': 1, 'adf_pvalue_whole': 1, 'adf_pvalue_diff': 0, 'adf_pvalue_ratio': 0,
+            'adf_stat_left': 0, 'adf_stat_right': 0, 'adf_stat_whole': 0, 'adf_stat_diff': 0, 'adf_stat_ratio': 0,
+            'adf_icbest_left': 0, 'adf_icbest_right': 0, 'adf_icbest_whole': 0, 'adf_icbest_diff': 0, 'adf_icbest_ratio': 0
+        })
+
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -287,14 +321,24 @@ def test_stats_features(u: pd.DataFrame) -> dict:
 def cumulative_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
     feats = {}
     
-    sum1, sum2 = s1.sum(), s2.sum()
+    sum1, sum2, sum_whole = s1.sum(), s2.sum(), s_whole.sum()
     feats['sum_left'] = sum1
     feats['sum_right'] = sum2
+    feats['sum_whole'] = sum_whole
     feats['sum_diff'] = sum2 - sum1
+    feats['sum_ratio'] = sum2 / (sum1 + 1e-6)
     
-    feats['cumsum_max_diff'] = s2.cumsum().max() - s1.cumsum().max()
+    cumsum1_max = s1.cumsum().max()
+    cumsum2_max = s2.cumsum().max()
+    cumsum_whole_max = s_whole.cumsum().max()
+    feats['cumsum_max_left'] = cumsum1_max
+    feats['cumsum_max_right'] = cumsum2_max
+    feats['cumsum_max_whole'] = cumsum_whole_max
+    feats['cumsum_max_diff'] = cumsum2_max - cumsum1_max
+    feats['cumsum_max_ratio'] = cumsum2_max / (cumsum1_max + 1e-6)
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -303,6 +347,7 @@ def cumulative_features(u: pd.DataFrame) -> dict:
 def oscillation_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
     s2 = u['value'][u['period'] == 1].reset_index(drop=True)
+    s_whole = u['value'].reset_index(drop=True)
     feats = {}
 
     def count_zero_crossings(series: pd.Series):
@@ -311,16 +356,31 @@ def oscillation_features(u: pd.DataFrame) -> dict:
         if centered_series.eq(0).all(): return 0
         return np.sum(np.diff(np.sign(centered_series)) != 0)
 
-    feats['zero_cross_diff'] = count_zero_crossings(s2) - count_zero_crossings(s1)
+    zc1, zc2, zc_whole = count_zero_crossings(s1), count_zero_crossings(s2), count_zero_crossings(s_whole)
+    feats['zero_cross_left'] = zc1
+    feats['zero_cross_right'] = zc2
+    feats['zero_cross_whole'] = zc_whole
+    feats['zero_cross_diff'] = zc2 - zc1
+    feats['zero_cross_ratio'] = zc2 / (zc1 + 1e-6)
     
     def autocorr_lag1(s):
         if len(s) < 2: return 0.0
         ac = s.autocorr(lag=1)
         return ac if not np.isnan(ac) else 0.0
         
-    feats['autocorr_lag1_diff'] = autocorr_lag1(s2) - autocorr_lag1(s1)
-    
-    feats['diff_var_diff'] = s2.diff().var() - s1.diff().var()
+    ac1, ac2, ac_whole = autocorr_lag1(s1), autocorr_lag1(s2), autocorr_lag1(s_whole)
+    feats['autocorr_lag1_left'] = ac1
+    feats['autocorr_lag1_right'] = ac2
+    feats['autocorr_lag1_whole'] = ac_whole
+    feats['autocorr_lag1_diff'] = ac2 - ac1
+    feats['autocorr_lag1_ratio'] = ac2 / (ac1 + 1e-6)
+
+    var1, var2, var_whole = s1.diff().var(), s2.diff().var(), s_whole.diff().var()
+    feats['diff_var_left'] = var1
+    feats['diff_var_right'] = var2
+    feats['diff_var_whole'] = var_whole
+    feats['diff_var_diff'] = var2 - var1
+    feats['diff_var_ratio'] = var2 / (var1 + 1e-6)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -329,6 +389,7 @@ def oscillation_features(u: pd.DataFrame) -> dict:
 def cyclic_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
     feats = {}
 
     def get_fft_props(series):
@@ -347,9 +408,19 @@ def cyclic_features(u: pd.DataFrame) -> dict:
 
     freq1, power1 = get_fft_props(s1)
     freq2, power2 = get_fft_props(s2)
+    freq_whole, power_whole = get_fft_props(s_whole)
     
+    feats['dominant_freq_left'] = freq1
+    feats['dominant_freq_right'] = freq2
+    feats['dominant_freq_whole'] = freq_whole
     feats['dominant_freq_diff'] = freq2 - freq1
+    feats['dominant_freq_ratio'] = freq2 / (freq1 + 1e-6)
+
+    feats['max_power_left'] = power1
+    feats['max_power_right'] = power2
+    feats['max_power_whole'] = power_whole
     feats['max_power_diff'] = power2 - power1
+    feats['max_power_ratio'] = power2 / (power1 + 1e-6)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -359,14 +430,23 @@ def amplitude_features(u: pd.DataFrame) -> dict:
     import scipy.stats
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
     feats = {}
     
-    if not s1.empty and not s2.empty:
-        feats['ptp_diff'] = np.ptp(s2) - np.ptp(s1)
-        feats['iqr_diff'] = scipy.stats.iqr(s2) - scipy.stats.iqr(s1)
-    else:
-        feats['ptp_diff'] = 0
-        feats['iqr_diff'] = 0
+    ptp1, ptp2, ptp_whole = np.ptp(s1), np.ptp(s2), np.ptp(s_whole)
+    iqr1, iqr2, iqr_whole = scipy.stats.iqr(s1), scipy.stats.iqr(s2), scipy.stats.iqr(s_whole)
+
+    feats['ptp_left'] = ptp1
+    feats['ptp_right'] = ptp2
+    feats['ptp_whole'] = ptp_whole
+    feats['ptp_diff'] = ptp2 - ptp1
+    feats['ptp_ratio'] = ptp2 / (ptp1 + 1e-6)
+
+    feats['iqr_left'] = iqr1
+    feats['iqr_right'] = iqr2
+    feats['iqr_whole'] = iqr_whole
+    feats['iqr_diff'] = iqr2 - iqr1
+    feats['iqr_ratio'] = iqr2 / (iqr1 + 1e-6)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -384,6 +464,7 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
     """
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
     feats = {}
     window = 50
 
@@ -397,8 +478,13 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
 
     mean1 = get_rolling_std_mean(s1, window)
     mean2 = get_rolling_std_mean(s2, window)
+    mean_whole = get_rolling_std_mean(s_whole, window)
 
+    feats[f'rolling_std_w{window}_mean_left'] = mean1
+    feats[f'rolling_std_w{window}_mean_right'] = mean2
+    feats[f'rolling_std_w{window}_mean_whole'] = mean_whole
     feats[f'rolling_std_w{window}_mean_diff'] = mean2 - mean1
+    feats[f'rolling_std_w{window}_mean_ratio'] = mean2 / (mean1 + 1e-6)
     
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
@@ -410,44 +496,52 @@ def entropy_features(u: pd.DataFrame) -> dict:
     import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
+    s_whole = u['value'].to_numpy()
     feats = {}
 
     def compute_entropy(x):
         hist, _ = np.histogram(x, bins='auto', density=True)
         hist = hist[hist > 0]
         return scipy.stats.entropy(hist)
-    feats['shannon_entropy_0'] = compute_entropy(s1)
-    feats['shannon_entropy_1'] = compute_entropy(s2)
-    feats['shannon_entropy_diff'] = feats['shannon_entropy_1'] - feats['shannon_entropy_0']
+    
+    entropy_funcs = {
+        'shannon_entropy': compute_entropy,
+        'perm_entropy': lambda x: antropy.perm_entropy(x, normalize=True),
+        'spectral_entropy': lambda x: antropy.spectral_entropy(x, sf=1.0, normalize=True),
+        'svd_entropy': lambda x: antropy.svd_entropy(x, normalize=True),
+        'approx_entropy': antropy.app_entropy,
+        'sample_entropy': antropy.sample_entropy,
+        'petrosian_fd': antropy.petrosian_fd,
+        'katz_fd': antropy.katz_fd,
+        'higuchi_fd': antropy.higuchi_fd,
+        'detrended_fluctuation': antropy.detrended_fluctuation,
+    }
 
-    feats['perm_entropy_0'] = antropy.perm_entropy(s1, normalize=True)
-    feats['perm_entropy_1'] = antropy.perm_entropy(s2, normalize=True)
-    feats['perm_entropy_diff'] = feats['perm_entropy_1'] - feats['perm_entropy_0']
+    for name, func in entropy_funcs.items():
+        try:
+            v1, v2, v_whole = func(s1), func(s2), func(s_whole)
+            feats[f'{name}_left'] = v1
+            feats[f'{name}_right'] = v2
+            feats[f'{name}_whole'] = v_whole
+            feats[f'{name}_diff'] = v2 - v1
+            feats[f'{name}_ratio'] = v2 / (v1 + 1e-6)
+        except Exception:
+            feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
 
-    feats['spectral_entropy_0'] = antropy.spectral_entropy(s1, sf=1.0, normalize=True)
-    feats['spectral_entropy_1'] = antropy.spectral_entropy(s2, sf=1.0, normalize=True)
-    feats['spectral_entropy_diff'] = feats['spectral_entropy_1'] - feats['spectral_entropy_0']
+    try:
+        m1, c1 = antropy.hjorth_params(s1)
+        m2, c2 = antropy.hjorth_params(s2)
+        m_whole, c_whole = antropy.hjorth_params(s_whole)
+        feats.update({
+            'hjorth_mobility_left': m1, 'hjorth_mobility_right': m2, 'hjorth_mobility_whole': m_whole,
+            'hjorth_mobility_diff': m2 - m1, 'hjorth_mobility_ratio': m2 / (m1 + 1e-6),
+            'hjorth_complexity_left': c1, 'hjorth_complexity_right': c2, 'hjorth_complexity_whole': c_whole,
+            'hjorth_complexity_diff': c2 - c1, 'hjorth_complexity_ratio': c2 / (c1 + 1e-6)
+        })
+    except Exception:
+        feats.update({'hjorth_mobility_left':0, 'hjorth_mobility_right':0, 'hjorth_mobility_whole':0, 'hjorth_mobility_diff':0, 'hjorth_mobility_ratio':0,
+                     'hjorth_complexity_left':0, 'hjorth_complexity_right':0, 'hjorth_complexity_whole':0, 'hjorth_complexity_diff':0, 'hjorth_complexity_ratio':0})
 
-    feats['svd_entropy_0'] = antropy.svd_entropy(s1, normalize=True)
-    feats['svd_entropy_1'] = antropy.svd_entropy(s2, normalize=True)
-    feats['svd_entropy_diff'] = feats['svd_entropy_1'] - feats['svd_entropy_0']
-
-    feats['approx_entropy_0'] = antropy.app_entropy(s1)
-    feats['approx_entropy_1'] = antropy.app_entropy(s2)
-    feats['approx_entropy_diff'] = feats['approx_entropy_1'] - feats['approx_entropy_0']
-
-    feats['sample_entropy_0'] = antropy.sample_entropy(s1)
-    feats['sample_entropy_1'] = antropy.sample_entropy(s2)
-    feats['sample_entropy_diff'] = feats['sample_entropy_1'] - feats['sample_entropy_0']
-
-    feats['hjorth_mobility_0'], feats['hjorth_complexity_0'] = antropy.hjorth_params(s1)
-    feats['hjorth_mobility_1'], feats['hjorth_complexity_1'] = antropy.hjorth_params(s2)
-    feats['hjorth_mobility_diff'] = feats['hjorth_mobility_1'] - feats['hjorth_mobility_0']
-    feats['hjorth_complexity_diff'] = feats['hjorth_complexity_1'] - feats['hjorth_complexity_0']
-
-    feats['num_zerocross_0'] = antropy.num_zerocross(s1)
-    feats['num_zerocross_1'] = antropy.num_zerocross(s2)
-    feats['num_zerocross_diff'] = feats['num_zerocross_1'] - feats['num_zerocross_0']
 
     def series_to_binary_str(x, method='median'):
         if method == 'median':
@@ -456,9 +550,17 @@ def entropy_features(u: pd.DataFrame) -> dict:
         return None
     bin_str1 = series_to_binary_str(s1)
     bin_str2 = series_to_binary_str(s2)
-    feats['lziv_complexity_0'] = antropy.lziv_complexity(bin_str1, normalize=True)
-    feats['lziv_complexity_1'] = antropy.lziv_complexity(bin_str2, normalize=True)
-    feats['lziv_complexity_diff'] = feats['lziv_complexity_1'] - feats['lziv_complexity_0']
+    bin_str_whole = series_to_binary_str(s_whole)
+
+    try:
+        lz1, lz2, lz_whole = antropy.lziv_complexity(bin_str1, normalize=True), antropy.lziv_complexity(bin_str2, normalize=True), antropy.lziv_complexity(bin_str_whole, normalize=True)
+        feats.update({
+            'lziv_complexity_left': lz1, 'lziv_complexity_right': lz2, 'lziv_complexity_whole': lz_whole,
+            'lziv_complexity_diff': lz2 - lz1, 'lziv_complexity_ratio': lz2 / (lz1 + 1e-6)
+        })
+    except Exception:
+        feats.update({'lziv_complexity_left':0, 'lziv_complexity_right':0, 'lziv_complexity_whole':0, 'lziv_complexity_diff':0, 'lziv_complexity_ratio':0})
+
 
     def estimate_cond_entropy(x, lag=1):
         x = x - np.mean(x)
@@ -471,9 +573,14 @@ def entropy_features(u: pd.DataFrame) -> dict:
         H_x = -np.sum(np.histogram(x_lag, bins=bins, density=True)[0] * \
                       np.log(np.histogram(x_lag, bins=bins, density=True)[0] + 1e-12))
         return H_xy - H_x
-    feats['cond_entropy_0'] = estimate_cond_entropy(s1)
-    feats['cond_entropy_1'] = estimate_cond_entropy(s2)
-    feats['cond_entropy_diff'] = feats['cond_entropy_1'] - feats['cond_entropy_0']
+    try:
+        ce1, ce2, ce_whole = estimate_cond_entropy(s1), estimate_cond_entropy(s2), estimate_cond_entropy(s_whole)
+        feats.update({
+            'cond_entropy_left': ce1, 'cond_entropy_right': ce2, 'cond_entropy_whole': ce_whole,
+            'cond_entropy_diff': ce2 - ce1, 'cond_entropy_ratio': ce2 / (ce1 + 1e-6)
+        })
+    except Exception:
+        feats.update({'cond_entropy_left':0, 'cond_entropy_right':0, 'cond_entropy_whole':0, 'cond_entropy_diff':0, 'cond_entropy_ratio':0})
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -483,12 +590,26 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
     import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
+    s_whole = u['value'].to_numpy()
     feats = {}
+    
+    fractal_funcs = {
+        'petrosian_fd': antropy.petrosian_fd,
+        'katz_fd': antropy.katz_fd,
+        'higuchi_fd': antropy.higuchi_fd,
+        'detrended_fluctuation': antropy.detrended_fluctuation,
+    }
 
-    feats['petrosian_fd_diff'] = (antropy.petrosian_fd(s1) - antropy.petrosian_fd(s2)) * 100
-    feats['katz_fd_diff'] = (antropy.katz_fd(s1) - antropy.katz_fd(s2)) * 10
-    feats['higuchi_fd_diff'] = (antropy.higuchi_fd(s1) - antropy.higuchi_fd(s2)) * 100
-    feats['detrended_fluctuation_diff'] = (antropy.detrended_fluctuation(s1) - antropy.detrended_fluctuation(s2)) * 10
+    for name, func in fractal_funcs.items():
+        try:
+            v1, v2, v_whole = func(s1), func(s2), func(s_whole)
+            feats[f'{name}_left'] = v1
+            feats[f'{name}_right'] = v2
+            feats[f'{name}_whole'] = v_whole
+            feats[f'{name}_diff'] = v2 - v1
+            feats[f'{name}_ratio'] = v2 / (v1 + 1e-6)
+        except Exception:
+            feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -499,6 +620,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
     """基于tsfresh的特征工程"""
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
+    s_whole = u['value'].to_numpy()
     feats = {}
 
     funcs = {
@@ -558,49 +680,87 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
         else:
             return str(param)
 
-    def cal_func_diff_as_feature(func, param=None):
-        if param is None:
-            # Simple function: return a scalar
-            try:
-                return {func.__name__: func(s2) - func(s1)}
-            except:
-                return {func.__name__: np.nan}
-            
-        elif isinstance(param, dict):
-            try:
-                # Combiner function: return a list of (name, value)
-                s1_result = dict(func(s1, [param]))
-                s2_result = dict(func(s2, [param]))
-                result = {}
-                for k in s1_result.keys():
-                    # print(s1_result[k], s2_result[k], k)
-                    feat_name = f"{func.__name__}_{k}"
-                    result[feat_name] = s2_result[k] - s1_result[k]
-                return result
-            except TypeError:
-                # Simple function with multiple kwargs
-                val = func(s2, **param) - func(s1, **param)
-                feat_name = f"{func.__name__}_{param_to_str(param)}"
-                return {feat_name: val}
-            except Exception as e:
-                # print(e)
-                feat_name = f"{func.__name__}_{param_to_str(param)}"
-                return {feat_name: np.nan}
-            
-        else:
-            # Simple function with parameter
-            try:
-                feat_name = f"{func.__name__}_{param_to_str(param)}"
-                return {feat_name: func(s2, param) - func(s1, param)}
-            except:
-                return {feat_name: np.nan}
+    def calculate_stats_for_feature(func, param=None):
+        results = {}
+        base_name = func.__name__
+        if param is not None:
+            base_name += f"_{param_to_str(param)}"
+
+        try:
+            # Prepare arguments for each segment
+            args_s1 = [s1]
+            args_s2 = [s2]
+            args_s_whole = [s_whole]
+            is_combiner = False
+
+            if param is None: # Simple function, no params
+                pass
+            elif isinstance(param, dict):
+                # Check if it's a combiner function or a function with kwargs
+                sig = inspect.signature(func)
+                if 'param' in sig.parameters: # Combiner function
+                    is_combiner = True
+                    args_s1.append([param])
+                    args_s2.append([param])
+                    args_s_whole.append([param])
+                else: # Function with kwargs
+                    args_s1.append(param)
+                    args_s2.append(param)
+                    args_s_whole.append(param)
+            else: # Simple function with a single parameter
+                args_s1.append(param)
+                args_s2.append(param)
+                args_s_whole.append(param)
+
+            # Execute function for each segment
+            if is_combiner:
+                v1_dict = {k: v for k, v in func(*args_s1)}
+                v2_dict = {k: v for k, v in func(*args_s2)}
+                v_whole_dict = {k: v for k, v in func(*args_s_whole)}
+                
+                for key in v1_dict:
+                    v1, v2, v_whole = v1_dict[key], v2_dict[key], v_whole_dict[key]
+                    feat_name_base = f"{func.__name__}_{key}"
+                    results[f'{feat_name_base}_left'] = v1
+                    results[f'{feat_name_base}_right'] = v2
+                    results[f'{feat_name_base}_whole'] = v_whole
+                    results[f'{feat_name_base}_diff'] = v2 - v1
+                    results[f'{feat_name_base}_ratio'] = v2 / (v1 + 1e-6)
+                return results
+
+            else:
+                if isinstance(param, dict) and not is_combiner:
+                    v1, v2, v_whole = func(args_s1[0], **args_s1[1]), func(args_s2[0], **args_s2[1]), func(args_s_whole[0], **args_s_whole[1])
+                else:
+                    v1, v2, v_whole = func(*args_s1), func(*args_s2), func(*args_s_whole)
+
+                results[f'{base_name}_left'] = v1
+                results[f'{base_name}_right'] = v2
+                results[f'{base_name}_whole'] = v_whole
+                results[f'{base_name}_diff'] = v2 - v1
+                results[f'{base_name}_ratio'] = v2 / (v1 + 1e-6)
+        
+        except Exception:
+            # For combiner functions, need to know keys to create nulls
+            if 'param' in locals() and inspect.isfunction(func) and 'param' in inspect.signature(func).parameters:
+                 # It's a combiner, but we can't get keys without running it. Skip for now on error.
+                 pass
+            else:
+                results[f'{base_name}_left'] = np.nan
+                results[f'{base_name}_right'] = np.nan
+                results[f'{base_name}_whole'] = np.nan
+                results[f'{base_name}_diff'] = np.nan
+                results[f'{base_name}_ratio'] = np.nan
+                
+        return results
+
 
     for func, params in funcs.items():
         if params is None:
-            feats.update(cal_func_diff_as_feature(func))
+            feats.update(calculate_stats_for_feature(func))
         else:
             for param in params:
-                feats.update(cal_func_diff_as_feature(func, param))
+                feats.update(calculate_stats_for_feature(func, param))
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -617,6 +777,7 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
+    s_whole = u['value'].to_numpy()
     feats = {}
     lags = 5 # 固定阶数以保证可比性
 
@@ -653,7 +814,7 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 
 
     # --- 特征组3: 分别建模，比较差异 ---
-    s1_resid_std, s1_params = np.nan, np.zeros(lags + 1)
+    s1_resid_std, s1_params = np.nan, np.full(lags + 1, np.nan)
     s1_aic, s1_bic = np.nan, np.nan
     if len(s1) > lags:
         try:
@@ -665,7 +826,7 @@ def ar_model_features(u: pd.DataFrame) -> dict:
         except Exception:
             pass
 
-    s2_resid_std, s2_params = np.nan, np.zeros(lags + 1)
+    s2_resid_std, s2_params = np.nan, np.full(lags + 1, np.nan)
     s2_aic, s2_bic = np.nan, np.nan
     if len(s2) > lags:
         try:
@@ -676,15 +837,44 @@ def ar_model_features(u: pd.DataFrame) -> dict:
             s2_bic = fit2.bic
         except Exception:
             pass
+
+    swhole_resid_std, swhole_params = np.nan, np.full(lags + 1, np.nan)
+    swhole_aic, swhole_bic = np.nan, np.nan
+    if len(s_whole) > lags:
+        try:
+            fit_whole = AutoReg(s_whole, lags=lags).fit()
+            swhole_resid_std = np.std(fit_whole.resid)
+            swhole_params = fit_whole.params
+            swhole_aic = fit_whole.aic
+            swhole_bic = fit_whole.bic
+        except Exception:
+            pass
             
+    feats['ar_resid_std_left'] = s1_resid_std
+    feats['ar_resid_std_right'] = s2_resid_std
+    feats['ar_resid_std_whole'] = swhole_resid_std
     feats['ar_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    feats['ar_resid_std_ratio'] = (s2_resid_std / (s1_resid_std + 1e-6)) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    
+    feats['ar_aic_left'] = s1_aic
+    feats['ar_aic_right'] = s2_aic
+    feats['ar_aic_whole'] = swhole_aic
     feats['ar_aic_diff'] = (s2_aic - s1_aic) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    feats['ar_aic_ratio'] = (s2_aic / (s1_aic + 1e-6)) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+
+    feats['ar_bic_left'] = s1_bic
+    feats['ar_bic_right'] = s2_bic
+    feats['ar_bic_whole'] = swhole_bic
     feats['ar_bic_diff'] = (s2_bic - s1_bic) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    feats['ar_bic_ratio'] = (s2_bic / (s1_bic + 1e-6)) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
     
     # 比较模型系数
-    param_diff = s2_params - s1_params
-    for i in range(len(param_diff)):
-        feats[f'param_{i}_diff'] = param_diff[i]
+    for i in range(len(s1_params)):
+        feats[f'param_{i}_left'] = s1_params[i]
+        feats[f'param_{i}_right'] = s2_params[i]
+        feats[f'param_{i}_whole'] = swhole_params[i]
+        feats[f'param_{i}_diff'] = s2_params[i] - s1_params[i]
+        feats[f'param_{i}_ratio'] = s2_params[i] / (s1_params[i] + 1e-6)
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -732,11 +922,15 @@ class RPTFeatureExtractor:
                 left = self.calculate(cost, 0, boundary)
                 right = self.calculate(cost, boundary, n)
                 whole = self.calculate(cost, 0, n)
+                diff = right - left if left is not None and right is not None else None
+                ratio = right / (left + 1e-6) if left is not None and right is not None else None
             except Exception:
                 left = None
                 right = None
                 whole = None
-            result[name] = {'left': left, 'right': right, 'whole': whole}
+                diff = None
+                ratio = None
+            result[name] = {'left': left, 'right': right, 'whole': whole, 'diff': diff, 'ratio': ratio}
         return result
 
 @register_feature(func_id="12")

@@ -158,12 +158,13 @@ def distribution_stats_features(u: pd.DataFrame) -> dict:
 def test_stats_features(u: pd.DataFrame) -> dict:
     import scipy.stats
     import statsmodels.tsa.api as tsa
-    """假设检验统计量 & 分段假设检验统计量的Diff"""
+    
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     s_whole = u['value']
     feats = {}
 
+    """假设检验统计量"""
     # KS检验
     ks_stat, ks_pvalue = scipy.stats.ks_2samp(s1, s2)
     feats['ks_stat'] = ks_stat
@@ -192,7 +193,6 @@ def test_stats_features(u: pd.DataFrame) -> dict:
         feats['wilcoxon_stat'] = 0
         feats['wilcoxon_pvalue'] = 1
 
-
     # Levene检验
     levene_stat, levene_pvalue = scipy.stats.levene(s1, s2)
     feats['levene_stat'] = levene_stat if not np.isnan(levene_stat) else 0
@@ -203,6 +203,7 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     feats['bartlett_stat'] = bartlett_stat if not np.isnan(bartlett_stat) else 0
     feats['bartlett_pvalue'] = -bartlett_pvalue if not np.isnan(bartlett_pvalue) else 1
     
+    """分段假设检验的分段值、Diff值、Ratio值"""
     # Shapiro-Wilk检验
     sw1_stat, sw1_pvalue, sw2_stat, sw2_pvalue, sw_whole_stat, sw_whole_pvalue = (np.nan,)*6
     if len(s1) <= 5000 and len(s1) > 2:
@@ -486,7 +487,6 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
     feats[f'rolling_std_w{window}_mean_diff'] = mean2 - mean1
     feats[f'rolling_std_w{window}_mean_ratio'] = mean2 / (mean1 + 1e-6)
     
-
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 8. 熵信息 ---
@@ -1203,7 +1203,6 @@ def generate_features(
         clip_threshold (float): 定义离群值的IQR乘数。默认为 5.0。
     """
     utils.ensure_feature_dirs()
-    
     
     if funcs_to_run is None:
         # 如果未指定函数，则运行所有非实验性特征

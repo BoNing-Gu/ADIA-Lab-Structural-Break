@@ -1,0 +1,72 @@
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - Found a total of 5 model files.
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - Loading model: resources\model_fold_1.pkl
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - Loading model: resources\model_fold_2.pkl
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - Loading model: resources\model_fold_3.pkl
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - Loading model: resources\model_fold_4.pkl
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - Loading model: resources\model_fold_5.pkl
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - 未指定特征函数，将运行所有 12 个非实验性特征。
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - 未找到基础特征文件，将创建全新的特征集。
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - === 开始时序分解 ===
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - --- 开始应用变换函数: no_transformation ---
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - 'no_transformation' 变换完毕，耗时: 0.00 秒，生成模态: ['RAW']
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - 分解完成，共生成 1 个模态: ['RAW']
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - === 开始为模态 'RAW' 生成特征 ===
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - --- 开始生成特征: distribution_stats_features ---
+2025-07-16 21:38:10 - Inference-20250716_213810 - INFO - 函数 'distribution_stats_features' 不可并行化，将顺序执行。
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO - 'distribution_stats_features' 生成完毕，耗时: 0.29 秒。
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -   新生成特征列名: ['RAW_1_stats_mean_left', 'RAW_1_stats_mean_right', 'RAW_1_stats_mean_whole', 'RAW_1_stats_mean_diff', 'RAW_1_stats_mean_ratio', 'RAW_1_stats_median_left', 'RAW_1_stats_median_right', 'RAW_1_stats_median_whole', 'RAW_1_stats_median_diff', 'RAW_1_stats_median_ratio', 'RAW_1_stats_max_left', 'RAW_1_stats_max_right', 'RAW_1_stats_max_whole', 'RAW_1_stats_max_diff', 'RAW_1_stats_max_ratio', 'RAW_1_stats_min_left', 'RAW_1_stats_min_right', 'RAW_1_stats_min_whole', 'RAW_1_stats_min_diff', 'RAW_1_stats_min_ratio', 'RAW_1_stats_range_left', 'RAW_1_stats_range_right', 'RAW_1_stats_range_whole', 'RAW_1_stats_range_diff', 'RAW_1_stats_range_ratio', 'RAW_1_stats_std_left', 'RAW_1_stats_std_right', 'RAW_1_stats_std_whole', 'RAW_1_stats_std_diff', 'RAW_1_stats_std_ratio', 'RAW_1_stats_skew_left', 'RAW_1_stats_skew_right', 'RAW_1_stats_skew_whole', 'RAW_1_stats_skew_diff', 'RAW_1_stats_skew_ratio', 'RAW_1_stats_kurt_left', 'RAW_1_stats_kurt_right', 'RAW_1_stats_kurt_whole', 'RAW_1_stats_kurt_diff', 'RAW_1_stats_kurt_ratio', 'RAW_1_stats_cv_left', 'RAW_1_stats_cv_right', 'RAW_1_stats_cv_whole', 'RAW_1_stats_cv_diff', 'RAW_1_stats_cv_ratio', 'RAW_1_stats_mean_of_rolling_std_left', 'RAW_1_stats_mean_of_rolling_std_right', 'RAW_1_stats_mean_of_rolling_std_whole', 'RAW_1_stats_mean_of_rolling_std_diff', 'RAW_1_stats_mean_of_rolling_std_ratio', 'RAW_1_stats_theil_sen_slope_left', 'RAW_1_stats_theil_sen_slope_right', 'RAW_1_stats_theil_sen_slope_whole', 'RAW_1_stats_theil_sen_slope_diff', 'RAW_1_stats_theil_sen_slope_ratio']
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_median_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_median_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_median_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_median_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_median_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_max_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_max_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_max_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_max_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_max_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_min_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_min_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_min_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_min_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_min_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_range_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_range_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_range_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_range_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_range_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_std_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_std_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_std_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_std_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_skew_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_skew_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_skew_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_skew_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_skew_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_kurt_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_kurt_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_kurt_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_kurt_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_kurt_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_cv_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_cv_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_cv_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_cv_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_cv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_theil_sen_slope_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_theil_sen_slope_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_theil_sen_slope_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_theil_sen_slope_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 21:38:11 - Inference-20250716_213810 - INFO -     - 'RAW_1_stats_theil_sen_slope_ratio': 空值比例=0.00%, 零值比例=0.00%

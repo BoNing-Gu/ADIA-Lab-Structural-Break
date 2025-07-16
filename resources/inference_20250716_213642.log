@@ -1,0 +1,14 @@
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - Found a total of 5 model files.
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - Loading model: resources\model_fold_1.pkl
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - Loading model: resources\model_fold_2.pkl
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - Loading model: resources\model_fold_3.pkl
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - Loading model: resources\model_fold_4.pkl
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - Loading model: resources\model_fold_5.pkl
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - 未指定特征函数，将运行所有 12 个非实验性特征。
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - 未找到基础特征文件，将创建全新的特征集。
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - === 开始时序分解 ===
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - --- 开始应用变换函数: no_transformation ---
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - 'no_transformation' 变换完毕，耗时: 0.00 秒，生成模态: ['RAW']
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - 分解完成，共生成 1 个模态: ['RAW']
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - === 开始为模态 'RAW' 生成特征 ===
+2025-07-16 21:36:42 - Inference-20250716_213642 - INFO - --- 开始生成特征: distribution_stats_features ---

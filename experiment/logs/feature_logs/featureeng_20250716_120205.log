@@ -1,0 +1,351 @@
+2025-07-16 12:02:05 - FeatureEng-20250716_120205 - INFO - ========== Running Command: gen-feats ==========
+2025-07-16 12:02:05 - FeatureEng-20250716_120205 - INFO - Args: {'command': 'gen-feats', 'funcs': None, 'trans': None, 'base_file': None}
+2025-07-16 12:02:05 - FeatureEng-20250716_120205 - INFO - =======================================
+2025-07-16 12:02:06 - FeatureEng-20250716_120205 - INFO - 未指定特征函数，将运行所有 12 个非实验性特征。
+2025-07-16 12:02:06 - FeatureEng-20250716_120205 - INFO - 未找到基础特征文件，将创建全新的特征集。
+2025-07-16 12:02:07 - FeatureEng-20250716_120205 - INFO - 基础特征文件格式：(10001, 0)
+2025-07-16 12:02:07 - FeatureEng-20250716_120205 - INFO - === 开始时序分解 ===
+2025-07-16 12:02:07 - FeatureEng-20250716_120205 - INFO - --- 开始应用变换函数: no_transformation ---
+2025-07-16 12:02:07 - FeatureEng-20250716_120205 - INFO - 'no_transformation' 变换完毕，耗时: 0.00 秒，生成模态: ['RAW']
+2025-07-16 12:02:07 - FeatureEng-20250716_120205 - INFO - 分解完成，共生成 1 个模态: ['RAW']
+2025-07-16 12:02:07 - FeatureEng-20250716_120205 - INFO - === 开始为模态 'RAW' 生成特征 ===
+2025-07-16 12:02:07 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: distribution_stats_features ---
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO - 'distribution_stats_features' 生成完毕，耗时: 624.63 秒。
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_1_stats_mean_left', 'RAW_1_stats_mean_right', 'RAW_1_stats_mean_whole', 'RAW_1_stats_mean_diff', 'RAW_1_stats_mean_ratio', 'RAW_1_stats_mean_inv_ratio', 'RAW_1_stats_median_left', 'RAW_1_stats_median_right', 'RAW_1_stats_median_whole', 'RAW_1_stats_median_diff', 'RAW_1_stats_median_ratio', 'RAW_1_stats_median_inv_ratio', 'RAW_1_stats_max_left', 'RAW_1_stats_max_right', 'RAW_1_stats_max_whole', 'RAW_1_stats_max_diff', 'RAW_1_stats_max_ratio', 'RAW_1_stats_max_inv_ratio', 'RAW_1_stats_min_left', 'RAW_1_stats_min_right', 'RAW_1_stats_min_whole', 'RAW_1_stats_min_diff', 'RAW_1_stats_min_ratio', 'RAW_1_stats_min_inv_ratio', 'RAW_1_stats_range_left', 'RAW_1_stats_range_right', 'RAW_1_stats_range_whole', 'RAW_1_stats_range_diff', 'RAW_1_stats_range_ratio', 'RAW_1_stats_range_inv_ratio', 'RAW_1_stats_std_left', 'RAW_1_stats_std_right', 'RAW_1_stats_std_whole', 'RAW_1_stats_std_diff', 'RAW_1_stats_std_ratio', 'RAW_1_stats_std_inv_ratio', 'RAW_1_stats_skew_left', 'RAW_1_stats_skew_right', 'RAW_1_stats_skew_whole', 'RAW_1_stats_skew_diff', 'RAW_1_stats_skew_ratio', 'RAW_1_stats_skew_inv_ratio', 'RAW_1_stats_kurt_left', 'RAW_1_stats_kurt_right', 'RAW_1_stats_kurt_whole', 'RAW_1_stats_kurt_diff', 'RAW_1_stats_kurt_ratio', 'RAW_1_stats_kurt_inv_ratio', 'RAW_1_stats_cv_left', 'RAW_1_stats_cv_right', 'RAW_1_stats_cv_whole', 'RAW_1_stats_cv_diff', 'RAW_1_stats_cv_ratio', 'RAW_1_stats_cv_inv_ratio', 'RAW_1_stats_mean_of_rolling_std_left', 'RAW_1_stats_mean_of_rolling_std_right', 'RAW_1_stats_mean_of_rolling_std_whole', 'RAW_1_stats_mean_of_rolling_std_diff', 'RAW_1_stats_mean_of_rolling_std_ratio', 'RAW_1_stats_mean_of_rolling_std_inv_ratio', 'RAW_1_stats_theil_sen_slope_left', 'RAW_1_stats_theil_sen_slope_right', 'RAW_1_stats_theil_sen_slope_whole', 'RAW_1_stats_theil_sen_slope_diff', 'RAW_1_stats_theil_sen_slope_ratio', 'RAW_1_stats_theil_sen_slope_inv_ratio']
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_median_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_median_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_median_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_median_diff': 空值比例=0.00%, 零值比例=0.01%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_median_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_median_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_max_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_max_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_max_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_max_diff': 空值比例=0.00%, 零值比例=0.04%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_max_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_max_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_min_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_min_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_min_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_min_diff': 空值比例=0.00%, 零值比例=0.06%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_min_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_min_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_range_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_range_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_range_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_range_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_range_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_range_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_std_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_std_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_std_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_std_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_std_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_skew_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_skew_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_skew_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_skew_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_skew_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_skew_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_kurt_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_kurt_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_kurt_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_kurt_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_kurt_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_kurt_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_cv_left': 空值比例=0.00%, 零值比例=1.27%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_cv_right': 空值比例=0.00%, 零值比例=0.51%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_cv_whole': 空值比例=0.00%, 零值比例=1.46%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_cv_diff': 空值比例=0.00%, 零值比例=0.09%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_cv_ratio': 空值比例=0.00%, 零值比例=0.51%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_cv_inv_ratio': 空值比例=0.00%, 零值比例=1.27%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_mean_of_rolling_std_inv_ratio': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_theil_sen_slope_left': 空值比例=0.00%, 零值比例=0.28%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_theil_sen_slope_right': 空值比例=0.00%, 零值比例=0.52%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_theil_sen_slope_whole': 空值比例=0.00%, 零值比例=0.31%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_theil_sen_slope_diff': 空值比例=0.00%, 零值比例=0.01%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_theil_sen_slope_ratio': 空值比例=0.00%, 零值比例=0.52%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO -     - 'RAW_1_stats_theil_sen_slope_inv_ratio': 空值比例=0.00%, 零值比例=0.28%
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 66
+2025-07-16 12:12:31 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 0
+2025-07-16 12:12:32 - FeatureEng-20250716_120205 - INFO - 
+No new features show high correlation (|corr| > 0.7) with loaded features.
+2025-07-16 12:12:32 - FeatureEng-20250716_120205 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-16 12:12:32 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: test_stats_features ---
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO - 'test_stats_features' 生成完毕，耗时: 63.44 秒。
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_2_ks_stat', 'RAW_2_ks_pvalue', 'RAW_2_ttest_pvalue', 'RAW_2_ad_stat', 'RAW_2_ad_pvalue', 'RAW_2_mannwhitney_stat', 'RAW_2_mannwhitney_pvalue', 'RAW_2_wilcoxon_stat', 'RAW_2_wilcoxon_pvalue', 'RAW_2_levene_stat', 'RAW_2_levene_pvalue', 'RAW_2_bartlett_stat', 'RAW_2_bartlett_pvalue', 'RAW_2_shapiro_pvalue_left', 'RAW_2_shapiro_pvalue_right', 'RAW_2_shapiro_pvalue_diff', 'RAW_2_jb_pvalue_left', 'RAW_2_jb_pvalue_right', 'RAW_2_jb_pvalue_diff', 'RAW_2_kpss_pvalue_left', 'RAW_2_kpss_pvalue_right', 'RAW_2_kpss_pvalue_diff', 'RAW_2_kpss_stat_diff', 'RAW_2_adf_pvalue_left', 'RAW_2_adf_pvalue_right', 'RAW_2_adf_pvalue_diff', 'RAW_2_adf_stat_diff', 'RAW_2_adf_icbest_diff']
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_ks_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_ks_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_ttest_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_ad_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_ad_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_mannwhitney_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_mannwhitney_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_wilcoxon_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_wilcoxon_pvalue': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_levene_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_levene_pvalue': 空值比例=0.00%, 零值比例=0.02%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_bartlett_stat': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_bartlett_pvalue': 空值比例=0.00%, 零值比例=1.28%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_shapiro_pvalue_left': 空值比例=0.00%, 零值比例=8.20%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_shapiro_pvalue_right': 空值比例=0.00%, 零值比例=0.97%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_shapiro_pvalue_diff': 空值比例=0.00%, 零值比例=0.87%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_jb_pvalue_left': 空值比例=0.00%, 零值比例=41.56%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_jb_pvalue_right': 空值比例=0.00%, 零值比例=25.93%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_jb_pvalue_diff': 空值比例=0.00%, 零值比例=18.02%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_kpss_pvalue_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_kpss_pvalue_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_kpss_pvalue_diff': 空值比例=0.00%, 零值比例=81.62%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_kpss_stat_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_adf_pvalue_left': 空值比例=0.00%, 零值比例=61.73%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_adf_pvalue_right': 空值比例=0.00%, 零值比例=39.52%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_adf_pvalue_diff': 空值比例=0.00%, 零值比例=26.41%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_adf_stat_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -     - 'RAW_2_adf_icbest_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 28
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 66
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO - 
+RAW_2_adf_pvalue_left is highly correlated with:
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_left: 0.715
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-16 12:13:35 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: cumulative_features ---
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO - 'cumulative_features' 生成完毕，耗时: 4.27 秒。
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_3_sum_left', 'RAW_3_sum_right', 'RAW_3_sum_diff', 'RAW_3_cumsum_max_diff']
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO -     - 'RAW_3_sum_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO -     - 'RAW_3_sum_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO -     - 'RAW_3_sum_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO -     - 'RAW_3_cumsum_max_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 4
+2025-07-16 12:13:39 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 94
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO - 
+RAW_3_sum_left is highly correlated with:
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_left: 0.992
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_whole: 0.921
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_left: 0.739
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_whole: 0.730
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_2_adf_pvalue_left: 0.768
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO - 
+RAW_3_sum_right is highly correlated with:
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_right: 0.939
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_diff: 0.714
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_ratio: 0.788
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_ratio: 0.787
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_right: 0.731
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_ratio: 0.791
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_of_rolling_std_ratio: 0.795
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO - 
+RAW_3_sum_diff is highly correlated with:
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_left: -0.938
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_whole: -0.751
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_diff: 0.824
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_2_adf_pvalue_left: -0.734
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO - 
+RAW_3_cumsum_max_diff is highly correlated with:
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_left: -0.937
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_whole: -0.752
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_diff: 0.821
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_diff: 0.701
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_2_adf_pvalue_left: -0.736
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO - 
+Dropping 1 new features with |corr| > 0.95:
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO -   - RAW_3_sum_left
+2025-07-16 12:13:40 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: oscillation_features ---
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO - 'oscillation_features' 生成完毕，耗时: 4.76 秒。
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_4_zero_cross_diff', 'RAW_4_autocorr_lag1_diff', 'RAW_4_diff_var_diff']
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_4_zero_cross_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_4_autocorr_lag1_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_4_diff_var_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 3
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 97
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO - 
+RAW_4_diff_var_diff is highly correlated with:
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_left: -0.976
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_whole: -0.964
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_diff: 0.974
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_inv_ratio: -0.929
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_left: -0.974
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_whole: -0.962
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_diff: 0.973
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_inv_ratio: -0.949
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_left: -0.944
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_whole: -0.931
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_diff: 0.943
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_inv_ratio: -0.916
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO - 
+Dropping 1 new features with |corr| > 0.95:
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO -   - RAW_4_diff_var_diff
+2025-07-16 12:13:44 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: cyclic_features ---
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO - 'cyclic_features' 生成完毕，耗时: 4.27 秒。
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_5_dominant_freq_diff', 'RAW_5_max_power_diff']
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -     - 'RAW_5_dominant_freq_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -     - 'RAW_5_max_power_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 2
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 99
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO - 
+RAW_5_max_power_diff is highly correlated with:
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_left: -0.906
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_whole: -0.796
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -   - RAW_2_adf_pvalue_left: -0.907
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -   - RAW_3_sum_diff: 0.922
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO -   - RAW_3_cumsum_max_diff: 0.924
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-16 12:13:49 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: amplitude_features ---
+2025-07-16 12:13:53 - FeatureEng-20250716_120205 - INFO - 'amplitude_features' 生成完毕，耗时: 4.42 秒。
+2025-07-16 12:13:53 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_6_ptp_diff', 'RAW_6_iqr_diff']
+2025-07-16 12:13:53 - FeatureEng-20250716_120205 - INFO -     - 'RAW_6_ptp_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:53 - FeatureEng-20250716_120205 - INFO -     - 'RAW_6_iqr_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:53 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 2
+2025-07-16 12:13:53 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 101
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO - 
+RAW_6_ptp_diff is highly correlated with:
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_left: -0.990
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_whole: -0.969
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_diff: 0.999
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_inv_ratio: -0.958
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_left: -0.990
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_whole: -0.967
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_diff: 0.999
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_inv_ratio: -0.963
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_left: -0.964
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_whole: -0.942
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_diff: 0.978
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_inv_ratio: -0.951
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO - 
+RAW_6_iqr_diff is highly correlated with:
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_of_rolling_std_diff: 0.833
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO - 
+Dropping 1 new features with |corr| > 0.95:
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO -   - RAW_6_ptp_diff
+2025-07-16 12:13:54 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: volatility_of_volatility_features ---
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO - 'volatility_of_volatility_features' 生成完毕，耗时: 4.43 秒。
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_7_rolling_std_w50_mean_diff']
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -     - 'RAW_7_rolling_std_w50_mean_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 1
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 102
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO - 
+RAW_7_rolling_std_w50_mean_diff is highly correlated with:
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_diff: 0.741
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_max_diff: 0.744
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_range_diff: 0.749
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_left: -0.702
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_diff: 0.849
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_std_inv_ratio: -0.741
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO -   - RAW_1_stats_mean_of_rolling_std_diff: 0.909
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-16 12:13:58 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: entropy_features ---
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 'entropy_features' 生成完毕，耗时: 45.53 秒。
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_8_shannon_entropy_0', 'RAW_8_shannon_entropy_1', 'RAW_8_shannon_entropy_diff', 'RAW_8_perm_entropy_0', 'RAW_8_perm_entropy_1', 'RAW_8_perm_entropy_diff', 'RAW_8_spectral_entropy_0', 'RAW_8_spectral_entropy_1', 'RAW_8_spectral_entropy_diff', 'RAW_8_svd_entropy_0', 'RAW_8_svd_entropy_1', 'RAW_8_svd_entropy_diff', 'RAW_8_approx_entropy_0', 'RAW_8_approx_entropy_1', 'RAW_8_approx_entropy_diff', 'RAW_8_sample_entropy_0', 'RAW_8_sample_entropy_1', 'RAW_8_sample_entropy_diff', 'RAW_8_hjorth_mobility_0', 'RAW_8_hjorth_complexity_0', 'RAW_8_hjorth_mobility_1', 'RAW_8_hjorth_complexity_1', 'RAW_8_hjorth_mobility_diff', 'RAW_8_hjorth_complexity_diff', 'RAW_8_num_zerocross_0', 'RAW_8_num_zerocross_1', 'RAW_8_num_zerocross_diff', 'RAW_8_lziv_complexity_0', 'RAW_8_lziv_complexity_1', 'RAW_8_lziv_complexity_diff', 'RAW_8_cond_entropy_0', 'RAW_8_cond_entropy_1', 'RAW_8_cond_entropy_diff']
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_shannon_entropy_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_shannon_entropy_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_shannon_entropy_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_perm_entropy_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_perm_entropy_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_perm_entropy_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_spectral_entropy_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_spectral_entropy_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_spectral_entropy_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_svd_entropy_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_svd_entropy_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_svd_entropy_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_approx_entropy_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_approx_entropy_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_approx_entropy_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_sample_entropy_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_sample_entropy_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_sample_entropy_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_hjorth_mobility_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_hjorth_complexity_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_hjorth_mobility_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_hjorth_complexity_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_hjorth_mobility_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_hjorth_complexity_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_num_zerocross_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_num_zerocross_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_num_zerocross_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_lziv_complexity_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_lziv_complexity_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_lziv_complexity_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_cond_entropy_0': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_cond_entropy_1': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -     - 'RAW_8_cond_entropy_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 33
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 103
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+RAW_8_shannon_entropy_diff is highly correlated with:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_4_zero_cross_diff: 0.703
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+RAW_8_hjorth_mobility_diff is highly correlated with:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_4_autocorr_lag1_diff: -0.996
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+RAW_8_hjorth_complexity_diff is highly correlated with:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_4_autocorr_lag1_diff: 0.892
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+RAW_8_num_zerocross_0 is highly correlated with:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_4_zero_cross_diff: -0.889
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+RAW_8_num_zerocross_1 is highly correlated with:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_2_mannwhitney_stat: 0.757
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+RAW_8_num_zerocross_diff is highly correlated with:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_4_zero_cross_diff: 0.996
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - 
+Dropping 2 new features with |corr| > 0.95:
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_8_hjorth_mobility_diff
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO -   - RAW_8_num_zerocross_diff
+2025-07-16 12:14:44 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: fractal_dimension_features ---
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO - 'fractal_dimension_features' 生成完毕，耗时: 4.54 秒。
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO -   新生成特征列名: ['RAW_9_petrosian_fd_diff', 'RAW_9_katz_fd_diff', 'RAW_9_higuchi_fd_diff', 'RAW_9_detrended_fluctuation_diff']
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO -     - 'RAW_9_petrosian_fd_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO -     - 'RAW_9_katz_fd_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO -     - 'RAW_9_higuchi_fd_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO -     - 'RAW_9_detrended_fluctuation_diff': 空值比例=0.00%, 零值比例=0.00%
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO - 
+Number of new features: 4
+2025-07-16 12:14:48 - FeatureEng-20250716_120205 - INFO - Number of loaded features: 134
+2025-07-16 12:14:49 - FeatureEng-20250716_120205 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-16 12:14:49 - FeatureEng-20250716_120205 - INFO - 
+RAW_9_petrosian_fd_diff is highly correlated with:
+2025-07-16 12:14:49 - FeatureEng-20250716_120205 - INFO -   - RAW_8_shannon_entropy_diff: 0.783
+2025-07-16 12:14:49 - FeatureEng-20250716_120205 - INFO -   - RAW_8_num_zerocross_1: 0.711
+2025-07-16 12:14:49 - FeatureEng-20250716_120205 - INFO - 
+No new features exceeded threshold |corr| > 0.95, nothing dropped.
+2025-07-16 12:14:49 - FeatureEng-20250716_120205 - INFO - --- 开始生成特征: tsfresh_features ---

@@ -988,17 +988,12 @@ def clean_feature_names(df: pd.DataFrame, prefix: str = "f") -> pd.DataFrame:
     df.columns = cleaned_columns
     return df
 
-<<<<<<< HEAD
-def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None,
-                      clip_outliers: bool = False, clip_threshold: float = 5.0):
-=======
 def generate_features(
         X_df: pd.DataFrame, 
         funcs_to_run: list = None, 
         trans_to_run: list = None, 
         base_feature_file: str = None
     ):
->>>>>>> de17c41a5d08cb8ab29afb6b6db40b5d96313152
     """
     生成指定的特征，或者如果未指定，则生成所有已注册的特征。
     可以基于一个现有的特征文件进行增量更新。
@@ -1015,9 +1010,6 @@ def generate_features(
     """
     utils.ensure_feature_dirs()
     
-    # 1. (可选) 离群值处理
-    if clip_outliers:
-        X_df = preprocess_clip_outliers(X_df, threshold=clip_threshold)
     
     if funcs_to_run is None:
         # 如果未指定函数，则运行所有非实验性特征

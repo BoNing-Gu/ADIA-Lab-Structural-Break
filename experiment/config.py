@@ -31,7 +31,7 @@ LGBM_PARAMS = {
     'metric': 'auc',
     'boosting_type': 'gbdt',
     'random_state': 42,
-    'n_estimators': 1000, 
+    'n_estimators': 4000, 
     'learning_rate': 0.005,
     'num_leaves': 31,
     'n_jobs': -1,
@@ -57,3 +57,8 @@ CV_PARAMS = {
 EXPERIMENTAL_FEATURES = [
     "wavelet_features",
 ] 
+
+# --- Drop Features ---
+DROP_FEATURES = [
+    'RAW_12_rpt_cost_rank_whole', 'RAW_12_rpt_cost_rbf_left', 'RAW_8_spectral_entropy_1', 'RAW_12_rpt_cost_normal_right', 'RAW_1_mean_diff', 'RAW_2_mannwhitney_stat', 'RAW_9_detrended_fluctuation_diff', 'RAW_8_approx_entropy_1', 'RAW_2_kpss_pvalue_right', 'RAW_2_adf_pvalue_right', 'RAW_1_skew_diff', 'RAW_12_rpt_cost_l1_right', 'RAW_10_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_6', 'RAW_2_wilcoxon_pvalue', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_2', 'RAW_2_adf_icbest_diff', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_mean_', 'RAW_12_rpt_cost_normal_whole', 'RAW_5_dominant_freq_diff', 'RAW_8_svd_entropy_1', 'RAW_10_change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_4', 'RAW_4_zero_cross_diff', 'RAW_8_svd_entropy_0', 'RAW_2_adf_pvalue_diff', 'RAW_12_rpt_cost_rank_right', 'RAW_10_last_location_of_maximum', 'RAW_10_change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_2', 'RAW_10_fft_coefficient_attr_imag_coeff_2', 'RAW_10_agg_linear_trend_attr_slope_chunk_len_5_f_agg_mean_', 'RAW_8_shannon_entropy_diff', 'RAW_8_shannon_entropy_1', 'RAW_11_param_4_diff'
+]

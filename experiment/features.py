@@ -11,6 +11,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from datetime import datetime
 from joblib import Parallel, delayed
+from typing import List, Dict, Tuple, Optional
 import warnings
 from statsmodels.tools.sm_exceptions import InterpolationWarning
 
@@ -38,10 +39,14 @@ logger = None
 # --- 特征函数注册表 ---
 FEATURE_REGISTRY = {}
 
-def register_feature(_func=None, *, parallelizable=True):
+def register_feature(_func=None, *, parallelizable=True, func_id=""):
     """一个用于注册特征函数的装饰器，可以标记特征是否可并行化。"""
     def decorator_register(func):
-        FEATURE_REGISTRY[func.__name__] = {"func": func, "parallelizable": parallelizable}
+        FEATURE_REGISTRY[func.__name__] = {
+            "func": func, 
+            "parallelizable": parallelizable,
+            "func_id": func_id
+        }
         return func
 
     if _func is None:
@@ -52,66 +57,104 @@ def register_feature(_func=None, *, parallelizable=True):
         return decorator_register(_func)
 
 # --- 1. 分布统计特征 ---
-@register_feature
+def safe_cv(s):
+    s = pd.Series(s)
+    m = s.mean()
+    std = s.std()
+    return std / m if abs(m) > 1e-6 else 0.0
+
+def rolling_std_mean(s, window=5):
+    s = pd.Series(s)
+    if len(s) < window:
+        return 0.0
+    return s.rolling(window=window).std().dropna().mean()
+
+def slope_theil_sen(s):
+    s = pd.Series(s)
+    if len(s) < 2:
+        return 0.0
+    try:
+        slope, intercept, _, _ = scipy.stats.theilslopes(s.values, np.arange(len(s)))
+        return slope
+    except Exception:
+        return 0.0
+
+class STATSFeatureExtractor:
+    def __init__(self):
+        import scipy.stats
+        # 所有可用的func类及其名称
+        self.func_classes = {
+            'mean': np.mean,
+            'median': np.median,
+            'max': np.max,
+            'min': np.min,
+            'range': lambda x: np.max(x) - np.min(x),
+            'std': np.std,
+            'skew': scipy.stats.skew,
+            'kurt': scipy.stats.kurtosis,
+            'cv': safe_cv,
+            'mean_of_rolling_std': rolling_std_mean,
+            'theil_sen_slope': slope_theil_sen
+        }
+    
+    def fit(self, signal):
+        self.signal = np.asarray(signal)
+        self.n = len(signal)
+
+    def calculate(self, func, start, end):
+        result = func(self.signal[start:end])
+        if isinstance(result, float) or isinstance(result, int):
+            return result
+        else:
+            return result.item()
+
+    def extract(self, signal, boundary):
+        """
+        输入：
+            signal: 1D numpy array，单变量时间序列
+            boundary: int，分割点
+        输出：
+            result: dict，格式为 {func_name: {'left': value, 'right': value}}
+        """
+        n = self.n
+        result = {}
+        for name, func in self.func_classes.items():
+            try:
+                left = self.calculate(func, 0, boundary)
+                right = self.calculate(func, boundary, n)
+                whole = self.calculate(func, 0, n)
+                diff = right - left
+                ratio = right / (left + 1e-6)
+            except Exception:
+                left = None
+                right = None
+                whole = None
+                diff = None
+                ratio = None
+            result[name] = {'left': left, 'right': right, 'whole': whole, 'diff': diff, 'ratio': ratio}
+        return result
+
+@register_feature(func_id="1")
 def distribution_stats_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
-    """统计量的Diff"""
-    s1 = u['value'][u['period'] == 0]
-    s2 = u['value'][u['period'] == 1]
+    """统计量的分段值、Diff值、Ratio值"""
+    value = u['value'].values.astype(np.float32)
+    period = u['period'].values.astype(np.float32)
+    boundary = np.where(np.diff(period) != 0)[0].item()
     feats = {}
 
-    mean1, mean2 = s1.mean(), s2.mean()
-    feats['mean_diff'] = mean2 - mean1
+    extractor = STATSFeatureExtractor()
+    extractor.fit(value)
+    features = extractor.extract(value, boundary)
 
-    median_diff = np.median(s1) - np.median(s2)
-    feats['median_diff'] = median_diff if not np.isnan(median_diff) else 0
+    feats = {}
+    for k, v in features.items():
+        for seg, value in v.items():
+            feats[f'stats_{k}_{seg}'] = value
 
-    max_diff = np.max(s1) - np.max(s2)
-    feats['max_diff'] = max_diff if not np.isnan(max_diff) else 0
-    
-    min_diff = np.min(s1) - np.min(s2)
-    feats['min_diff'] = min_diff if not np.isnan(min_diff) else 0
-    
-    range1 = np.max(s1) - np.min(s1)
-    range2 = np.max(s2) - np.min(s2)
-    feats['range_diff'] = range1 - range2 if not (np.isnan(range1) or np.isnan(range2)) else 0
-    
-    std1, std2 = s1.std(), s2.std()
-    feats['std_diff'] = std2 - std1
-    if std1 > 1e-6:
-        feats['std_ratio'] = std2 / std1
-    else:
-        feats['std_ratio'] = 1.0 if std2 < 1e-6 else 1e6
-    
-    feats['skew_diff'] = s2.skew() - s1.skew()
-    feats['kurt_diff'] = s2.kurt() - s1.kurt()
-
-    def safe_cv(s):
-        m = s.mean()
-        std = s.std()
-        return std / m if abs(m) > 1e-6 else 0.0
-    feats['cv_diff'] = safe_cv(s2) - safe_cv(s1)
-
-    def rolling_std_mean(s, window=5):
-        if len(s) < window:
-            return 0.0
-        return s.rolling(window=window).std().dropna().mean()
-    feats['rolling_std_diff'] = rolling_std_mean(s2) - rolling_std_mean(s1)
-
-    def slope_theil_sen(s):
-        if len(s) < 2:
-            return 0.0
-        try:
-            slope, intercept, _, _ = scipy.stats.theilslopes(s.values, np.arange(len(s)))
-            return slope
-        except Exception:
-            return 0.0
-    feats['theil_sen_slope_diff'] = slope_theil_sen(s2) - slope_theil_sen(s1)
-    
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
     
 # --- 2. 假设检验统计量特征 ---
-@register_feature
+@register_feature(func_id="2")
 def test_stats_features(u: pd.DataFrame) -> dict:
     import scipy.stats
     import statsmodels.tsa.api as tsa
@@ -158,24 +201,24 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     if len(s1) <= 5000 and len(s2) <= 5000:  # Shapiro有样本大小限制
         sw1_stat, sw1_pvalue = scipy.stats.shapiro(s1)
         sw2_stat, sw2_pvalue = scipy.stats.shapiro(s2)
-        feats['shapiro_pvalue_0'] = sw1_pvalue
-        feats['shapiro_pvalue_1'] = sw2_pvalue
+        feats['shapiro_pvalue_left'] = sw1_pvalue
+        feats['shapiro_pvalue_right'] = sw2_pvalue
         feats['shapiro_pvalue_diff'] = sw1_pvalue - sw2_pvalue if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
     else:
-        feats['shapiro_pvalue_0'] = 1
-        feats['shapiro_pvalue_1'] = 1
+        feats['shapiro_pvalue_left'] = 1
+        feats['shapiro_pvalue_right'] = 1
         feats['shapiro_pvalue_diff'] = 0
 
     # Jarque-Bera检验差异
     try:
         jb1_stat, jb1_pvalue = scipy.stats.jarque_bera(s1)
         jb2_stat, jb2_pvalue = scipy.stats.jarque_bera(s2)
-        feats['jb_pvalue_0'] = jb1_pvalue
-        feats['jb_pvalue_1'] = jb2_pvalue
+        feats['jb_pvalue_left'] = jb1_pvalue
+        feats['jb_pvalue_right'] = jb2_pvalue
         feats['jb_pvalue_diff'] = jb1_pvalue - jb2_pvalue if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
     except:
-        feats['jb_pvalue_0'] = 1
-        feats['jb_pvalue_1'] = 1
+        feats['jb_pvalue_left'] = 1
+        feats['jb_pvalue_right'] = 1
         feats['jb_pvalue_diff'] = 0
 
     # KPSS检验
@@ -196,13 +239,13 @@ def test_stats_features(u: pd.DataFrame) -> dict:
         k1 = extract_kpss_features(s1)
         k2 = extract_kpss_features(s2)
 
-        feats['kpss_pvalue_0'] = k1['p']
-        feats['kpss_pvalue_1'] = k2['p']
+        feats['kpss_pvalue_left'] = k1['p']
+        feats['kpss_pvalue_right'] = k2['p']
         feats['kpss_pvalue_diff'] = k1['p'] - k2['p']
         feats['kpss_stat_diff'] = k1['stat'] - k2['stat']
     except:
-        feats['kpss_pvalue_0'] = 1
-        feats['kpss_pvalue_1'] = 1
+        feats['kpss_pvalue_left'] = 1
+        feats['kpss_pvalue_right'] = 1
         feats['kpss_pvalue_diff'] = 0
         feats['kpss_stat_diff'] = 0
 
@@ -225,14 +268,14 @@ def test_stats_features(u: pd.DataFrame) -> dict:
         f1 = extract_adf_features(s1)
         f2 = extract_adf_features(s2)
 
-        feats['adf_pvalue_0'] = f1['p']
-        feats['adf_pvalue_1'] = f2['p']
+        feats['adf_pvalue_left'] = f1['p']
+        feats['adf_pvalue_right'] = f2['p']
         feats['adf_pvalue_diff'] = f1['p'] - f2['p']
         feats['adf_stat_diff'] = f1['stat'] - f2['stat']
         feats['adf_icbest_diff'] = f1['ic'] - f2['ic']
     except:
-        feats['adf_pvalue_0'] = 1
-        feats['adf_pvalue_1'] = 1
+        feats['adf_pvalue_left'] = 1
+        feats['adf_pvalue_right'] = 1
         feats['adf_pvalue_diff'] = 0
         feats['adf_stat_diff'] = 0
         feats['adf_icbest_diff'] = 0
@@ -240,23 +283,23 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 3. 累积和特征 ---
-@register_feature
+@register_feature(func_id="3")
 def cumulative_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     feats = {}
     
-    feats['sum_diff'] = s2.sum() - s1.sum()
+    sum1, sum2 = s1.sum(), s2.sum()
+    feats['sum_left'] = sum1
+    feats['sum_right'] = sum2
+    feats['sum_diff'] = sum2 - sum1
     
-    if not s1.empty and not s2.empty:
-        feats['cumsum_max_diff'] = s2.cumsum().max() - s1.cumsum().max()
-    else:
-        feats['cumsum_max_diff'] = 0
+    feats['cumsum_max_diff'] = s2.cumsum().max() - s1.cumsum().max()
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 4. 振荡特征 ---
-@register_feature
+@register_feature(func_id="4")
 def oscillation_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].reset_index(drop=True)
     s2 = u['value'][u['period'] == 1].reset_index(drop=True)
@@ -282,7 +325,7 @@ def oscillation_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 5. 周期性特征 ---
-@register_feature
+@register_feature(func_id="5")
 def cyclic_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
@@ -311,7 +354,7 @@ def cyclic_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 6. 振幅特征 ---
-@register_feature
+@register_feature(func_id="6")
 def amplitude_features(u: pd.DataFrame) -> dict:
     import scipy.stats
     s1 = u['value'][u['period'] == 0]
@@ -328,7 +371,7 @@ def amplitude_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 7. 波动性的波动性特征 ---
-@register_feature
+@register_feature(func_id="7")
 def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
     """
     计算滚动标准差序列的统计特征，以捕捉“波动性的波动性”的变化。
@@ -361,7 +404,7 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 8. 熵信息 ---
-@register_feature
+@register_feature(func_id="8")
 def entropy_features(u: pd.DataFrame) -> dict:
     import scipy.stats
     import antropy
@@ -435,7 +478,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 9. 分形 ---
-@register_feature
+@register_feature(func_id="9")
 def fractal_dimension_features(u: pd.DataFrame) -> dict:
     import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
@@ -450,7 +493,7 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 10. tsfresh --- 
-@register_feature
+@register_feature(func_id="10")
 def tsfresh_features(u: pd.DataFrame) -> dict:
     from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
     """基于tsfresh的特征工程"""
@@ -562,7 +605,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 11. 时间序列建模 ---
-@register_feature
+@register_feature(func_id="11")
 def ar_model_features(u: pd.DataFrame) -> dict:
     """
     基于AR模型派生特征。
@@ -645,47 +688,148 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 预处理 ---
-def _clip_series_outliers(series: pd.Series, threshold: float) -> pd.Series:
-    """基于IQR方法裁剪单个序列的离群值。"""
-    q1 = series.quantile(0.25)
-    q3 = series.quantile(0.75)
-    iqr = q3 - q1
-    if iqr == 0:
-        return series # 如果IQR为0，不进行裁剪
-    
-    lower_bound = q1 - threshold * iqr
-    upper_bound = q3 + threshold * iqr
-    return series.clip(lower=lower_bound, upper=upper_bound)
+# --- 12. 分段损失 ---
+class RPTFeatureExtractor:
+    def __init__(self):
+        import ruptures as rpt
+        # 所有可用的cost类及其名称
+        self.cost_classes = {
+            'l1': rpt.costs.CostL1,               # 中位数
+            'l2': rpt.costs.CostL2,               # 均值
+            'clinear': rpt.costs.CostCLinear,     # 线性协方差
+            'rbf': rpt.costs.CostRbf,             # RBF核
+            'normal': rpt.costs.CostNormal,       # 协方差
+            'ar': rpt.costs.CostAR,               # 自回归
+            'mahalanobis': rpt.costs.CostMl,      # 马氏距离
+            'rank': rpt.costs.CostRank,           # 排名
+            'cosine': rpt.costs.CostCosine,       # 余弦距离
+        }
 
-def preprocess_clip_outliers(df: pd.DataFrame, threshold: float = 5.0) -> pd.DataFrame:
+    def calculate(self, cost, start, end):
+        result = cost.error(start, end)
+        if isinstance(result, (np.ndarray, list)) and np.array(result).size == 1:
+            return float(np.array(result).squeeze())
+        return result
+
+    def extract(self, signal, boundary):
+        """
+        输入：
+            signal: 1D numpy array，单变量时间序列
+            boundary: int，分割点
+        输出：
+            result: dict，格式为 {cost_name: {'left': value, 'right': value}}
+        """
+        signal = np.asarray(signal)
+        n = len(signal)
+        result = {}
+        for name, cls in self.cost_classes.items():
+            try:
+                if name == 'ar':
+                    cost = cls(order=4)
+                else:
+                    cost = cls()
+                cost.fit(signal)
+                left = self.calculate(cost, 0, boundary)
+                right = self.calculate(cost, boundary, n)
+                whole = self.calculate(cost, 0, n)
+            except Exception:
+                left = None
+                right = None
+                whole = None
+            result[name] = {'left': left, 'right': right, 'whole': whole}
+        return result
+
+@register_feature(func_id="12")
+def rupture_cost_features(u: pd.DataFrame) -> dict:
+    value = u['value'].values.astype(np.float32)
+    period = u['period'].values.astype(np.float32)
+    boundary = np.where(np.diff(period) != 0)[0].item()
+    feats = {}
+
+    extractor = RPTFeatureExtractor()
+    features = extractor.extract(value, boundary)
+
+    feats = {}
+    for k, v in features.items():
+        for seg, value in v.items():
+            feats[f'rpt_cost_{k}_{seg}'] = value
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 时序变换函数注册表 ---
+TRANSFORM_REGISTRY = {}
+
+def register_transform(_func=None, *, output_mode_names=[]):
+    """一个用于注册时序变换函数的装饰器。"""
+    def decorator_register(func):
+        TRANSFORM_REGISTRY[func.__name__] = {
+            "func": func, 
+            "output_mode_names": output_mode_names
+        }
+        return func
+
+    if _func is None:
+        # Used as @register_transform(output_mode_names=...)
+        return decorator_register
+    else:
+        # Used as @register_transform
+        return decorator_register(_func)
+
+@register_transform(output_mode_names=['RAW'])
+def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     """
-    在特征工程之前，对每个时间序列（按id和period分组）的值进行离群值裁剪。
-    这是一个可选的预处理步骤。
+    原始时序
     """
-    if logger:
-        logger.info(f"开始裁剪离群值 (IQR multiplier = {threshold})...")
+    result_dfs = []
+    result_dfs.append(X_df)
+
+    return result_dfs
+
+# @register_transform(output_mode_names=['MAde_trend', 'MAde_resid'])
+def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    滑动平均分解
     
-    # 使用 groupby().transform() 来保持原始索引和形状
-    df_copy = df.copy()
-    df_copy['value'] = df_copy.groupby(['id', 'period'])['value'].transform(
-        lambda s: _clip_series_outliers(s, threshold)
-    )
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+        
+    Returns:
+        List[pd.DataFrame]: 包含两个数据框的列表 [趋势值, 残差值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
     
-    # 计算被裁剪的点的数量和比例
-    n_original = len(df)
-    n_clipped = (df['value'] != df_copy['value']).sum()
-    clip_ratio = n_clipped / n_original if n_original > 0 else 0
+    # 为每个模态创建一个空的数据框
+    for mode_name in ['trend', 'resid']:
+        mode_df = X_df_sorted.copy()
+        mode_df['value'] = np.nan
+        result_dfs.append(mode_df)
     
-    if logger:
-        logger.info(f"裁剪完成。总共 {n_clipped} 个点 ({clip_ratio:.4%}) 被裁剪。")
+    # 对每个id进行分解
+    for series_id in X_df_sorted.index.get_level_values('id').unique():
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        # 滑动平均分解
+        window_size = 200
+        trend = pd.Series(values).rolling(window=window_size, center=True, min_periods=1).mean()
+        trend.iloc[:window_size//2] = trend.iloc[window_size//2]
+        trend.iloc[-(window_size//2):] = trend.iloc[-(window_size//2)]
+        
+        residual = values - trend.values
+        
+        result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
+        result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
     
-    return df_copy
+    return result_dfs
 
 # --- 特征管理核心逻辑 ---
 def _get_latest_feature_file() -> Path | None:
     """查找并返回最新的特征文件路径"""
+    # 获取特征文件目录下的所有特征文件
     feature_files = list(config.FEATURE_DIR.glob('features_*.parquet'))
+    # 如果没有特征文件，返回None
     if not feature_files:
         return None
     return max(feature_files, key=lambda p: p.stat().st_mtime)
@@ -738,6 +882,57 @@ def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
         for id_val in tqdm(all_ids, desc=f"Running {func.__name__}")
     )
     return pd.DataFrame(results).set_index('id')
+
+def _apply_transform_func(func, X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """执行变换函数"""
+    return func(X_df)
+
+def apply_transformation(X_df: pd.DataFrame, transform_funcs: List[str] = None) -> Dict[str, pd.DataFrame]:
+    """
+    应用时序变换
+    
+    Args:
+        X_df: 输入数据框
+        transform_funcs: 要应用的变换函数名称列表，如果为None则应用所有注册的变换函数
+        
+    Returns:
+        Dict[str, pd.DataFrame]: 键为模态名称，值为对应的数据框
+    """
+    if transform_funcs is None:
+        transform_funcs = list(TRANSFORM_REGISTRY.keys())
+    
+    # 验证变换函数是否存在
+    valid_transform_funcs = []
+    for func_name in transform_funcs:
+        if func_name not in TRANSFORM_REGISTRY:
+            logger.warning(f"变换函数 {func_name} 未在注册表中找到，已跳过。")
+        else:
+            valid_transform_funcs.append(func_name)
+    
+    transform_funcs = valid_transform_funcs
+    
+    # 存储所有模态的数据框
+    transformed_data = {}
+    
+    for func_name in transform_funcs:
+        logger.info(f"--- 开始应用变换函数: {func_name} ---")
+        start_time = time.time()
+        
+        transform_info = TRANSFORM_REGISTRY[func_name]
+        func = transform_info['func']
+        output_mode_names = transform_info['output_mode_names']
+        
+        # 执行变换
+        transformed_results = _apply_transform_func(func, X_df)
+        
+        # 存储结果
+        for mode_name, mode_df in zip(output_mode_names, transformed_results):
+            transformed_data[mode_name] = mode_df
+        
+        duration = time.time() - start_time
+        logger.info(f"'{func_name}' 变换完毕，耗时: {duration:.2f} 秒，生成模态: {output_mode_names}")
+    
+    return transformed_data
 
 def check_new_features_corr(feature_df, loaded_features, drop_flag=False, threshold=0.95):
     """检查新特征与已加载特征的相关性"""
@@ -793,8 +988,17 @@ def clean_feature_names(df: pd.DataFrame, prefix: str = "f") -> pd.DataFrame:
     df.columns = cleaned_columns
     return df
 
+<<<<<<< HEAD
 def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_feature_file: str = None,
                       clip_outliers: bool = False, clip_threshold: float = 5.0):
+=======
+def generate_features(
+        X_df: pd.DataFrame, 
+        funcs_to_run: list = None, 
+        trans_to_run: list = None, 
+        base_feature_file: str = None
+    ):
+>>>>>>> de17c41a5d08cb8ab29afb6b6db40b5d96313152
     """
     生成指定的特征，或者如果未指定，则生成所有已注册的特征。
     可以基于一个现有的特征文件进行增量更新。
@@ -803,6 +1007,7 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         X_df (pd.DataFrame): 包含 `series_id` 和 `time_step` 的输入数据。
         funcs_to_run (list, optional): 要运行的特征函数名称列表。
             如果为 None，则运行所有在 `FEATURE_REGISTRY` 中注册的、且不在 `EXPERIMENTAL_FEATURES` 中的函数。
+        trans_to_run (list, optional): 要运行的变换函数名称列表。
         base_feature_file (str, optional): 基础特征文件名。如果提供，
             将加载此文件并在此基础上添加或更新特征。否则，将创建一个新的特征集。
         clip_outliers (bool): 是否在特征工程前裁剪极端离群值。默认为 True。
@@ -849,40 +1054,49 @@ def generate_features(X_df: pd.DataFrame, funcs_to_run: list = None, base_featur
         feature_df, metadata = pd.DataFrame(index=X_df.index.get_level_values('id').unique()), {}
     logger.info(f"基础特征文件格式：{feature_df.shape}")
 
-    # 2. 逐个生成新特征并更新
+    # 3. 时序分解
+    logger.info("=== 开始时序分解 ===")
+    transformed_data = apply_transformation(X_df, trans_to_run)
+    logger.info(f"分解完成，共生成 {len(transformed_data)} 个模态: {list(transformed_data.keys())}")
+
+    # 4. 逐个生成新特征并更新
     loaded_features = feature_df.columns.tolist()
     initial_feature_count = len(feature_df.columns)
 
-    for func_name in funcs_to_run:
-        logger.info(f"--- 开始生成特征: {func_name} ---")
-        start_time = time.time()
-        
-        feature_info = FEATURE_REGISTRY[func_name]
-        func = feature_info['func']
-        is_parallelizable = feature_info['parallelizable']
-        
-        if is_parallelizable:
-            new_features_df = _apply_feature_func_parallel(func, X_df)
-        else:
-            logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
-            new_features_df = _apply_feature_func_sequential(func, X_df)
-        
-        # 记录日志
-        duration = time.time() - start_time
-        logger.info(f"'{func_name}' 生成完毕，耗时: {duration:.2f} 秒。")
-        logger.info(f"  新生成特征列名: {new_features_df.columns.tolist()}")
-        
-        for col in new_features_df.columns:
-            null_ratio = new_features_df[col].isnull().sum() / len(new_features_df)
-            zero_ratio = (new_features_df[col] == 0).sum() / len(new_features_df)
-            logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
+    for mode_name, mode_df in transformed_data.items():
+        logger.info(f"=== 开始为模态 '{mode_name}' 生成特征 ===")
+        for func_name in funcs_to_run:
+            logger.info(f"--- 开始生成特征: {func_name} ---")
+            start_time = time.time()
+            
+            feature_info = FEATURE_REGISTRY[func_name]
+            func = feature_info['func']
+            is_parallelizable = feature_info['parallelizable']
+            func_id = feature_info['func_id']
+            
+            if is_parallelizable:
+                new_features_df = _apply_feature_func_parallel(func, mode_df)
+            else:
+                logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
+                new_features_df = _apply_feature_func_sequential(func, mode_df)
+            new_features_df.columns = [f"{mode_name}_{func_id}_{col}" for col in new_features_df.columns]
 
-        # 删除旧版本特征（如果存在），然后合并
-        feature_df = feature_df.drop(columns=new_features_df.columns, errors='ignore')
-        feature_df = feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
-        feature_df, removed_features = check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95)
-        feature_df = clean_feature_names(feature_df)
-        loaded_features = feature_df.columns.tolist()
+            # 记录日志
+            duration = time.time() - start_time
+            logger.info(f"'{func_name}' 生成完毕，耗时: {duration:.2f} 秒。")
+            logger.info(f"  新生成特征列名: {new_features_df.columns.tolist()}")
+            
+            for col in new_features_df.columns:
+                null_ratio = new_features_df[col].isnull().sum() / len(new_features_df)
+                zero_ratio = (new_features_df[col] == 0).sum() / len(new_features_df)
+                logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
+
+            # 删除旧版本特征（如果存在），然后合并
+            feature_df = feature_df.drop(columns=new_features_df.columns, errors='ignore')
+            feature_df = feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
+            feature_df, removed_features = check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95)
+            feature_df = clean_feature_names(feature_df)
+            loaded_features = feature_df.columns.tolist()
 
     # 3. 保存结果
     new_feature_count = len(feature_df.columns)

@@ -1,0 +1,127 @@
+2025-07-14 23:06:17 - FeatureEng-20250714_230617 - INFO - ========== Running Command: gen-feats ==========
+2025-07-14 23:06:17 - FeatureEng-20250714_230617 - INFO - Args: {'command': 'gen-feats', 'funcs': ['rupture_cost_features'], 'decomp': None, 'base_file': None}
+2025-07-14 23:06:17 - FeatureEng-20250714_230617 - INFO - =======================================
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - 将基于特征文件进行更新: features_20250709_113153.parquet
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - 基础特征文件格式：(10001, 143)
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - === 开始时序分解 ===
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - --- 开始应用分解函数: no_decomposition ---
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - 'no_decomposition' 分解完毕，耗时: 0.00 秒，生成模态: ['RAW']
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - 分解完成，共生成 1 个模态: ['RAW']
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - === 开始为模态 'RAW' 生成特征 ===
+2025-07-14 23:06:18 - FeatureEng-20250714_230617 - INFO - --- 开始生成特征: rupture_cost_features ---
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 'rupture_cost_features' 生成完毕，耗时: 481.73 秒。
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   新生成特征列名: ['RAW_rpt_cost_l1_left', 'RAW_rpt_cost_l1_right', 'RAW_rpt_cost_l1_whole', 'RAW_rpt_cost_l2_left', 'RAW_rpt_cost_l2_right', 'RAW_rpt_cost_l2_whole', 'RAW_rpt_cost_clinear_left', 'RAW_rpt_cost_clinear_right', 'RAW_rpt_cost_clinear_whole', 'RAW_rpt_cost_rbf_left', 'RAW_rpt_cost_rbf_right', 'RAW_rpt_cost_rbf_whole', 'RAW_rpt_cost_normal_left', 'RAW_rpt_cost_normal_right', 'RAW_rpt_cost_normal_whole', 'RAW_rpt_cost_ar_left', 'RAW_rpt_cost_ar_right', 'RAW_rpt_cost_ar_whole', 'RAW_rpt_cost_mahalanobis_left', 'RAW_rpt_cost_mahalanobis_right', 'RAW_rpt_cost_mahalanobis_whole', 'RAW_rpt_cost_rank_left', 'RAW_rpt_cost_rank_right', 'RAW_rpt_cost_rank_whole', 'RAW_rpt_cost_cosine_left', 'RAW_rpt_cost_cosine_right', 'RAW_rpt_cost_cosine_whole']
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_l1_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_l1_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_l1_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_l2_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_l2_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_l2_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_clinear_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_clinear_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_clinear_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_rbf_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_rbf_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_rbf_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_normal_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_normal_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_normal_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_ar_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_ar_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_ar_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_mahalanobis_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_mahalanobis_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_mahalanobis_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_rank_left': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_rank_right': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_rank_whole': 空值比例=0.00%, 零值比例=100.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_cosine_left': 空值比例=0.00%, 零值比例=0.01%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_cosine_right': 空值比例=0.00%, 零值比例=0.07%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -     - 'RAW_rpt_cost_cosine_whole': 空值比例=0.00%, 零值比例=0.00%
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+Number of new features: 27
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - Number of loaded features: 143
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+New features with high correlation (|corr| > 0.7) to loaded features:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_l2_left is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - max_diff: 0.973
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - range_diff: 0.971
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - std_diff: -0.927
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.728
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_l2_whole is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - max_diff: 0.971
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - range_diff: 0.970
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - std_diff: -0.924
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.728
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_clinear_left is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - max_diff: 0.973
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - range_diff: 0.971
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - std_diff: -0.928
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.728
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_clinear_whole is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - max_diff: 0.970
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - range_diff: 0.969
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - std_diff: -0.923
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.727
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_rbf_left is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - zero_cross_diff: -0.839
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - num_zerocross_0: 0.907
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_rbf_right is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - mannwhitney_stat: 0.740
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - shannon_entropy_1: 0.737
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - approx_entropy_1: 0.701
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - num_zerocross_1: 0.880
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - petrosian_fd_diff: 0.715
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_rbf_whole is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - mannwhitney_stat: 0.862
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - num_zerocross_0: 0.827
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_normal_left is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - adf_icbest_diff: 0.928
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_normal_right is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - approx_entropy_1: -0.744
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - num_zerocross_1: -0.740
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_normal_whole is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - adf_icbest_diff: 0.763
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_ar_left is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - max_diff: 0.972
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - range_diff: 0.970
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - std_diff: -0.915
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.735
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_ar_whole is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - max_diff: 0.970
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - range_diff: 0.969
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - std_diff: -0.913
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_: -0.734
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_mahalanobis_left is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - num_zerocross_0: 0.756
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+RAW_rpt_cost_mahalanobis_whole is highly correlated with:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - mannwhitney_stat: 0.862
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - num_zerocross_0: 0.827
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 
+Dropping 6 new features with |corr| > 0.95:
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - RAW_rpt_cost_l2_left
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - RAW_rpt_cost_l2_whole
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - RAW_rpt_cost_clinear_left
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - RAW_rpt_cost_clinear_whole
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - RAW_rpt_cost_ar_left
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO -   - RAW_rpt_cost_ar_whole
+2025-07-14 23:14:20 - FeatureEng-20250714_230617 - INFO - 已将文件 features_20250709_113153.parquet 备份到: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-14 23:14:21 - FeatureEng-20250714_230617 - INFO - 特征已保存到新文件: features_20250714_231420.parquet
+2025-07-14 23:14:21 - FeatureEng-20250714_230617 - INFO - --- 生成后完整特征列表 ---
+2025-07-14 23:14:21 - FeatureEng-20250714_230617 - INFO - ['mean_diff', 'median_diff', 'max_diff', 'min_diff', 'range_diff', 'std_diff', 'std_ratio', 'skew_diff', 'kurt_diff', 'cv_diff', 'rolling_std_diff', 'theil_sen_slope_diff', 'ks_stat', 'ks_pvalue', 'ttest_pvalue', 'ad_stat', 'ad_pvalue', 'mannwhitney_stat', 'mannwhitney_pvalue', 'wilcoxon_stat', 'wilcoxon_pvalue', 'levene_stat', 'levene_pvalue', 'bartlett_stat', 'bartlett_pvalue', 'shapiro_pvalue_0', 'shapiro_pvalue_1', 'shapiro_pvalue_diff', 'jb_pvalue_0', 'jb_pvalue_1', 'jb_pvalue_diff', 'kpss_pvalue_0', 'kpss_pvalue_1', 'kpss_pvalue_diff', 'kpss_stat_diff', 'adf_pvalue_0', 'adf_pvalue_1', 'adf_pvalue_diff', 'adf_stat_diff', 'adf_icbest_diff', 'sum_diff', 'cumsum_max_diff', 'zero_cross_diff', 'autocorr_lag1_diff', 'dominant_freq_diff', 'max_power_diff', 'iqr_diff', 'rolling_std_w50_mean_diff', 'shannon_entropy_0', 'shannon_entropy_1', 'shannon_entropy_diff', 'perm_entropy_0', 'perm_entropy_1', 'perm_entropy_diff', 'spectral_entropy_0', 'spectral_entropy_1', 'spectral_entropy_diff', 'svd_entropy_0', 'svd_entropy_1', 'svd_entropy_diff', 'approx_entropy_0', 'approx_entropy_1', 'approx_entropy_diff', 'sample_entropy_0', 'sample_entropy_1', 'sample_entropy_diff', 'hjorth_mobility_0', 'hjorth_complexity_0', 'hjorth_mobility_1', 'hjorth_complexity_1', 'hjorth_complexity_diff', 'num_zerocross_0', 'num_zerocross_1', 'lziv_complexity_0', 'lziv_complexity_1', 'lziv_complexity_diff', 'cond_entropy_0', 'cond_entropy_1', 'cond_entropy_diff', 'petrosian_fd_diff', 'katz_fd_diff', 'higuchi_fd_diff', 'detrended_fluctuation_diff', 'ratio_value_number_to_time_series_length', 'ratio_beyond_r_sigma_6', 'ratio_beyond_r_sigma_1_5', 'quantile_0_6', 'quantile_0_4', 'quantile_0_1', 'percentage_of_reoccurring_values_to_all_values', 'percentage_of_reoccurring_datapoints_to_all_datapoints', 'last_location_of_maximum', 'first_location_of_maximum', 'partial_autocorrelation_lag_2', 'linear_trend_attr_slope_', 'linear_trend_attr_rvalue_', 'linear_trend_attr_intercept_', 'fft_coefficient_attr_imag_coeff_3', 'fft_coefficient_attr_imag_coeff_2', 'fft_coefficient_attr_imag_coeff_1', 'change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_6', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_4', 'change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2', 'change_quantiles_f_agg_var_isabs_True_qh_0_4_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_0', 'change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4', 'change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_2', 'change_quantiles_f_agg_var_isabs_False_qh_0_4_ql_0_2', 'change_quantiles_f_agg_mean_isabs_True_qh_1_0_ql_0_4', 'change_quantiles_f_agg_mean_isabs_True_qh_0_6_ql_0_4', 'ar_coefficient_coeff_2_k_10', 'agg_linear_trend_attr_slope_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_slope_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_slope_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_max_', 'agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_', 'agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_50_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_50_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_5_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_5_f_agg_max_', 'agg_linear_trend_attr_intercept_chunk_len_10_f_agg_mean_', 'agg_linear_trend_attr_intercept_chunk_len_10_f_agg_max_', 'ar_residuals_s2_pred_std', 'ar_residuals_s2_pred_skew', 'ar_residuals_s2_pred_kurt', 'ar_residuals_s1_pred_skew', 'ar_residuals_s1_pred_kurt', 'param_0_diff', 'param_3_diff', 'param_4_diff', 'param_5_diff', 'RAW_rpt_cost_l1_left', 'RAW_rpt_cost_l1_right', 'RAW_rpt_cost_l1_whole', 'RAW_rpt_cost_l2_right', 'RAW_rpt_cost_clinear_right', 'RAW_rpt_cost_rbf_left', 'RAW_rpt_cost_rbf_right', 'RAW_rpt_cost_rbf_whole', 'RAW_rpt_cost_normal_left', 'RAW_rpt_cost_normal_right', 'RAW_rpt_cost_normal_whole', 'RAW_rpt_cost_ar_right', 'RAW_rpt_cost_mahalanobis_left', 'RAW_rpt_cost_mahalanobis_right', 'RAW_rpt_cost_mahalanobis_whole', 'RAW_rpt_cost_rank_left', 'RAW_rpt_cost_rank_right', 'RAW_rpt_cost_rank_whole', 'RAW_rpt_cost_cosine_left', 'RAW_rpt_cost_cosine_right', 'RAW_rpt_cost_cosine_whole']
+2025-07-14 23:14:21 - FeatureEng-20250714_230617 - INFO - -----------------------------
+2025-07-14 23:14:21 - FeatureEng-20250714_230617 - INFO - 生成/更新完成。新文件: features_20250714_231420.parquet, 总特征数: 164

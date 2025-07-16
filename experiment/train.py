@@ -33,6 +33,10 @@ def save_permutation_importance(permutation_results, feature_names, output_dir):
     })
     df = df.sort_values('permutation_importance_mean', ascending=False)
     
+    # 找出permutation_importance_mean小于0的特征名
+    negative_importance_features = df[df['permutation_importance_mean'] <= 0]['feature'].tolist()
+    logger.info(f"permutation_importance_mean小于0的特征有: {negative_importance_features}")
+
     save_path = output_dir / 'permutation_importance.tsv'
     df.to_csv(save_path, sep='\t', index=False)
     logger.info(f"Permutation importance已保存到: {save_path}")
@@ -47,11 +51,13 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
 
     # 1. 加载特征和标签
     feature_df, loaded_feature_name = features.load_features(feature_file_name)
+    feature_df = feature_df.drop(columns=config.DROP_FEATURES)
     if feature_df is None:
         logger.error("特征加载失败，训练中止。")
         return None, None
 
     logger.info(f"Successfully loaded features from: {loaded_feature_name}")
+    logger.info(f"Drop {len(config.DROP_FEATURES)} features: {config.DROP_FEATURES}")
     
     _, y_train = data.load_data()
 

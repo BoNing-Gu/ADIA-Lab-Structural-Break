@@ -58,16 +58,19 @@ def register_feature(_func=None, *, parallelizable=True, func_id=""):
 
 # --- 1. 分布统计特征 ---
 def safe_cv(s):
+    s = pd.Series(s)
     m = s.mean()
     std = s.std()
     return std / m if abs(m) > 1e-6 else 0.0
 
 def rolling_std_mean(s, window=5):
+    s = pd.Series(s)
     if len(s) < window:
         return 0.0
     return s.rolling(window=window).std().dropna().mean()
 
 def slope_theil_sen(s):
+    s = pd.Series(s)
     if len(s) < 2:
         return 0.0
     try:
@@ -93,12 +96,17 @@ class STATSFeatureExtractor:
             'mean_of_rolling_std': rolling_std_mean,
             'theil_sen_slope': slope_theil_sen
         }
+    
+    def fit(self, signal):
+        self.signal = np.asarray(signal)
+        self.n = len(signal)
 
-    def calculate(self, cost, start, end):
-        result = cost.error(start, end)
-        if isinstance(result, (np.ndarray, list)) and np.array(result).size == 1:
-            return float(np.array(result).squeeze())
-        return result
+    def calculate(self, func, start, end):
+        result = func(self.signal[start:end])
+        if isinstance(result, float) or isinstance(result, int):
+            return result
+        else:
+            return result.item()
 
     def extract(self, signal, boundary):
         """
@@ -106,105 +114,43 @@ class STATSFeatureExtractor:
             signal: 1D numpy array，单变量时间序列
             boundary: int，分割点
         输出：
-            result: dict，格式为 {cost_name: {'left': value, 'right': value}}
+            result: dict，格式为 {func_name: {'left': value, 'right': value}}
         """
-        signal = np.asarray(signal)
-        n = len(signal)
+        n = self.n
         result = {}
-        for name, cls in self.cost_classes.items():
+        for name, func in self.func_classes.items():
             try:
-                if name == 'ar':
-                    cost = cls(order=4)
-                else:
-                    cost = cls()
-                cost.fit(signal)
-                left = self.calculate(cost, 0, boundary)
-                right = self.calculate(cost, boundary, n)
-                whole = self.calculate(cost, 0, n)
+                left = self.calculate(func, 0, boundary)
+                right = self.calculate(func, boundary, n)
+                whole = self.calculate(func, 0, n)
+                diff = right - left
+                ratio = right / (left + 1e-6)
             except Exception:
                 left = None
                 right = None
                 whole = None
-            result[name] = {'left': left, 'right': right, 'whole': whole}
+                diff = None
+                ratio = None
+            result[name] = {'left': left, 'right': right, 'whole': whole, 'diff': diff, 'ratio': ratio}
         return result
 
 @register_feature(func_id="1")
 def distribution_stats_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
-    """统计量的Diff"""
-    s1 = u['value'][u['period'] == 0]
-    s2 = u['value'][u['period'] == 1]
+    """统计量的分段值、Diff值、Ratio值"""
+    value = u['value'].values.astype(np.float32)
+    period = u['period'].values.astype(np.float32)
+    boundary = np.where(np.diff(period) != 0)[0].item()
     feats = {}
 
-    mean1, mean2 = s1.mean(), s2.mean()
-    feats['mean_left'] = mean1
-    feats['mean_right'] = mean2
-    feats['mean_diff'] = mean2 - mean1
+    extractor = STATSFeatureExtractor()
+    extractor.fit(value)
+    features = extractor.extract(value, boundary)
 
-    median_diff = np.median(s1) - np.median(s2)
-    feats['median_diff'] = median_diff if not np.isnan(median_diff) else 0
+    feats = {}
+    for k, v in features.items():
+        for seg, value in v.items():
+            feats[f'stats_{k}_{seg}'] = value
 
-    max_diff = np.max(s1) - np.max(s2)
-    feats['max_diff'] = max_diff if not np.isnan(max_diff) else 0
-    
-    min_diff = np.min(s1) - np.min(s2)
-    feats['min_diff'] = min_diff if not np.isnan(min_diff) else 0
-    
-    range1 = np.max(s1) - np.min(s1)
-    range2 = np.max(s2) - np.min(s2)
-    feats['range_left'] = range1
-    feats['range_right'] = range2
-    feats['range_diff'] = range1 - range2 if not (np.isnan(range1) or np.isnan(range2)) else 0
-    
-    std1, std2 = s1.std(), s2.std()
-    feats['std_left'] = std1
-    feats['std_right'] = std2
-    feats['std_diff'] = std2 - std1
-    if std1 > 1e-6:
-        feats['std_ratio'] = std2 / std1
-    else:
-        feats['std_ratio'] = 1.0 if std2 < 1e-6 else 1e6
-    
-    skew1, skew2 = s1.skew(), s2.skew()
-    feats['skew_left'] = skew1
-    feats['skew_right'] = skew2
-    feats['skew_diff'] = skew2 - skew1
-    kurt1, kurt2 = s1.kurt(), s2.kurt()
-    feats['kurt_left'] = kurt1
-    feats['kurt_right'] = kurt2
-    feats['kurt_diff'] = kurt2 - kurt1
-
-    def safe_cv(s):
-        m = s.mean()
-        std = s.std()
-        return std / m if abs(m) > 1e-6 else 0.0
-    cv1, cv2 = safe_cv(s1), safe_cv(s2)
-    feats['cv_left'] = cv1
-    feats['cv_right'] = cv2
-    feats['cv_diff'] = cv2 - cv1
-
-    def rolling_std_mean(s, window=5):
-        if len(s) < window:
-            return 0.0
-        return s.rolling(window=window).std().dropna().mean()
-    rolling_std_mean1, rolling_std_mean2 = rolling_std_mean(s1), rolling_std_mean(s2)
-    feats['rolling_std_left'] = rolling_std_mean1
-    feats['rolling_std_right'] = rolling_std_mean2
-    feats['rolling_std_diff'] = rolling_std_mean2 - rolling_std_mean1
-
-    def slope_theil_sen(s):
-        if len(s) < 2:
-            return 0.0
-        try:
-            slope, intercept, _, _ = scipy.stats.theilslopes(s.values, np.arange(len(s)))
-            return slope
-        except Exception:
-            return 0.0
-    theil_sen_slope1, theil_sen_slope2 = slope_theil_sen(s1), slope_theil_sen(s2)
-    feats['theil_sen_slope_left'] = theil_sen_slope1
-    feats['theil_sen_slope_right'] = theil_sen_slope2
-    feats['theil_sen_slope_diff'] = theil_sen_slope2 - theil_sen_slope1
-    
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
     
 # --- 2. 假设检验统计量特征 ---

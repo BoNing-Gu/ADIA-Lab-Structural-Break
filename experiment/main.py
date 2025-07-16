@@ -31,6 +31,7 @@ def main():
     parser_train.add_argument('--feature-file', type=str, default=None, help='可选，指定用于训练的特征文件名。如果为空，则使用最新的特征文件。')
     parser_train.add_argument('--save-oof', action='store_true', help='是否保存OOF预测文件。')
     parser_train.add_argument('--save-model', action='store_true', help='是否保存训练好的模型文件。')
+    parser_train.add_argument('--perm-imp', action='store_true', help='是否计算permutation importance。')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -73,7 +74,8 @@ def main():
         models, oof_auc = train.train_and_evaluate(
             feature_file_name=args.feature_file,
             save_oof=args.save_oof,
-            save_model=args.save_model
+            save_model=args.save_model,
+            perm_imp=args.perm_imp
         )
         
         # 训练成功后重命名日志文件

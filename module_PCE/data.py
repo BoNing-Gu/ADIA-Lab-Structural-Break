@@ -15,6 +15,7 @@ from datasets import Dataset
 def process_func(X_df, y_value=None, config=None):
     max_length = config.seq_length
     X_df = X_df.sort_index(level="time")
+    X_df['value'] = X_df['value'].cumsum()
     id_ = X_df.index.get_level_values("id")[0]
     seq_len = len(X_df)
     X_df['key_padding_mask'] = 0
@@ -48,8 +49,17 @@ def process_func(X_df, y_value=None, config=None):
     }
     if y_value is not None:
         result['label'] = y_value
+        # result['label'] = encode_label(config.num_classes, int(y_value))
 
     return result
+
+def encode_label(num_classes, label):
+    """Encode label to one-hot vector"""
+    label_to_idx = {label: idx for idx, label in enumerate(num_classes)}
+    target = np.zeros(num_classes)
+    if label in label_to_idx:
+        target[label_to_idx[label]] = 1.0
+    return target
 
 def create_structured_dataset(X_df, y_series, config=None):
     grouped = X_df.groupby('id')

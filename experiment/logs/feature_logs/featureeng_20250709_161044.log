@@ -1,0 +1,8 @@
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - ========== Running Command: del-feats ==========
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - Args: {'command': 'del-feats', 'base_file': 'features_20250709_113153.parquet', 'funcs': None, 'cols': ['ratio_value_number_to_time_series_length', 'percentage_of_reoccurring_values_to_all_values', 'percentage_of_reoccurring_datapoints_to_all_datapoints']}
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - =======================================
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - 将从文件 features_20250709_113153.parquet 中删除特征...
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - 已将文件 features_20250709_113153.parquet 备份到: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - 按列名删除: ['ratio_value_number_to_time_series_length', 'percentage_of_reoccurring_values_to_all_values', 'percentage_of_reoccurring_datapoints_to_all_datapoints']
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - 总计将删除 3 个特征列: ['percentage_of_reoccurring_datapoints_to_all_datapoints', 'percentage_of_reoccurring_values_to_all_values', 'ratio_value_number_to_time_series_length']
+2025-07-09 16:10:44 - FeatureEng-20250709_161044 - INFO - 删除完成。新文件: features_20250709_161044.parquet, 总特征数: 140

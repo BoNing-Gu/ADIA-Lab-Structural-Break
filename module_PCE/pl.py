@@ -28,7 +28,7 @@ class PLModel(pl.LightningModule):
         self.model = model
         self.optimizer_obj = optimizer 
         self.criterion = criterion
-        self.collapse_criterion = CollapseAvoidLoss(min_std=0.1, factor=10)
+        self.collapse_criterion = CollapseAvoidLoss(min_std=config.min_std, factor=config.factor)
         self.config = config
 
         self.automatic_optimization = False

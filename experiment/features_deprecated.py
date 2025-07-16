@@ -728,3 +728,102 @@ def arima_model_features(u: pd.DataFrame) -> dict:
         # logger.info("No GPU detected, using arima_model_features_cpu.")
         return arima_model_features_cpu(u)
 
+@register_feature
+def distance_features(u: pd.DataFrame) -> dict:
+    """
+    计算两个时间序列之间的DTW和EDR距离特征
+    
+    注意：
+    - DTW距离要求等长序列，对不等长序列需要预处理
+    - EDR距离可以处理不等长序列
+    """
+    from sktime.distances import dtw_distance, edr_distance
+    
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    feats = {}
+    
+    # # 1. DTW距离特征
+    # try:
+    #     # 不等长序列：分别用截断和插值方法处理
+    #     # 方法1：截断到较短长度
+    #     min_len = min(len(s1), len(s2))
+    #     s1_truncated = s1[:min_len]
+    #     s2_truncated = s2[:min_len]
+        
+    #     feats['dtw_distance_truncated'] = dtw_distance(s1_truncated, s2_truncated)
+    #     feats['dtw_distance_truncated_normalized'] = feats['dtw_distance_truncated'] / min_len
+        
+    #     # 方法2：插值到相同长度
+    #     target_length = max(len(s1), len(s2))  # 限制最大长度避免计算过慢
+        
+    #     def interpolate_series(series, target_len):
+    #         """将序列插值到目标长度"""
+    #         if len(series) == target_len:
+    #             return series
+    #         old_indices = np.linspace(0, len(series)-1, len(series))
+    #         new_indices = np.linspace(0, len(series)-1, target_len)
+    #         return np.interp(new_indices, old_indices, series)
+        
+    #     s1_interp = interpolate_series(s1, target_length)
+    #     s2_interp = interpolate_series(s2, target_length)
+        
+    #     feats['dtw_distance_interpolated'] = dtw_distance(s1_interp, s2_interp)
+    #     feats['dtw_distance_interpolated_normalized'] = feats['dtw_distance_interpolated'] / target_length
+        
+    #     # 带窗口约束的插值DTW
+    #     window_ratio = 0.25
+    #     feats['dtw_distance_interpolated_windowed'] = dtw_distance(
+    #         s1_interp, s2_interp, window=window_ratio
+    #     )
+            
+    # except Exception as e:
+    #     print(f"DTW计算错误: {e}")
+    #     # 为所有可能的DTW特征设置默认值
+    #     dtw_features = [
+    #         'dtw_distance', 'dtw_distance_windowed', 'dtw_distance_normalized',
+    #         'dtw_distance_truncated', 'dtw_distance_truncated_normalized',
+    #         'dtw_distance_interpolated', 'dtw_distance_interpolated_normalized',
+    #         'dtw_distance_interpolated_windowed', 'dtw_distance_padded',
+    #         'dtw_distance_padded_normalized'
+    #     ]
+    #     for feat in dtw_features:
+    #         feats[feat] = 0
+    
+    # 2. EDR距离特征
+    try:
+        # EDR可以处理不等长序列，直接计算
+        
+        # 自适应epsilon：根据文档，默认是最大标准差的1/4
+        combined_series = np.concatenate([s1, s2])
+        std_s1 = np.std(s1) if len(s1) > 1 else 0
+        std_s2 = np.std(s2) if len(s2) > 1 else 0
+        max_std = max(std_s1, std_s2)
+        epsilon_auto = max_std * 0.25 if max_std > 0 else 0.1
+        
+        feats['edr_distance'] = edr_distance(s1, s2, epsilon=epsilon_auto)
+        
+        # 使用不同的epsilon值
+        epsilon_small = epsilon_auto * 0.5  # 更严格的匹配
+        epsilon_large = epsilon_auto * 2.0  # 更宽松的匹配
+        
+        feats['edr_distance_strict'] = edr_distance(s1, s2, epsilon=epsilon_small)
+        feats['edr_distance_loose'] = edr_distance(s1, s2, epsilon=epsilon_large)
+        
+        # 固定epsilon值（基于数据的整体统计）
+        epsilon_fixed = np.std(combined_series) * 0.1
+        feats['edr_distance_fixed_eps'] = edr_distance(s1, s2, epsilon=epsilon_fixed)
+        
+        # 记录使用的epsilon值用于分析
+        feats['edr_epsilon_used'] = epsilon_auto
+        
+    except Exception as e:
+        print(f"EDR计算错误: {e}")
+        edr_features = [
+            'edr_distance', 'edr_distance_strict', 'edr_distance_loose',
+            'edr_distance_fixed_eps', 'edr_distance_windowed', 'edr_epsilon_used'
+        ]
+        for feat in edr_features:
+            feats[feat] = 0
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}

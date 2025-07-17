@@ -171,3 +171,8 @@ python -m experiment.main train --save-model --save-oof --perm-imp
     *   `--feature-file <path>`: 指定用于训练的特征文件，默认为最新。
     *   `--save-model`: Flag, 是否保存模型文件。
     *   `--save-oof`: Flag, 是否保存OOF预测文件。 
+
+# 提交记录
+| 提交号 | 本地CV | 公开LB | 描述 |
+| --- | --- | --- | --- |
+| #7  | 0.7875 | 0.7812 | Perm阈值0.0005，Drop到55个特征 |

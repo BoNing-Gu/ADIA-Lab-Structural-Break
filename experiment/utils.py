@@ -9,7 +9,7 @@ def ensure_feature_dirs():
     config.FEATURE_DIR.mkdir(parents=True, exist_ok=True)
     config.FEATURE_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
-def get_logger(name: str, log_dir: Path):
+def get_logger(name: str, log_dir: Path, verbose: bool = True):
     """
     获取一个配置好的 logger 实例，它会生成带时间戳的详细日志。
     """
@@ -38,9 +38,20 @@ def get_logger(name: str, log_dir: Path):
     logger.addHandler(detail_handler)
     
     # 4. 创建控制台处理器
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_formatter = logging.Formatter('%(message)s') # 控制台只输出简洁信息
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
+    # 控制台 - INFO级别 (受verbose控制)
+    if verbose:
+        info_handler = logging.StreamHandler(sys.stdout)
+        info_handler.setLevel(logging.INFO)
+        info_handler.addFilter(lambda record: record.levelno == logging.INFO)
+        info_formatter = logging.Formatter('%(message)s')
+        info_handler.setFormatter(info_formatter)
+        logger.addHandler(info_handler)
+
+    # 控制台 - WARNING及以上 (始终输出)
+    warn_handler = logging.StreamHandler(sys.stdout)
+    warn_handler.setLevel(logging.WARNING)
+    warn_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    warn_handler.setFormatter(warn_formatter)
+    logger.addHandler(warn_handler)
 
     return logger, detail_log_file # 返回 logger 和日志文件路径 

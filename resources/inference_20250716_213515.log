@@ -1,9 +1,0 @@
-2025-07-16 21:35:15 - Inference-20250716_213515 - INFO - Found a total of 5 model files.
-2025-07-16 21:35:15 - Inference-20250716_213515 - INFO - Loading model: resources\model_fold_1.pkl
-2025-07-16 21:35:16 - Inference-20250716_213515 - INFO - Loading model: resources\model_fold_2.pkl
-2025-07-16 21:35:16 - Inference-20250716_213515 - INFO - Loading model: resources\model_fold_3.pkl
-2025-07-16 21:35:16 - Inference-20250716_213515 - INFO - Loading model: resources\model_fold_4.pkl
-2025-07-16 21:35:16 - Inference-20250716_213515 - INFO - Loading model: resources\model_fold_5.pkl
-2025-07-16 21:35:16 - Inference-20250716_213515 - INFO - 未指定特征函数，将运行所有 12 个非实验性特征。
-2025-07-16 21:35:16 - Inference-20250716_213515 - INFO - 未找到基础特征文件，将创建全新的特征集。
-2025-07-16 21:35:16 - Inference-20250716_213515 - INFO - === 开始时序分解 ===

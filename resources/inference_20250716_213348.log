@@ -1,6 +1,0 @@
-2025-07-16 21:33:48 - Inference-20250716_213348 - INFO - Found a total of 5 model files.
-2025-07-16 21:33:48 - Inference-20250716_213348 - INFO - Loading model: resources\model_fold_1.pkl
-2025-07-16 21:33:48 - Inference-20250716_213348 - INFO - Loading model: resources\model_fold_2.pkl
-2025-07-16 21:33:49 - Inference-20250716_213348 - INFO - Loading model: resources\model_fold_3.pkl
-2025-07-16 21:33:49 - Inference-20250716_213348 - INFO - Loading model: resources\model_fold_4.pkl
-2025-07-16 21:33:49 - Inference-20250716_213348 - INFO - Loading model: resources\model_fold_5.pkl

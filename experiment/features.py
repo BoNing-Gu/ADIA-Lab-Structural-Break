@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 import scipy.stats
+import statsmodels.tsa.api as tsa
+from statsmodels.tsa.ar_model import AutoReg
+import antropy
+from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
+import ruptures as rpt
 
 import re
 import json
@@ -81,7 +86,6 @@ def slope_theil_sen(s):
 
 class STATSFeatureExtractor:
     def __init__(self):
-        import scipy.stats
         # 所有可用的func类及其名称
         self.func_classes = {
             'mean': np.mean,
@@ -156,9 +160,6 @@ def distribution_stats_features(u: pd.DataFrame) -> dict:
 # --- 2. 假设检验统计量特征 ---
 @register_feature(func_id="2")
 def test_stats_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
-    import statsmodels.tsa.api as tsa
-    
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     s_whole = u['value']
@@ -428,7 +429,6 @@ def cyclic_features(u: pd.DataFrame) -> dict:
 # --- 6. 振幅特征 ---
 @register_feature(func_id="6")
 def amplitude_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     s_whole = u['value']
@@ -492,8 +492,6 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
 # --- 8. 熵信息 ---
 @register_feature(func_id="8")
 def entropy_features(u: pd.DataFrame) -> dict:
-    import scipy.stats
-    import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     s_whole = u['value'].to_numpy()
@@ -587,7 +585,6 @@ def entropy_features(u: pd.DataFrame) -> dict:
 # --- 9. 分形 ---
 @register_feature(func_id="9")
 def fractal_dimension_features(u: pd.DataFrame) -> dict:
-    import antropy
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     s_whole = u['value'].to_numpy()
@@ -616,7 +613,6 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
 # --- 10. tsfresh --- 
 @register_feature(func_id="10")
 def tsfresh_features(u: pd.DataFrame) -> dict:
-    from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
     """基于tsfresh的特征工程"""
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
@@ -773,8 +769,6 @@ def ar_model_features(u: pd.DataFrame) -> dict:
     2. 在 period 1 上训练模型，预测 period 0，计算残差统计量。
     3. 分别在 period 0 和 1 上训练模型，比较模型参数、残差和信息准则(AIC/BIC)。
     """
-    from statsmodels.tsa.ar_model import AutoReg
-
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     s_whole = u['value'].to_numpy()
@@ -881,7 +875,6 @@ def ar_model_features(u: pd.DataFrame) -> dict:
 # --- 12. 分段损失 ---
 class RPTFeatureExtractor:
     def __init__(self):
-        import ruptures as rpt
         # 所有可用的cost类及其名称
         self.cost_classes = {
             'l1': rpt.costs.CostL1,               # 中位数

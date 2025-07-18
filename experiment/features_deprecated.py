@@ -827,3 +827,81 @@ def distance_features(u: pd.DataFrame) -> dict:
             feats[feat] = 0
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+
+# --- 13. 实验性稳健变异系数 ---
+def _quartile_cv(s: pd.Series) -> float:
+    """稳健变异系数 (Quartile Coefficient of Variation)."""
+    if len(s) < 4:  # Need at least 4 points for quartiles
+        return 0.0
+    q1 = s.quantile(0.25)
+    q3 = s.quantile(0.75)
+    if abs(q3 + q1) < 1e-6:
+        return 0.0
+    return (q3 - q1) / (q3 + q1)
+
+def _log_cv(s: pd.Series) -> float:
+    """对数变异系数 (Logarithmic Coefficient of Variation)."""
+    s_pos = s[s > 0]
+    if len(s_pos) < 2:
+        return 0.0
+    log_s = np.log(s_pos)
+    if len(log_s) < 2:
+        return 0.0
+    log_std = np.std(log_s)
+    return np.sqrt(np.exp(log_std**2) - 1)
+
+def _mad_cv(s: pd.Series) -> float:
+    """基于MAD的变异系数 (Median Absolute Deviation based CV)."""
+    if len(s) < 2:
+        return 0.0
+    median_val = np.median(s)
+    if abs(median_val) < 1e-6:
+        return 0.0
+    mad = np.median(np.abs(s - median_val))
+    return mad / abs(median_val)
+
+def _iqr_cv(s: pd.Series) -> float:
+    """广义变异系数的实现 (Interquartile Range based CV)."""
+    if len(s) < 4:
+        return 0.0
+    median_val = np.median(s)
+    if abs(median_val) < 1e-6:
+        return 0.0
+    iqr = scipy.stats.iqr(s)
+    return iqr / abs(median_val)
+
+
+def experimental_robust_cv_features(u: pd.DataFrame) -> dict:
+    """
+    实验性特征：计算多种稳健的变异系数。
+    - 稳健变异系数 (Quartile CV): (Q3-Q1)/(Q3+Q1)
+    - 对数变异系数 (Log CV): for log-normal data
+    - 基于MAD的变异系数 (MAD CV): MAD / |Median|
+    - 广义变异系数 (IQR CV): IQR / |Median|
+    """
+    s1 = u['value'][u['period'] == 0]
+    s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
+    feats = {}
+
+    cv_funcs = {
+        'robust_quartile_cv': _quartile_cv,
+        'robust_log_cv': _log_cv,
+        'robust_mad_cv': _mad_cv,
+        'robust_iqr_cv': _iqr_cv,
+    }
+
+    for name, func in cv_funcs.items():
+        try:
+            v1, v2, v_whole = func(s1), func(s2), func(s_whole)
+            feats[f'{name}_left'] = v1
+            feats[f'{name}_right'] = v2
+            feats[f'{name}_whole'] = v_whole
+            feats[f'{name}_diff'] = v2 - v1
+            feats[f'{name}_ratio'] = v2 / (v1 + 1e-6)
+        except Exception:
+            feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
+            
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+

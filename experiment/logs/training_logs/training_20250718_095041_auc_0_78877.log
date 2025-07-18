@@ -1,0 +1,47 @@
+2025-07-18 09:50:41 - Training-20250718_095041 - INFO - ========== Running Command: train ==========
+2025-07-18 09:50:41 - Training-20250718_095041 - INFO - Args: {'command': 'train', 'feature_file': None, 'save_oof': False, 'save_model': False, 'perm_imp': False}
+2025-07-18 09:50:41 - Training-20250718_095041 - INFO - =======================================
+2025-07-18 09:50:41 - Training-20250718_095041 - INFO - Starting training and evaluation pipeline...
+2025-07-18 09:50:41 - Training-20250718_095041 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "random_state": 42,
+    "n_estimators": 4000,
+    "learning_rate": 0.005,
+    "num_leaves": 31,
+    "n_jobs": -1,
+    "reg_alpha": 0.5,
+    "reg_lambda": 0.5,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-07-18 09:50:41 - Training-20250718_095041 - INFO - 未指定特征文件，将尝试加载最新版本。
+2025-07-18 09:50:41 - Training-20250718_095041 - INFO - 正在从 features_20250716_221725.parquet 加载特征...
+2025-07-18 09:50:42 - Training-20250718_095041 - INFO - 特征加载成功，共 485 个特征。
+2025-07-18 09:50:42 - Training-20250718_095041 - INFO - Successfully loaded features from: features_20250716_221725.parquet
+2025-07-18 09:50:44 - Training-20250718_095041 - INFO - 训练数据已对齐. X shape: (10001, 85), y shape: (10001,)
+2025-07-18 09:50:44 - Training-20250718_095041 - INFO - --- 使用的特征列表 (共 85 个) ---
+2025-07-18 09:50:44 - Training-20250718_095041 - INFO - ['RAW_1_stats_cv_whole', 'RAW_10_percentage_of_reoccurring_values_to_all_values_diff', 'RAW_10_ratio_value_number_to_time_series_length_diff', 'RAW_10_percentage_of_reoccurring_values_to_all_values_ratio', 'RAW_10_fft_coefficient_attr_imag_coeff_1_whole', 'RAW_1_stats_std_whole', 'RAW_2_ks_stat', 'RAW_2_bartlett_stat', 'RAW_12_rpt_cost_cosine_whole', 'RAW_10_quantile_0_4_whole', 'RAW_2_bartlett_pvalue', 'RAW_2_ad_stat', 'RAW_8_sample_entropy_left', 'RAW_10_ratio_value_number_to_time_series_length_whole', 'RAW_1_stats_kurt_left', 'RAW_2_levene_stat', 'RAW_2_ks_pvalue', 'RAW_1_stats_mean_whole', 'RAW_10_linear_trend_attr_rvalue_ratio', 'RAW_1_stats_median_ratio', 'RAW_10_ratio_value_number_to_time_series_length_left', 'RAW_10_ratio_beyond_r_sigma_1_5_diff', 'RAW_10_linear_trend_attr_intercept_ratio', 'RAW_10_ratio_value_number_to_time_series_length_ratio', 'RAW_2_levene_pvalue', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_left', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_mean_diff', 'RAW_10_quantile_0_4_ratio', 'RAW_10_percentage_of_reoccurring_values_to_all_values_left', 'RAW_1_stats_mean_of_rolling_std_ratio', 'RAW_3_sum_ratio', 'RAW_4_autocorr_lag1_diff', 'RAW_10_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_4_ratio', 'RAW_10_quantile_0_1_ratio', 'RAW_1_stats_kurt_whole', 'RAW_2_shapiro_pvalue_left', 'RAW_8_perm_entropy_left', 'RAW_2_jb_pvalue_ratio', 'RAW_11_param_0_ratio', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_diff', 'RAW_10_quantile_0_4_right', 'RAW_4_autocorr_lag1_ratio', 'RAW_7_rolling_std_w50_mean_whole', 'RAW_2_jb_pvalue_left', 'RAW_11_param_4_left', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_4_whole', 'RAW_8_sample_entropy_whole', 'RAW_2_ad_pvalue', 'RAW_12_rpt_cost_rank_left', 'RAW_8_hjorth_complexity_diff', 'RAW_11_param_0_whole', 'RAW_8_approx_entropy_whole', 'RAW_1_stats_kurt_right', 'RAW_10_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2_whole', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_right', 'RAW_1_stats_min_whole', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_2_whole', 'RAW_10_change_quantiles_f_agg_mean_isabs_True_qh_1_0_ql_0_4_ratio', 'RAW_1_stats_range_ratio', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_max_diff', 'RAW_1_stats_median_whole', 'RAW_1_stats_median_diff', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_0_whole', 'RAW_8_sample_entropy_diff', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_max_right', 'RAW_8_cond_entropy_left', 'RAW_1_stats_min_diff', 'RAW_2_ttest_pvalue', 'RAW_11_param_3_right', 'RAW_10_ratio_beyond_r_sigma_6_ratio', 'RAW_10_percentage_of_reoccurring_datapoints_to_all_datapoints_left', 'RAW_10_fft_coefficient_attr_imag_coeff_1_left', 'RAW_11_param_5_diff', 'RAW_10_ratio_beyond_r_sigma_1_5_whole', 'RAW_1_stats_median_right', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_4_ratio', 'RAW_8_detrended_fluctuation_whole', 'RAW_10_percentage_of_reoccurring_datapoints_to_all_datapoints_ratio', 'RAW_1_stats_mean_right', 'RAW_8_sample_entropy_right', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_0_right', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4_whole', 'RAW_2_shapiro_pvalue_whole', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4_left', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4_diff']
+2025-07-18 09:50:44 - Training-20250718_095041 - INFO - --------------------------------------------------
+2025-07-18 09:50:44 - Training-20250718_095041 - INFO - Starting 5-fold cross-validation with LightGBM...
+2025-07-18 09:50:44 - Training-20250718_095041 - INFO - --- Fold 1/5 ---
+2025-07-18 09:51:20 - Training-20250718_095041 - INFO - Fold 1 Train AUC: 0.98830, Val AUC: 0.79804
+2025-07-18 09:51:20 - Training-20250718_095041 - INFO - Fold 1 finished in 35.98s
+2025-07-18 09:51:20 - Training-20250718_095041 - INFO - --- Fold 2/5 ---
+2025-07-18 09:52:04 - Training-20250718_095041 - INFO - Fold 2 Train AUC: 0.99547, Val AUC: 0.78115
+2025-07-18 09:52:04 - Training-20250718_095041 - INFO - Fold 2 finished in 43.58s
+2025-07-18 09:52:04 - Training-20250718_095041 - INFO - --- Fold 3/5 ---
+2025-07-18 09:52:31 - Training-20250718_095041 - INFO - Fold 3 Train AUC: 0.97472, Val AUC: 0.80010
+2025-07-18 09:52:31 - Training-20250718_095041 - INFO - Fold 3 finished in 27.58s
+2025-07-18 09:52:31 - Training-20250718_095041 - INFO - --- Fold 4/5 ---
+2025-07-18 09:53:03 - Training-20250718_095041 - INFO - Fold 4 Train AUC: 0.98161, Val AUC: 0.78332
+2025-07-18 09:53:03 - Training-20250718_095041 - INFO - Fold 4 finished in 31.67s
+2025-07-18 09:53:03 - Training-20250718_095041 - INFO - --- Fold 5/5 ---
+2025-07-18 09:53:35 - Training-20250718_095041 - INFO - Fold 5 Train AUC: 0.98377, Val AUC: 0.78351
+2025-07-18 09:53:35 - Training-20250718_095041 - INFO - Fold 5 finished in 32.61s
+2025-07-18 09:53:35 - Training-20250718_095041 - INFO - Overall OOF AUC: 0.78877
+2025-07-18 09:53:35 - Training-20250718_095041 - INFO - All outputs will be saved to: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\experiment\output\train_20250718_095335_auc_0_78877
+2025-07-18 09:53:36 - Training-20250718_095041 - INFO - 特征重要性已保存到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\experiment\output\train_20250718_095335_auc_0_78877\feature_importance.tsv
+2025-07-18 09:53:36 - Training-20250718_095041 - INFO - feature importance saved.
+2025-07-18 09:53:36 - Training-20250718_095041 - INFO - 训练流程结束，总耗时: 174.22 秒。

@@ -55,7 +55,7 @@ CV_PARAMS = {
 # 如果要运行这些特征，需要在命令行中通过 --funcs 参数明确指定
 # 例如: python -m experiment.main gen-feats --funcs ar_model_features
 EXPERIMENTAL_FEATURES = [
-    "wavelet_features",
+    "chow_test_features",
 ] 
 
 # --- Remain Features ---

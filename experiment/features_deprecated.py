@@ -827,3 +827,54 @@ def distance_features(u: pd.DataFrame) -> dict:
             feats[feat] = 0
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+
+# --- 13. 均线交叉特征 ---
+@register_feature(func_id="13")
+def ma_cross_features(u: pd.DataFrame) -> dict:
+    s1 = u['value'][u['period'] == 0].reset_index(drop=True)
+    s2 = u['value'][u['period'] == 1].reset_index(drop=True)
+    s_whole = u['value'].reset_index(drop=True)
+    feats = {}
+
+    def ma_cross_stats(series: pd.Series, short_window: int = 5, long_window: int = 20):
+        if len(series) < long_window:
+            return 0, 0.0, 0.0
+        ma_short = series.rolling(window=short_window).mean()
+        ma_long = series.rolling(window=long_window).mean()
+        diff = ma_short - ma_long
+        sign_change = np.diff(np.sign(diff))
+        cross_points = np.where(sign_change != 0)[0]
+
+        cross_count = len(cross_points)
+        density = cross_count / (len(series) + 1e-6)
+
+        # 统计交叉后趋势方向
+        up_cross = 0  # 短期均线上穿
+        down_cross = 0  # 短期均线下穿
+        for idx in cross_points:
+            if idx + 1 >= len(diff):
+                continue
+            if sign_change[idx] > 0:
+                up_cross += 1
+            elif sign_change[idx] < 0:
+                down_cross += 1
+        total_cross = up_cross + down_cross
+        up_ratio = up_cross / (total_cross + 1e-6)
+        return cross_count, density, up_ratio
+
+    for s, name in zip([s1, s2, s_whole], ['left', 'right', 'whole']):
+        cross_count, density, up_ratio = ma_cross_stats(s)
+        feats[f'ma_cross_count_{name}'] = cross_count
+        feats[f'ma_cross_density_{name}'] = density
+        feats[f'ma_cross_up_ratio_{name}'] = up_ratio
+    
+    # 差分 & 比率特征
+    feats['ma_cross_count_diff'] = feats['ma_cross_count_right'] - feats['ma_cross_count_left']
+    feats['ma_cross_count_ratio'] = feats['ma_cross_count_right'] / (feats['ma_cross_count_left'] + 1e-6)
+    feats['ma_cross_density_diff'] = feats['ma_cross_density_right'] - feats['ma_cross_density_left']
+    feats['ma_cross_density_ratio'] = feats['ma_cross_density_right'] / (feats['ma_cross_density_left'] + 1e-6)
+    feats['ma_cross_up_ratio_diff'] = feats['ma_cross_up_ratio_right'] - feats['ma_cross_up_ratio_left']
+    feats['ma_cross_up_ratio_ratio'] = feats['ma_cross_up_ratio_right'] / (feats['ma_cross_up_ratio_left'] + 1e-6)
+    
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}

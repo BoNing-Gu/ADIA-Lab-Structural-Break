@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
+from tqdm.auto import tqdm
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
@@ -98,7 +99,8 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     feature_importances = pd.DataFrame(index=feature_df.columns)
     permutation_results = pd.DataFrame(index=feature_df.columns)
     
-    for fold, (train_idx, val_idx) in enumerate(skf.split(feature_df, y_train)):
+    cv_iterator = skf.split(feature_df, y_train)
+    for fold, (train_idx, val_idx) in enumerate(cv_iterator):
         logger.info(f"--- Fold {fold+1}/{config.CV_PARAMS['n_splits']} ---")
         fold_start_time = time.time()
 
@@ -161,7 +163,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
 
     # 6. 保存模型
     if save_model:
-        for i, model in enumerate(models):
+        for i, model in tqdm(enumerate(models), total=len(models), desc="Saving models"):
             joblib.dump(model, run_output_dir / f'model_fold_{i+1}.pkl')
         # extractor.save(run_output_dir / 'neighbor_extractor.pkl')
         logger.info("Models saved.")

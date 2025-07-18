@@ -829,6 +829,262 @@ def distance_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 
+# --- 13. 实验性稳健变异系数 ---
+def _quartile_cv(s: pd.Series) -> float:
+    """稳健变异系数 (Quartile Coefficient of Variation)."""
+    if len(s) < 4:  # Need at least 4 points for quartiles
+        return 0.0
+    q1 = s.quantile(0.25)
+    q3 = s.quantile(0.75)
+    if abs(q3 + q1) < 1e-6:
+        return 0.0
+    return (q3 - q1) / (q3 + q1)
+
+def _log_cv(s: pd.Series) -> float:
+    """对数变异系数 (Logarithmic Coefficient of Variation)."""
+    s_pos = s[s > 0]
+    if len(s_pos) < 2:
+        return 0.0
+    log_s = np.log(s_pos)
+    if len(log_s) < 2:
+        return 0.0
+    log_std = np.std(log_s)
+    return np.sqrt(np.exp(log_std**2) - 1)
+
+def _mad_cv(s: pd.Series) -> float:
+    """基于MAD的变异系数 (Median Absolute Deviation based CV)."""
+    if len(s) < 2:
+        return 0.0
+    median_val = np.median(s)
+    if abs(median_val) < 1e-6:
+        return 0.0
+    mad = np.median(np.abs(s - median_val))
+    return mad / abs(median_val)
+
+def _iqr_cv(s: pd.Series) -> float:
+    """广义变异系数的实现 (Interquartile Range based CV)."""
+    if len(s) < 4:
+        return 0.0
+    median_val = np.median(s)
+    if abs(median_val) < 1e-6:
+        return 0.0
+    iqr = scipy.stats.iqr(s)
+    return iqr / abs(median_val)
+
+
+def experimental_robust_cv_features(u: pd.DataFrame) -> dict:
+    """
+    实验性特征：计算多种稳健的变异系数。
+    - 稳健变异系数 (Quartile CV): (Q3-Q1)/(Q3+Q1)
+    - 对数变异系数 (Log CV): for log-normal data
+    - 基于MAD的变异系数 (MAD CV): MAD / |Median|
+    - 广义变异系数 (IQR CV): IQR / |Median|
+    """
+    s1 = u['value'][u['period'] == 0]
+    s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
+    feats = {}
+
+    cv_funcs = {
+        'robust_quartile_cv': _quartile_cv,
+        'robust_log_cv': _log_cv,
+        'robust_mad_cv': _mad_cv,
+        'robust_iqr_cv': _iqr_cv,
+    }
+
+    for name, func in cv_funcs.items():
+        try:
+            v1, v2, v_whole = func(s1), func(s2), func(s_whole)
+            feats[f'{name}_left'] = v1
+            feats[f'{name}_right'] = v2
+            feats[f'{name}_whole'] = v_whole
+            feats[f'{name}_diff'] = v2 - v1
+            feats[f'{name}_ratio'] = v2 / (v1 + 1e-6)
+        except Exception:
+            feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
+            
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+
+
+def distribution_distance_features(u: pd.DataFrame) -> dict:
+    """
+    计算两段信号之间的分布距离/散度特征，包括瓦瑟斯坦距离和KL散度。
+    """
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    feats = {}
+
+    # 1. 瓦瑟斯坦距离 (Earth Mover's Distance)
+    # 直接作用于样本值，不需要事先计算直方图
+    if len(s1) > 0 and len(s2) > 0:
+        try:
+            w_dist = scipy.stats.wasserstein_distance(s1, s2)
+            feats['wasserstein_distance'] = w_dist
+        except Exception:
+            feats['wasserstein_distance'] = np.nan
+    else:
+        feats['wasserstein_distance'] = np.nan
+
+
+    # 2. KL散度 (Kullback-Leibler divergence)
+    # 需要先将数据转换为概率分布（直方图）
+    if len(s1) > 0 and len(s2) > 0:
+        try:
+            # 创建一个共同的bins范围，以确保两个直方图具有可比性
+            min_val = min(s1.min(), s2.min())
+            max_val = max(s1.max(), s2.max())
+            bins = np.linspace(min_val, max_val, num=50) # 可以调整bin的数量
+
+            # 计算两个样本的概率分布
+            p1, _ = np.histogram(s1, bins=bins, density=True)
+            p2, _ = np.histogram(s2, bins=bins, density=True)
+
+            # 为避免log(0)，给概率分布加上一个极小值
+            p1 += 1e-10
+            p2 += 1e-10
+            
+            # 归一化，使其和为1
+            p1 /= p1.sum()
+            p2 /= p2.sum()
+
+            # 计算对称KL散度
+            kl_div_12 = scipy.stats.entropy(p1, p2)
+            kl_div_21 = scipy.stats.entropy(p2, p1)
+            kl_div_symmetric = (kl_div_12 + kl_div_21) / 2
+            
+            feats['kl_divergence'] = kl_div_12 # Asymmetric
+            feats['kl_divergence_symmetric'] = kl_div_symmetric
+        except Exception:
+            feats['kl_divergence'] = np.nan
+            feats['kl_divergence_symmetric'] = np.nan
+    else:
+        feats['kl_divergence'] = np.nan
+        feats['kl_divergence_symmetric'] = np.nan
+
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+def arima_model_features(u: pd.DataFrame) -> dict:
+    """
+    基于ARIMA模型派生特征。
+    1. 在 period 0 上训练模型，预测 period 1，计算残差统计量。
+    2. 在 period 1 上训练模型，预测 period 0，计算残差统计量。
+    3. 分别在 period 0 和 1 上训练模型，比较模型参数、残差和信息准则(AIC/BIC)。
+    """
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    s_whole = u['value'].to_numpy()
+    feats = {}
+    order = (5, 1, 1) # (p, d, q)
+    p, d, q = order
+    num_params = p + q + 1 # AR, MA, and constant/drift
+
+    # --- 特征组1: 用 s1 训练，预测 s2 ---
+    # ARIMA needs enough points for differencing and lags
+    if len(s1) > sum(order) and len(s2) > 0:
+        try:
+            model1_fit = tsa.ARIMA(s1, order=order).fit()
+            predictions = model1_fit.forecast(steps=len(s2))
+            residuals = s2 - predictions
+            feats['arima_residuals_s2_pred_mean'] = np.mean(residuals)
+            feats['arima_residuals_s2_pred_std'] = np.std(residuals)
+            feats['arima_residuals_s2_pred_skew'] = pd.Series(residuals).skew()
+            feats['arima_residuals_s2_pred_kurt'] = pd.Series(residuals).kurt()
+        except Exception:
+            # 宽泛地捕获异常，防止因数值问题中断
+            feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+
+    # --- 特征组2: 用 s2 训练，预测 s1 ---
+    if len(s2) > sum(order) and len(s1) > 0:
+        try:
+            model2_fit = tsa.ARIMA(s2, order=order).fit()
+            predictions_on_s1 = model2_fit.forecast(steps=len(s1))
+            residuals_s1_pred = s1 - predictions_on_s1
+            feats['arima_residuals_s1_pred_mean'] = np.mean(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_std'] = np.std(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_skew'] = pd.Series(residuals_s1_pred).skew()
+            feats['arima_residuals_s1_pred_kurt'] = pd.Series(residuals_s1_pred).kurt()
+        except Exception:
+            feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+
+
+    # --- 特征组3: 分别建模，比较差异 ---
+    s1_resid_std, s1_params = np.nan, np.full(num_params, np.nan)
+    s1_aic, s1_bic = np.nan, np.nan
+    if len(s1) > sum(order):
+        try:
+            fit1 = tsa.ARIMA(s1, order=order).fit()
+            s1_resid_std = np.std(fit1.resid)
+            if len(fit1.params) == num_params:
+                s1_params = fit1.params
+            s1_aic = fit1.aic
+            s1_bic = fit1.bic
+        except Exception:
+            pass
+
+    s2_resid_std, s2_params = np.nan, np.full(num_params, np.nan)
+    s2_aic, s2_bic = np.nan, np.nan
+    if len(s2) > sum(order):
+        try:
+            fit2 = tsa.ARIMA(s2, order=order).fit()
+            s2_resid_std = np.std(fit2.resid)
+            if len(fit2.params) == num_params:
+                s2_params = fit2.params
+            s2_aic = fit2.aic
+            s2_bic = fit2.bic
+        except Exception:
+            pass
+
+    swhole_resid_std, swhole_params = np.nan, np.full(num_params, np.nan)
+    swhole_aic, swhole_bic = np.nan, np.nan
+    if len(s_whole) > sum(order):
+        try:
+            fit_whole = tsa.ARIMA(s_whole, order=order).fit()
+            swhole_resid_std = np.std(fit_whole.resid)
+            if len(fit_whole.params) == num_params:
+                swhole_params = fit_whole.params
+            swhole_aic = fit_whole.aic
+            swhole_bic = fit_whole.bic
+        except Exception:
+            pass
+            
+    feats['arima_resid_std_left'] = s1_resid_std
+    feats['arima_resid_std_right'] = s2_resid_std
+    feats['arima_resid_std_whole'] = swhole_resid_std
+    feats['arima_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    feats['arima_resid_std_ratio'] = (s2_resid_std / (s1_resid_std + 1e-6)) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    _add_contribution_ratio_feats(feats, 'arima_resid_std', s1_resid_std, s2_resid_std, swhole_resid_std)
+    
+    feats['arima_aic_left'] = s1_aic
+    feats['arima_aic_right'] = s2_aic
+    feats['arima_aic_whole'] = swhole_aic
+    feats['arima_aic_diff'] = (s2_aic - s1_aic) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    feats['arima_aic_ratio'] = (s2_aic / (s1_aic + 1e-6)) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    _add_contribution_ratio_feats(feats, 'arima_aic', s1_aic, s2_aic, swhole_aic)
+
+    feats['arima_bic_left'] = s1_bic
+    feats['arima_bic_right'] = s2_bic
+    feats['arima_bic_whole'] = swhole_bic
+    feats['arima_bic_diff'] = (s2_bic - s1_bic) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    feats['arima_bic_ratio'] = (s2_bic / (s1_bic + 1e-6)) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    _add_contribution_ratio_feats(feats, 'arima_bic', s1_bic, s2_bic, swhole_bic)
+    
+    # 比较模型系数
+    for i in range(len(s1_params)):
+        feats[f'arima_param_{i}_left'] = s1_params[i]
+        feats[f'arima_param_{i}_right'] = s2_params[i]
+        feats[f'arima_param_{i}_whole'] = swhole_params[i]
+        feats[f'arima_param_{i}_diff'] = s2_params[i] - s1_params[i]
+        feats[f'arima_param_{i}_ratio'] = s2_params[i] / (s1_params[i] + 1e-6)
+        _add_contribution_ratio_feats(feats, f'arima_param_{i}', s1_params[i], s2_params[i], swhole_params[i])
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
 # --- 13. 均线交叉特征 ---
 @register_feature(func_id="13")
 def ma_cross_features(u: pd.DataFrame) -> dict:

@@ -19,7 +19,7 @@ from joblib import Parallel, delayed
 from typing import List, Dict, Tuple, Optional
 import warnings
 from statsmodels.tools.sm_exceptions import InterpolationWarning
-
+import os
 from . import config, utils
 
 # --- GPU 加速配置 ---
@@ -33,7 +33,7 @@ except ImportError:
     GPU_AVAILABLE = False
 # --- END ---
 
-
+os.environ["STUMPY_GPU"] = "0" 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.simplefilter("ignore", InterpolationWarning)
 warnings.simplefilter("ignore", FutureWarning)
@@ -60,6 +60,29 @@ def register_feature(_func=None, *, parallelizable=True, func_id=""):
     else:
         # Used as @register_feature
         return decorator_register(_func)
+
+def _add_contribution_ratio_feats(feats: dict, name: str, left, right, whole):
+    """
+    一个辅助函数，用于向特征字典中添加贡献度和与整体的比例特征。
+
+    Args:
+        feats (dict): 要更新的特征字典。
+        name (str): 特征的基础名称 (例如, 'stats_mean')。
+        left (float): 左侧分段的特征值。
+        right (float): 右侧分段的特征值。
+        whole (float): 整个序列的特征值。
+    """
+    # np.isnan for both None and np.nan
+    if np.isnan(left) or np.isnan(right) or np.isnan(whole) or whole is None or left is None or right is None:
+        return
+        
+    # 特征贡献度
+    feats[f'{name}_contribution_left'] = left / (left + right + 1e-6)
+    feats[f'{name}_contribution_right'] = right / (left + right + 1e-6)
+    
+    # 与整体特征的比例
+    feats[f'{name}_ratio_to_whole_left'] = left / (whole + 1e-6)
+    feats[f'{name}_ratio_to_whole_right'] = right / (whole + 1e-6)
 
 # --- 1. 分布统计特征 ---
 def safe_cv(s):
@@ -154,6 +177,7 @@ def distribution_stats_features(u: pd.DataFrame) -> dict:
     for k, v in features.items():
         for seg, value in v.items():
             feats[f'stats_{k}_{seg}'] = value
+        _add_contribution_ratio_feats(feats, f'stats_{k}', v['left'], v['right'], v['whole'])
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
     
@@ -219,6 +243,7 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     feats['shapiro_pvalue_whole'] = sw_whole_pvalue
     feats['shapiro_pvalue_diff'] = sw2_pvalue - sw1_pvalue if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
     feats['shapiro_pvalue_ratio'] = sw2_pvalue / (sw1_pvalue + 1e-6) if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
+    _add_contribution_ratio_feats(feats, 'shapiro_pvalue', sw1_pvalue, sw2_pvalue, sw_whole_pvalue)
 
     # Jarque-Bera检验差异
     jb1_stat, jb1_pvalue, jb2_stat, jb2_pvalue, jb_whole_stat, jb_whole_pvalue = (np.nan,)*6
@@ -234,6 +259,7 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     feats['jb_pvalue_whole'] = jb_whole_pvalue
     feats['jb_pvalue_diff'] = jb2_pvalue - jb1_pvalue if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
     feats['jb_pvalue_ratio'] = jb2_pvalue / (jb1_pvalue + 1e-6) if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
+    _add_contribution_ratio_feats(feats, 'jb_pvalue', jb1_pvalue, jb2_pvalue, jb_whole_pvalue)
 
     # KPSS检验
     def extract_kpss_features(s):
@@ -247,7 +273,7 @@ def test_stats_features(u: pd.DataFrame) -> dict:
             'stat': stat,
             'lag': lag,
             'crit_5pct': crit_5pct,
-            'reject_5pct': int(stat > crit_5pct)  # KPSS原假设是“平稳”，所以 > 临界值 拒绝平稳
+            'reject_5pct': int(stat > crit_5pct)  # KPSS原假设是"平稳"，所以 > 临界值 拒绝平稳
         }
     try:
         k1 = extract_kpss_features(s1)
@@ -259,12 +285,14 @@ def test_stats_features(u: pd.DataFrame) -> dict:
         feats['kpss_pvalue_whole'] = k_whole['p']
         feats['kpss_pvalue_diff'] = k2['p'] - k1['p']
         feats['kpss_pvalue_ratio'] = k2['p'] / (k1['p'] + 1e-6)
+        _add_contribution_ratio_feats(feats, 'kpss_pvalue', k1['p'], k2['p'], k_whole['p'])
 
         feats['kpss_stat_left'] = k1['stat']
         feats['kpss_stat_right'] = k2['stat']
         feats['kpss_stat_whole'] = k_whole['stat']
         feats['kpss_stat_diff'] = k2['stat'] - k1['stat']
         feats['kpss_stat_ratio'] = k2['stat'] / (k1['stat'] + 1e-6)
+        _add_contribution_ratio_feats(feats, 'kpss_stat', k1['stat'], k2['stat'], k_whole['stat'])
     except:
         feats.update({
             'kpss_pvalue_left': 1, 'kpss_pvalue_right': 1, 'kpss_pvalue_whole': 1, 'kpss_pvalue_diff': 0, 'kpss_pvalue_ratio': 0,
@@ -296,18 +324,21 @@ def test_stats_features(u: pd.DataFrame) -> dict:
         feats['adf_pvalue_whole'] = f_whole['p']
         feats['adf_pvalue_diff'] = f2['p'] - f1['p']
         feats['adf_pvalue_ratio'] = f2['p'] / (f1['p'] + 1e-6)
+        _add_contribution_ratio_feats(feats, 'adf_pvalue', f1['p'], f2['p'], f_whole['p'])
 
         feats['adf_stat_left'] = f1['stat']
         feats['adf_stat_right'] = f2['stat']
         feats['adf_stat_whole'] = f_whole['stat']
         feats['adf_stat_diff'] = f2['stat'] - f1['stat']
         feats['adf_stat_ratio'] = f2['stat'] / (f1['stat'] + 1e-6)
+        _add_contribution_ratio_feats(feats, 'adf_stat', f1['stat'], f2['stat'], f_whole['stat'])
 
         feats['adf_icbest_left'] = f1['ic']
         feats['adf_icbest_right'] = f2['ic']
         feats['adf_icbest_whole'] = f_whole['ic']
         feats['adf_icbest_diff'] = f2['ic'] - f1['ic']
         feats['adf_icbest_ratio'] = f2['ic'] / (f1['ic'] + 1e-6)
+        _add_contribution_ratio_feats(feats, 'adf_icbest', f1['ic'], f2['ic'], f_whole['ic'])
     except:
         feats.update({
             'adf_pvalue_left': 1, 'adf_pvalue_right': 1, 'adf_pvalue_whole': 1, 'adf_pvalue_diff': 0, 'adf_pvalue_ratio': 0,
@@ -332,6 +363,7 @@ def cumulative_features(u: pd.DataFrame) -> dict:
     feats['sum_whole'] = sum_whole
     feats['sum_diff'] = sum2 - sum1
     feats['sum_ratio'] = sum2 / (sum1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'sum', sum1, sum2, sum_whole)
     
     cumsum1_max = s1.cumsum().max()
     cumsum2_max = s2.cumsum().max()
@@ -341,6 +373,7 @@ def cumulative_features(u: pd.DataFrame) -> dict:
     feats['cumsum_max_whole'] = cumsum_whole_max
     feats['cumsum_max_diff'] = cumsum2_max - cumsum1_max
     feats['cumsum_max_ratio'] = cumsum2_max / (cumsum1_max + 1e-6)
+    _add_contribution_ratio_feats(feats, 'cumsum_max', cumsum1_max, cumsum2_max, cumsum_whole_max)
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -364,6 +397,7 @@ def oscillation_features(u: pd.DataFrame) -> dict:
     feats['zero_cross_whole'] = zc_whole
     feats['zero_cross_diff'] = zc2 - zc1
     feats['zero_cross_ratio'] = zc2 / (zc1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'zero_cross', zc1, zc2, zc_whole)
     
     def autocorr_lag1(s):
         if len(s) < 2: return 0.0
@@ -376,6 +410,7 @@ def oscillation_features(u: pd.DataFrame) -> dict:
     feats['autocorr_lag1_whole'] = ac_whole
     feats['autocorr_lag1_diff'] = ac2 - ac1
     feats['autocorr_lag1_ratio'] = ac2 / (ac1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'autocorr_lag1', ac1, ac2, ac_whole)
 
     var1, var2, var_whole = s1.diff().var(), s2.diff().var(), s_whole.diff().var()
     feats['diff_var_left'] = var1
@@ -383,6 +418,7 @@ def oscillation_features(u: pd.DataFrame) -> dict:
     feats['diff_var_whole'] = var_whole
     feats['diff_var_diff'] = var2 - var1
     feats['diff_var_ratio'] = var2 / (var1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'diff_var', var1, var2, var_whole)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -417,12 +453,14 @@ def cyclic_features(u: pd.DataFrame) -> dict:
     feats['dominant_freq_whole'] = freq_whole
     feats['dominant_freq_diff'] = freq2 - freq1
     feats['dominant_freq_ratio'] = freq2 / (freq1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'dominant_freq', freq1, freq2, freq_whole)
 
     feats['max_power_left'] = power1
     feats['max_power_right'] = power2
     feats['max_power_whole'] = power_whole
     feats['max_power_diff'] = power2 - power1
     feats['max_power_ratio'] = power2 / (power1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'max_power', power1, power2, power_whole)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -442,12 +480,14 @@ def amplitude_features(u: pd.DataFrame) -> dict:
     feats['ptp_whole'] = ptp_whole
     feats['ptp_diff'] = ptp2 - ptp1
     feats['ptp_ratio'] = ptp2 / (ptp1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'ptp', ptp1, ptp2, ptp_whole)
 
     feats['iqr_left'] = iqr1
     feats['iqr_right'] = iqr2
     feats['iqr_whole'] = iqr_whole
     feats['iqr_diff'] = iqr2 - iqr1
     feats['iqr_ratio'] = iqr2 / (iqr1 + 1e-6)
+    _add_contribution_ratio_feats(feats, 'iqr', iqr1, iqr2, iqr_whole)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -455,7 +495,7 @@ def amplitude_features(u: pd.DataFrame) -> dict:
 @register_feature(func_id="7")
 def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
     """
-    计算滚动标准差序列的统计特征，以捕捉“波动性的波动性”的变化。
+    计算滚动标准差序列的统计特征，以捕捉"波动性的波动性"的变化。
     在Period 0和Period 1内部，分别计算小窗口（如长度为50）的滚动标准差，
     然后比较这两条新的滚动标准差序列的均值，生成四个相关特征：
     1. Period 0 的滚动标准差均值
@@ -486,6 +526,7 @@ def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
     feats[f'rolling_std_w{window}_mean_whole'] = mean_whole
     feats[f'rolling_std_w{window}_mean_diff'] = mean2 - mean1
     feats[f'rolling_std_w{window}_mean_ratio'] = mean2 / (mean1 + 1e-6)
+    _add_contribution_ratio_feats(feats, f'rolling_std_w{window}_mean', mean1, mean2, mean_whole)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -523,6 +564,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
             feats[f'{name}_whole'] = v_whole
             feats[f'{name}_diff'] = v2 - v1
             feats[f'{name}_ratio'] = v2 / (v1 + 1e-6)
+            _add_contribution_ratio_feats(feats, name, v1, v2, v_whole)
         except Exception:
             feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
 
@@ -536,6 +578,8 @@ def entropy_features(u: pd.DataFrame) -> dict:
             'hjorth_complexity_left': c1, 'hjorth_complexity_right': c2, 'hjorth_complexity_whole': c_whole,
             'hjorth_complexity_diff': c2 - c1, 'hjorth_complexity_ratio': c2 / (c1 + 1e-6)
         })
+        _add_contribution_ratio_feats(feats, 'hjorth_mobility', m1, m2, m_whole)
+        _add_contribution_ratio_feats(feats, 'hjorth_complexity', c1, c2, c_whole)
     except Exception:
         feats.update({'hjorth_mobility_left':0, 'hjorth_mobility_right':0, 'hjorth_mobility_whole':0, 'hjorth_mobility_diff':0, 'hjorth_mobility_ratio':0,
                      'hjorth_complexity_left':0, 'hjorth_complexity_right':0, 'hjorth_complexity_whole':0, 'hjorth_complexity_diff':0, 'hjorth_complexity_ratio':0})
@@ -556,6 +600,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
             'lziv_complexity_left': lz1, 'lziv_complexity_right': lz2, 'lziv_complexity_whole': lz_whole,
             'lziv_complexity_diff': lz2 - lz1, 'lziv_complexity_ratio': lz2 / (lz1 + 1e-6)
         })
+        _add_contribution_ratio_feats(feats, 'lziv_complexity', lz1, lz2, lz_whole)
     except Exception:
         feats.update({'lziv_complexity_left':0, 'lziv_complexity_right':0, 'lziv_complexity_whole':0, 'lziv_complexity_diff':0, 'lziv_complexity_ratio':0})
 
@@ -577,6 +622,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
             'cond_entropy_left': ce1, 'cond_entropy_right': ce2, 'cond_entropy_whole': ce_whole,
             'cond_entropy_diff': ce2 - ce1, 'cond_entropy_ratio': ce2 / (ce1 + 1e-6)
         })
+        _add_contribution_ratio_feats(feats, 'cond_entropy', ce1, ce2, ce_whole)
     except Exception:
         feats.update({'cond_entropy_left':0, 'cond_entropy_right':0, 'cond_entropy_whole':0, 'cond_entropy_diff':0, 'cond_entropy_ratio':0})
     
@@ -722,6 +768,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
                     results[f'{feat_name_base}_whole'] = v_whole
                     results[f'{feat_name_base}_diff'] = v2 - v1
                     results[f'{feat_name_base}_ratio'] = v2 / (v1 + 1e-6)
+                    _add_contribution_ratio_feats(results, feat_name_base, v1, v2, v_whole)
                 return results
 
             else:
@@ -735,6 +782,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
                 results[f'{base_name}_whole'] = v_whole
                 results[f'{base_name}_diff'] = v2 - v1
                 results[f'{base_name}_ratio'] = v2 / (v1 + 1e-6)
+                _add_contribution_ratio_feats(results, base_name, v1, v2, v_whole)
         
         except Exception:
             # For combiner functions, need to know keys to create nulls
@@ -849,18 +897,21 @@ def ar_model_features(u: pd.DataFrame) -> dict:
     feats['ar_resid_std_whole'] = swhole_resid_std
     feats['ar_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
     feats['ar_resid_std_ratio'] = (s2_resid_std / (s1_resid_std + 1e-6)) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    _add_contribution_ratio_feats(feats, 'ar_resid_std', s1_resid_std, s2_resid_std, swhole_resid_std)
     
     feats['ar_aic_left'] = s1_aic
     feats['ar_aic_right'] = s2_aic
     feats['ar_aic_whole'] = swhole_aic
     feats['ar_aic_diff'] = (s2_aic - s1_aic) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
     feats['ar_aic_ratio'] = (s2_aic / (s1_aic + 1e-6)) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    _add_contribution_ratio_feats(feats, 'ar_aic', s1_aic, s2_aic, swhole_aic)
 
     feats['ar_bic_left'] = s1_bic
     feats['ar_bic_right'] = s2_bic
     feats['ar_bic_whole'] = swhole_bic
     feats['ar_bic_diff'] = (s2_bic - s1_bic) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
     feats['ar_bic_ratio'] = (s2_bic / (s1_bic + 1e-6)) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    _add_contribution_ratio_feats(feats, 'ar_bic', s1_bic, s2_bic, swhole_bic)
     
     # 比较模型系数
     for i in range(len(s1_params)):
@@ -869,6 +920,7 @@ def ar_model_features(u: pd.DataFrame) -> dict:
         feats[f'param_{i}_whole'] = swhole_params[i]
         feats[f'param_{i}_diff'] = s2_params[i] - s1_params[i]
         feats[f'param_{i}_ratio'] = s2_params[i] / (s1_params[i] + 1e-6)
+        _add_contribution_ratio_feats(feats, f'param_{i}', s1_params[i], s2_params[i], swhole_params[i])
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -940,6 +992,7 @@ def rupture_cost_features(u: pd.DataFrame) -> dict:
     for k, v in features.items():
         for seg, value in v.items():
             feats[f'rpt_cost_{k}_{seg}'] = value
+        _add_contribution_ratio_feats(feats, f'rpt_cost_{k}', v['left'], v['right'], v['whole'])
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -1064,7 +1117,7 @@ def _apply_feature_func_sequential(func, X_df: pd.DataFrame) -> pd.DataFrame:
 def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
     """并行应用单个特征函数"""
     all_ids = X_df.index.get_level_values("id").unique()
-    results = Parallel(n_jobs=-1)(
+    results = Parallel(n_jobs=64)(
         delayed(lambda df_id, id_val: {**{'id': id_val}, **func(df_id)})(X_df.loc[id_val], id_val)
         for id_val in tqdm(all_ids, desc=f"Running {func.__name__}")
     )

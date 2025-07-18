@@ -905,3 +905,62 @@ def experimental_robust_cv_features(u: pd.DataFrame) -> dict:
             
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
+
+
+def distribution_distance_features(u: pd.DataFrame) -> dict:
+    """
+    计算两段信号之间的分布距离/散度特征，包括瓦瑟斯坦距离和KL散度。
+    """
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    feats = {}
+
+    # 1. 瓦瑟斯坦距离 (Earth Mover's Distance)
+    # 直接作用于样本值，不需要事先计算直方图
+    if len(s1) > 0 and len(s2) > 0:
+        try:
+            w_dist = scipy.stats.wasserstein_distance(s1, s2)
+            feats['wasserstein_distance'] = w_dist
+        except Exception:
+            feats['wasserstein_distance'] = np.nan
+    else:
+        feats['wasserstein_distance'] = np.nan
+
+
+    # 2. KL散度 (Kullback-Leibler divergence)
+    # 需要先将数据转换为概率分布（直方图）
+    if len(s1) > 0 and len(s2) > 0:
+        try:
+            # 创建一个共同的bins范围，以确保两个直方图具有可比性
+            min_val = min(s1.min(), s2.min())
+            max_val = max(s1.max(), s2.max())
+            bins = np.linspace(min_val, max_val, num=50) # 可以调整bin的数量
+
+            # 计算两个样本的概率分布
+            p1, _ = np.histogram(s1, bins=bins, density=True)
+            p2, _ = np.histogram(s2, bins=bins, density=True)
+
+            # 为避免log(0)，给概率分布加上一个极小值
+            p1 += 1e-10
+            p2 += 1e-10
+            
+            # 归一化，使其和为1
+            p1 /= p1.sum()
+            p2 /= p2.sum()
+
+            # 计算对称KL散度
+            kl_div_12 = scipy.stats.entropy(p1, p2)
+            kl_div_21 = scipy.stats.entropy(p2, p1)
+            kl_div_symmetric = (kl_div_12 + kl_div_21) / 2
+            
+            feats['kl_divergence'] = kl_div_12 # Asymmetric
+            feats['kl_divergence_symmetric'] = kl_div_symmetric
+        except Exception:
+            feats['kl_divergence'] = np.nan
+            feats['kl_divergence_symmetric'] = np.nan
+    else:
+        feats['kl_divergence'] = np.nan
+        feats['kl_divergence_symmetric'] = np.nan
+
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}

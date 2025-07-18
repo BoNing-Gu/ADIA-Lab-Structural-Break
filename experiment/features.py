@@ -1225,8 +1225,8 @@ def clean_feature_names(df: pd.DataFrame, prefix: str = "f") -> pd.DataFrame:
         # 多个连续 _ 合并为一个
         cleaned = re.sub(r'__+', '_', cleaned)
         cleaned_columns.append(cleaned)
-        df.columns = cleaned_columns
-        return df
+    df.columns = cleaned_columns
+    return df
 
 def generate_features(
         X_df: pd.DataFrame, 
@@ -1440,54 +1440,3 @@ def load_features(feature_file: str = None) -> tuple[pd.DataFrame | None, str | 
         
     logger.info(f"特征加载成功，共 {len(feature_df.columns)} 个特征。")
     return feature_df, path_to_load.name 
-
-# --- 13. Chow Test ---
-@register_feature(func_id="13")
-def chow_test_features(u: pd.DataFrame) -> dict:
-    """
-    使用Chow检验来检测结构性断点。
-    该检验比较了将数据分为两部分（断点前后）并为每部分拟合一个模型与为所有数据拟合一个单一模型的残差平方和。
-    一个显著的F统计量表明存在一个结构性断点。
-    """
-    s1 = u['value'][u['period'] == 0].to_numpy()
-    s2 = u['value'][u['period'] == 1].to_numpy()
-    s_whole = u['value'].to_numpy()
-    feats = {}
-    lags = 5
-    
-    # AR(p)模型的参数数量 k = p(lags) + 1(intercept)
-    k = lags + 1
-    n1, n2 = len(s1), len(s2)
-
-    # 样本量必须大于参数数量才能拟合模型
-    if n1 <= k or n2 <= k:
-        feats['chow_f_stat'] = 0.0
-        feats['chow_p_value'] = 1.0
-        return feats
-
-    try:
-        # 为两个子周期和整个周期拟合AR模型
-        rss1 = AutoReg(s1, lags=lags).fit().ssr
-        rss2 = AutoReg(s2, lags=lags).fit().ssr
-        rss_p = AutoReg(s_whole, lags=lags).fit().ssr
-        
-        # Chow检验的F统计量公式
-        numerator = (rss_p - (rss1 + rss2)) / k
-        denominator = (rss1 + rss2) / (n1 + n2 - 2 * k)
-        
-        if denominator < 1e-9: # 避免除以零
-            f_stat = 0.0
-        else:
-            f_stat = numerator / denominator
-
-        # 计算p值
-        p_value = scipy.stats.f.sf(f_stat, k, n1 + n2 - 2 * k)
-
-        feats['chow_f_stat'] = f_stat
-        feats['chow_p_value'] = -p_value # 遵循惯例，对p值取负
-
-    except Exception:
-        feats['chow_f_stat'] = 0.0
-        feats['chow_p_value'] = 1.0
-
-    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}

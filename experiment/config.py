@@ -177,4 +177,4 @@ REMAIN_FEATURES = [
  'RAW_10_partial_autocorrelation_lag_2_left',
  'RAW_11_param_5_diff',
  'RAW_10_linear_trend_attr_rvalue_diff'
-    ]
+]

@@ -177,3 +177,8 @@ python -m experiment.main train --save-model --save-oof --perm-imp
 | 提交号 | 本地CV | 公开LB | 描述 |
 | --- | --- | --- | --- |
 | #7  | 0.7875 | 0.7812 | Perm阈值0.0005，Drop到55个特征 |
+
+## 创建交互项
+```bash
+python -m experiment.main gen-interactions --importance-file ./experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv
+```

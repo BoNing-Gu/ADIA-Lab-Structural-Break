@@ -1422,21 +1422,119 @@ def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_t
 
 def load_features(feature_file: str = None) -> tuple[pd.DataFrame | None, str | None]:
     """加载指定的或最新的特征文件。"""
+    # 使用一个临时的logger，避免依赖全局logger
+    import logging
+    temp_logger = logging.getLogger('load_features')
+    if not temp_logger.handlers:
+        temp_logger.addHandler(logging.StreamHandler())
+        temp_logger.setLevel(logging.INFO)
+
     if feature_file:
         path_to_load = config.FEATURE_DIR / feature_file
     else:
-        logger.info("未指定特征文件，将尝试加载最新版本。")
+        temp_logger.info("未指定特征文件，将尝试加载最新版本。")
         path_to_load = _get_latest_feature_file()
 
     if not path_to_load or not path_to_load.exists():
-        logger.error(f"无法找到要加载的特征文件: {path_to_load}")
+        temp_logger.error(f"无法找到要加载的特征文件: {path_to_load}")
         return None, None
 
-    logger.info(f"正在从 {path_to_load.name} 加载特征...")
+    temp_logger.info(f"正在从 {path_to_load.name} 加载特征...")
     feature_df, _ = _load_feature_file(path_to_load)
     
     if feature_df.empty:
         return None, None
         
-    logger.info(f"特征加载成功，共 {len(feature_df.columns)} 个特征。")
-    return feature_df, path_to_load.name 
+    temp_logger.info(f"特征加载成功，共 {len(feature_df.columns)} 个特征。")
+    return feature_df, path_to_load.name
+
+def generate_interaction_features(importance_file_path: str, base_feature_file: str = None):
+    """
+    根据特征重要性文件生成交互特征。
+
+    Args:
+        importance_file_path (str): 特征重要性文件路径 (e.g., permutation_importance.tsv)。
+        base_feature_file (str, optional): 基础特征文件名。如果提供，
+            将加载此文件并在此基础上添加或更新特征。否则，将使用最新的特征集。
+    """
+    from itertools import combinations
+    # 1. 加载重要性文件并获取 Top N 特征
+    try:
+        importance_df = pd.read_csv(importance_file_path, sep='\t', engine='python')
+    except FileNotFoundError:
+        logger.error(f"重要性文件未找到: {importance_file_path}")
+        return
+
+    # 确定重要性列名
+    if 'importance_mean' in importance_df.columns:
+        importance_col = 'importance_mean' # for permutation importance
+    elif 'importance' in importance_df.columns:
+        importance_col = 'importance' # for lgbm feature importance
+    elif 'gain' in importance_df.columns: # for lgbm feature importance
+        importance_col = 'gain'
+    else:
+        logger.error(f"在文件中找不到有效的特征重要性列 (e.g., 'importance_mean', 'importance', 'gain'): {importance_file_path}")
+        return
+
+    top_features = importance_df.sort_values(by=importance_col, ascending=False).head(10)['feature'].tolist()
+    logger.info(f"从 {importance_file_path} 中识别出 Top 10 特征: {top_features}")
+
+    # 2. 确定并加载基础特征文件
+    if base_feature_file:
+        base_path = config.FEATURE_DIR / base_feature_file
+    else:
+        base_path = _get_latest_feature_file()
+
+    if not base_path or not base_path.exists():
+        logger.error(f"无法找到基础特征文件。请提供一个有效的文件或确保存在特征文件。")
+        return
+
+    logger.info(f"将基于特征文件进行更新: {base_path.name}")
+    feature_df, metadata = _load_feature_file(base_path)
+    if feature_df.empty:
+        logger.error("加载的基础特征文件为空，操作中止。")
+        return
+        
+    initial_feature_count = len(feature_df.columns)
+
+    # 检查top features是否都在feature_df中
+    missing_features = [f for f in top_features if f not in feature_df.columns]
+    if missing_features:
+        logger.error(f"以下 Top 特征在基础特征文件中缺失，无法创建交互项: {missing_features}")
+        return
+
+    # 3. 创建交互特征
+    interaction_features = pd.DataFrame(index=feature_df.index)
+    epsilon = 1e-6
+
+    for f1, f2 in combinations(top_features, 2):
+        interaction_features[f'{f1}_mul_{f2}'] = feature_df[f1] * feature_df[f2]
+        interaction_features[f'{f1}_sub_{f2}'] = feature_df[f1] - feature_df[f2]
+        interaction_features[f'{f1}_add_{f2}'] = feature_df[f1] + feature_df[f2]
+        interaction_features[f'{f1}_div_{f2}'] = feature_df[f1] / (feature_df[f2] + epsilon)
+        interaction_features[f'{f2}_div_{f1}'] = feature_df[f2] / (feature_df[f1] + epsilon)
+
+    logger.info(f"成功创建 {len(interaction_features.columns)} 个交互特征。")
+
+    # 4. 合并并保存
+    feature_df = feature_df.drop(columns=interaction_features.columns, errors='ignore')
+    feature_df = feature_df.merge(interaction_features, left_index=True, right_index=True, how='left')
+    feature_df = clean_feature_names(feature_df, prefix="f_inter")
+
+    # 5. 保存结果
+    new_feature_count = len(feature_df.columns)
+    if new_feature_count > initial_feature_count:
+        if base_path and base_path.exists():
+            _backup_feature_file(base_path)
+        
+        metadata['last_updated_interaction_file'] = importance_file_path
+        metadata['last_interaction_features'] = interaction_features.columns.tolist()
+        
+        new_file_path = _save_feature_file(feature_df, metadata)
+        logger.info(f"交互特征已保存到新文件: {new_file_path.name}")
+    else:
+        logger.info("没有新特征生成，文件未保存。")
+        
+    final_feature_count = len(feature_df.columns)
+    new_file_name = new_file_path.name if 'new_file_path' in locals() and new_feature_count > initial_feature_count else 'N/A'
+    logger.info(f"交互特征生成完成。新文件: {new_file_name}, 总特征数: {final_feature_count}")

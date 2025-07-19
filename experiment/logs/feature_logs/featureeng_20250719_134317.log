@@ -1,0 +1,5 @@
+2025-07-19 13:43:17 - FeatureEng-20250719_134317 - INFO - ========== Running Command: gen-interactions ==========
+2025-07-19 13:43:17 - FeatureEng-20250719_134317 - INFO - Args: {'command': 'gen-interactions', 'importance_file': './experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv', 'base_file': None, 'add': False, 'sub': False, 'div': False, 'mul': True}
+2025-07-19 13:43:17 - FeatureEng-20250719_134317 - INFO - =======================================
+2025-07-19 13:43:17 - FeatureEng-20250719_134317 - INFO - 从 ./experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv 中识别出 Top 10 特征: ['RAW_1_stats_cv_whole', 'RAW_10_percentage_of_reoccurring_values_to_all_values_contribution_left', 'RAW_10_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'RAW_1_stats_std_whole', 'RAW_8_sample_entropy_left', 'RAW_2_ks_stat', 'RAW_2_bartlett_pvalue', 'RAW_10_quantile_0_4_whole', 'RAW_10_fft_coefficient_attr_imag_coeff_1_ratio_to_whole_left', 'RAW_10_percentage_of_reoccurring_values_to_all_values_ratio']
+2025-07-19 13:43:17 - FeatureEng-20250719_134317 - INFO - 成功创建 45 个交互特征。

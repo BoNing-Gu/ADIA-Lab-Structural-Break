@@ -26,6 +26,15 @@ def main():
     group.add_argument('--funcs', nargs='+', help='要删除的特征函数名称列表。')
     group.add_argument('--cols', nargs='+', help='要删除的特定特征列名列表。')
 
+    # --- 特征交互项生成命令 ---
+    parser_inter = subparsers.add_parser('gen-interactions', help='根据特征重要性文件生成交互特征')
+    parser_inter.add_argument('--importance-file', type=str, required=True, help='特征重要性文件路径 (e.g., permutation_importance.tsv).')
+    parser_inter.add_argument('--base-file', type=str, default=None, help='可选，指定一个基础特征文件名进行更新。如果为空，则使用最新的特征文件。')
+    parser_inter.add_argument('--add', action='store_true', help='创建加法交互项。')
+    parser_inter.add_argument('--sub', action='store_true', help='创建减法交互项。')
+    parser_inter.add_argument('--div', action='store_true', help='创建除法交互项。')
+    parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不创建乘法交互项(默认为创建)。')
+
 
     # --- 训练命令 ---
     parser_train = subparsers.add_parser('train', help='使用特征文件进行训练')
@@ -42,7 +51,7 @@ def main():
     
     # 根据命令选择 logger
     log_file_path = None # 初始化
-    if args.command in ['gen-feats', 'del-feats']:
+    if args.command in ['gen-feats', 'del-feats', 'gen-interactions']:
         logger, log_file_path = utils.get_logger('FeatureEng', config.FEATURE_LOG_DIR)
     else: # train
         logger, log_file_path = utils.get_logger('Training', config.TRAINING_LOG_DIR)
@@ -66,6 +75,21 @@ def main():
             base_feature_file=args.base_file,
             funcs_to_delete=args.funcs, 
             cols_to_delete=args.cols
+        )
+
+    elif args.command == 'gen-interactions':
+        from . import interactions
+        interactions.logger = logger
+        # 确保 features 模块的 logger 也被设置
+        from . import features
+        features.logger = logger
+        interactions.generate_interaction_features(
+            importance_file_path=args.importance_file,
+            base_feature_file=args.base_file,
+            create_mul=args.mul,
+            create_add=args.add,
+            create_sub=args.sub,
+            create_div=args.div
         )
 
     elif args.command == 'train':

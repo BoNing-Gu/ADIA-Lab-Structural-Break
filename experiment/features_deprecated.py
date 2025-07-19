@@ -964,3 +964,173 @@ def distribution_distance_features(u: pd.DataFrame) -> dict:
 
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+def arima_model_features(u: pd.DataFrame) -> dict:
+    """
+    基于ARIMA模型派生特征。
+    1. 在 period 0 上训练模型，预测 period 1，计算残差统计量。
+    2. 在 period 1 上训练模型，预测 period 0，计算残差统计量。
+    3. 分别在 period 0 和 1 上训练模型，比较模型参数、残差和信息准则(AIC/BIC)。
+    """
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    s_whole = u['value'].to_numpy()
+    feats = {}
+    order = (5, 1, 1) # (p, d, q)
+    p, d, q = order
+    num_params = p + q + 1 # AR, MA, and constant/drift
+
+    # --- 特征组1: 用 s1 训练，预测 s2 ---
+    # ARIMA needs enough points for differencing and lags
+    if len(s1) > sum(order) and len(s2) > 0:
+        try:
+            model1_fit = tsa.ARIMA(s1, order=order).fit()
+            predictions = model1_fit.forecast(steps=len(s2))
+            residuals = s2 - predictions
+            feats['arima_residuals_s2_pred_mean'] = np.mean(residuals)
+            feats['arima_residuals_s2_pred_std'] = np.std(residuals)
+            feats['arima_residuals_s2_pred_skew'] = pd.Series(residuals).skew()
+            feats['arima_residuals_s2_pred_kurt'] = pd.Series(residuals).kurt()
+        except Exception:
+            # 宽泛地捕获异常，防止因数值问题中断
+            feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s2_pred_mean': 0, 'arima_residuals_s2_pred_std': 0, 'arima_residuals_s2_pred_skew': 0, 'arima_residuals_s2_pred_kurt': 0})
+
+    # --- 特征组2: 用 s2 训练，预测 s1 ---
+    if len(s2) > sum(order) and len(s1) > 0:
+        try:
+            model2_fit = tsa.ARIMA(s2, order=order).fit()
+            predictions_on_s1 = model2_fit.forecast(steps=len(s1))
+            residuals_s1_pred = s1 - predictions_on_s1
+            feats['arima_residuals_s1_pred_mean'] = np.mean(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_std'] = np.std(residuals_s1_pred)
+            feats['arima_residuals_s1_pred_skew'] = pd.Series(residuals_s1_pred).skew()
+            feats['arima_residuals_s1_pred_kurt'] = pd.Series(residuals_s1_pred).kurt()
+        except Exception:
+            feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+    else:
+        feats.update({'arima_residuals_s1_pred_mean': 0, 'arima_residuals_s1_pred_std': 0, 'arima_residuals_s1_pred_skew': 0, 'arima_residuals_s1_pred_kurt': 0})
+
+
+    # --- 特征组3: 分别建模，比较差异 ---
+    s1_resid_std, s1_params = np.nan, np.full(num_params, np.nan)
+    s1_aic, s1_bic = np.nan, np.nan
+    if len(s1) > sum(order):
+        try:
+            fit1 = tsa.ARIMA(s1, order=order).fit()
+            s1_resid_std = np.std(fit1.resid)
+            if len(fit1.params) == num_params:
+                s1_params = fit1.params
+            s1_aic = fit1.aic
+            s1_bic = fit1.bic
+        except Exception:
+            pass
+
+    s2_resid_std, s2_params = np.nan, np.full(num_params, np.nan)
+    s2_aic, s2_bic = np.nan, np.nan
+    if len(s2) > sum(order):
+        try:
+            fit2 = tsa.ARIMA(s2, order=order).fit()
+            s2_resid_std = np.std(fit2.resid)
+            if len(fit2.params) == num_params:
+                s2_params = fit2.params
+            s2_aic = fit2.aic
+            s2_bic = fit2.bic
+        except Exception:
+            pass
+
+    swhole_resid_std, swhole_params = np.nan, np.full(num_params, np.nan)
+    swhole_aic, swhole_bic = np.nan, np.nan
+    if len(s_whole) > sum(order):
+        try:
+            fit_whole = tsa.ARIMA(s_whole, order=order).fit()
+            swhole_resid_std = np.std(fit_whole.resid)
+            if len(fit_whole.params) == num_params:
+                swhole_params = fit_whole.params
+            swhole_aic = fit_whole.aic
+            swhole_bic = fit_whole.bic
+        except Exception:
+            pass
+            
+    feats['arima_resid_std_left'] = s1_resid_std
+    feats['arima_resid_std_right'] = s2_resid_std
+    feats['arima_resid_std_whole'] = swhole_resid_std
+    feats['arima_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    feats['arima_resid_std_ratio'] = (s2_resid_std / (s1_resid_std + 1e-6)) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    _add_contribution_ratio_feats(feats, 'arima_resid_std', s1_resid_std, s2_resid_std, swhole_resid_std)
+    
+    feats['arima_aic_left'] = s1_aic
+    feats['arima_aic_right'] = s2_aic
+    feats['arima_aic_whole'] = swhole_aic
+    feats['arima_aic_diff'] = (s2_aic - s1_aic) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    feats['arima_aic_ratio'] = (s2_aic / (s1_aic + 1e-6)) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    _add_contribution_ratio_feats(feats, 'arima_aic', s1_aic, s2_aic, swhole_aic)
+
+    feats['arima_bic_left'] = s1_bic
+    feats['arima_bic_right'] = s2_bic
+    feats['arima_bic_whole'] = swhole_bic
+    feats['arima_bic_diff'] = (s2_bic - s1_bic) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    feats['arima_bic_ratio'] = (s2_bic / (s1_bic + 1e-6)) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    _add_contribution_ratio_feats(feats, 'arima_bic', s1_bic, s2_bic, swhole_bic)
+    
+    # 比较模型系数
+    for i in range(len(s1_params)):
+        feats[f'arima_param_{i}_left'] = s1_params[i]
+        feats[f'arima_param_{i}_right'] = s2_params[i]
+        feats[f'arima_param_{i}_whole'] = swhole_params[i]
+        feats[f'arima_param_{i}_diff'] = s2_params[i] - s1_params[i]
+        feats[f'arima_param_{i}_ratio'] = s2_params[i] / (s1_params[i] + 1e-6)
+        _add_contribution_ratio_feats(feats, f'arima_param_{i}', s1_params[i], s2_params[i], swhole_params[i])
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 13. 均线交叉特征 ---
+@register_feature(func_id="13")
+def ma_cross_features(u: pd.DataFrame) -> dict:
+    s1 = u['value'][u['period'] == 0].reset_index(drop=True)
+    s2 = u['value'][u['period'] == 1].reset_index(drop=True)
+    s_whole = u['value'].reset_index(drop=True)
+    feats = {}
+
+    def ma_cross_stats(series: pd.Series, short_window: int = 5, long_window: int = 20):
+        if len(series) < long_window:
+            return 0, 0.0, 0.0
+        ma_short = series.rolling(window=short_window).mean()
+        ma_long = series.rolling(window=long_window).mean()
+        diff = ma_short - ma_long
+        sign_change = np.diff(np.sign(diff))
+        cross_points = np.where(sign_change != 0)[0]
+
+        cross_count = len(cross_points)
+        density = cross_count / (len(series) + 1e-6)
+
+        # 统计交叉后趋势方向
+        up_cross = 0  # 短期均线上穿
+        down_cross = 0  # 短期均线下穿
+        for idx in cross_points:
+            if idx + 1 >= len(diff):
+                continue
+            if sign_change[idx] > 0:
+                up_cross += 1
+            elif sign_change[idx] < 0:
+                down_cross += 1
+        total_cross = up_cross + down_cross
+        up_ratio = up_cross / (total_cross + 1e-6)
+        return cross_count, density, up_ratio
+
+    for s, name in zip([s1, s2, s_whole], ['left', 'right', 'whole']):
+        cross_count, density, up_ratio = ma_cross_stats(s)
+        feats[f'ma_cross_count_{name}'] = cross_count
+        feats[f'ma_cross_density_{name}'] = density
+        feats[f'ma_cross_up_ratio_{name}'] = up_ratio
+    
+    # 差分 & 比率特征
+    feats['ma_cross_count_diff'] = feats['ma_cross_count_right'] - feats['ma_cross_count_left']
+    feats['ma_cross_count_ratio'] = feats['ma_cross_count_right'] / (feats['ma_cross_count_left'] + 1e-6)
+    feats['ma_cross_density_diff'] = feats['ma_cross_density_right'] - feats['ma_cross_density_left']
+    feats['ma_cross_density_ratio'] = feats['ma_cross_density_right'] / (feats['ma_cross_density_left'] + 1e-6)
+    feats['ma_cross_up_ratio_diff'] = feats['ma_cross_up_ratio_right'] - feats['ma_cross_up_ratio_left']
+    feats['ma_cross_up_ratio_ratio'] = feats['ma_cross_up_ratio_right'] / (feats['ma_cross_up_ratio_left'] + 1e-6)
+    
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}

@@ -28,13 +28,17 @@ def main():
 
     # --- 特征交互项生成命令 ---
     parser_inter = subparsers.add_parser('gen-interactions', help='根据特征重要性文件生成交互特征')
-    parser_inter.add_argument('--importance-file', type=str, required=True, help='特征重要性文件路径 (e.g., permutation_importance.tsv).')
+    parser_inter.add_argument('--importance-file', type=str, required=False, help='特征重要性文件路径 (e.g., permutation_importance.tsv).')
     parser_inter.add_argument('--base-file', type=str, default=None, help='可选，指定一个基础特征文件名进行更新。如果为空，则使用最新的特征文件。')
     parser_inter.add_argument('--add', action='store_true', help='创建加法交互项。')
     parser_inter.add_argument('--sub', action='store_true', help='创建减法交互项。')
     parser_inter.add_argument('--div', action='store_true', help='创建除法交互项。')
     parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不创建乘法交互项(默认为创建)。')
 
+    # --- 特征筛选命令 ---
+    parser_filter = subparsers.add_parser('filter-perm-imp', help='根据特征重要性阈值筛选特征并导出')
+    parser_filter.add_argument('--version', type=str, required=True, help='输出文件夹名，例如 train_20250719_174900_auc_0_76876')
+    parser_filter.add_argument('--path', type=str, default='permutation_importance.tsv', help='permutation importance 文件名')
 
     # --- 训练命令 ---
     parser_train = subparsers.add_parser('train', help='使用特征文件进行训练')
@@ -91,6 +95,10 @@ def main():
             create_sub=args.sub,
             create_div=args.div
         )
+
+    elif args.command == 'filter-perm-imp':
+        from . import filter_perm_imp
+        filter_perm_imp.filter_and_save(version=args.version, path=args.path)
 
     elif args.command == 'train':
         from . import train, features

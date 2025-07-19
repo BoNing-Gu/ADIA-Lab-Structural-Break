@@ -27,25 +27,29 @@ def generate_interaction_features(
         create_div (bool): 是否创建除法交互项。默认为 False。
     """
     # 1. 加载重要性文件并获取 Top N 特征
-    try:
-        importance_df = pd.read_csv(importance_file_path, sep='\\t', engine='python')
-    except FileNotFoundError:
-        logger.error(f"重要性文件未找到: {importance_file_path}")
-        return
-
-    # 确定重要性列名，兼容多种格式
-    if 'permutation_importance_mean' in importance_df.columns:
-        importance_col = 'permutation_importance_mean'
-    elif 'importance' in importance_df.columns:
-        importance_col = 'importance'
-    elif 'gain' in importance_df.columns:
-        importance_col = 'gain'
+    if len(config.TOP_FEATURES) > 0:
+        top_features = config.TOP_FEATURES
+        logger.info(f"从配置文件中识别出 Top {len(top_features)} 特征: {top_features}")
     else:
-        logger.error(f"在文件中找不到有效的特征重要性列 (e.g., 'permutation_importance_mean', 'importance', 'gain'): {importance_file_path}")
-        return
+        try:
+            importance_df = pd.read_csv(importance_file_path, sep='\\t', engine='python')
+        except FileNotFoundError:
+            logger.error(f"重要性文件未找到: {importance_file_path}")
+            return
 
-    top_features = importance_df.sort_values(by=importance_col, ascending=False).head(10)['feature'].tolist()
-    logger.info(f"从 {importance_file_path} 中识别出 Top 10 特征: {top_features}")
+        # 确定重要性列名，兼容多种格式
+        if 'permutation_importance_mean' in importance_df.columns:
+            importance_col = 'permutation_importance_mean'
+        elif 'importance' in importance_df.columns:
+            importance_col = 'importance'
+        elif 'gain' in importance_df.columns:
+            importance_col = 'gain'
+        else:
+            logger.error(f"在文件中找不到有效的特征重要性列 (e.g., 'permutation_importance_mean', 'importance', 'gain'): {importance_file_path}")
+            return
+
+        top_features = importance_df.sort_values(by=importance_col, ascending=False).head(10)['feature'].tolist()
+        logger.info(f"从 {importance_file_path} 中识别出 Top 10 特征: {top_features}")
 
     # 2. 加载基础特征文件
     feature_df, base_file_name = features.load_features(base_feature_file)
@@ -87,7 +91,7 @@ def generate_interaction_features(
     # 4. 合并并保存
     feature_df = feature_df.drop(columns=interaction_features.columns, errors='ignore')
     feature_df = feature_df.merge(interaction_features, left_index=True, right_index=True, how='left')
-    feature_df = features.clean_feature_names(feature_df, prefix="f_inter")
+    feature_df = features.clean_feature_names(feature_df)
 
     # 5. 保存结果
     new_feature_count = len(feature_df.columns)

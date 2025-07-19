@@ -1117,7 +1117,7 @@ def _apply_feature_func_sequential(func, X_df: pd.DataFrame) -> pd.DataFrame:
 def _apply_feature_func_parallel(func, X_df: pd.DataFrame) -> pd.DataFrame:
     """并行应用单个特征函数"""
     all_ids = X_df.index.get_level_values("id").unique()
-    results = Parallel(n_jobs=64)(
+    results = Parallel(n_jobs=config.N_JOBS)(
         delayed(lambda df_id, id_val: {**{'id': id_val}, **func(df_id)})(X_df.loc[id_val], id_val)
         for id_val in tqdm(all_ids, desc=f"Running {func.__name__}")
     )

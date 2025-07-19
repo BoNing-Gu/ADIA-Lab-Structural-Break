@@ -79,7 +79,8 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     #     logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
 
     # 特征选择
-    feature_df = feature_df[config.REMAIN_FEATURES]
+    if len(config.REMAIN_FEATURES) > 0:
+        feature_df = feature_df[config.REMAIN_FEATURES]
     # feature_df = pd.concat([feature_df, extracted_feature_df], axis=1)
     if feature_df is None:
         logger.error("特征加载失败，训练中止。")

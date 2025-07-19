@@ -79,10 +79,14 @@ EXPERIMENTAL_FEATURES = [
 打开终端，运行 `gen-feats` 命令并用 `--funcs` 指定要运行的函数。
 
 ```bash
+# 生成所有注册好的特征
+python -m experiment.main gen-feats
+```
+
+```bash
 # 基于最新的特征文件，加入 new_awesome_feature
 # 这会生成一个全新的、带时间戳的特征文件
 python -m experiment.main gen-feats --funcs new_awesome_feature
-nohup python -m experiment.main gen-feats > ./experiment/logs/gen-feats.log 2>&1 &
 ```
 新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
 

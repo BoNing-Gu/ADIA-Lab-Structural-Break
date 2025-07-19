@@ -86,6 +86,11 @@ nohup python -m experiment.main gen-feats > ./experiment/logs/gen-feats.log 2>&1
 ```
 新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
 
+#### 第2.5步: 创建交互项
+```bash
+python -m experiment.main gen-interactions --importance-file ./experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv
+```
+
 #### 第3步: 使用新特征集进行训练
 
 直接运行 `train` 命令。脚本会自动查找并使用 `feature_dfs` 目录中最新的特征文件进行训练。
@@ -178,7 +183,3 @@ python -m experiment.main train --save-model --save-oof --perm-imp
 | --- | --- | --- | --- |
 | #7  | 0.7875 | 0.7812 | Perm阈值0.0005，Drop到55个特征 |
 
-## 创建交互项
-```bash
-python -m experiment.main gen-interactions --importance-file ./experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv
-```

@@ -1,0 +1,44 @@
+2025-07-20 07:37:26 - Training-20250720_073726 - INFO - ========== Running Command: train ==========
+2025-07-20 07:37:26 - Training-20250720_073726 - INFO - Args: {'command': 'train', 'feature_file': None, 'save_oof': False, 'save_model': False, 'perm_imp': False}
+2025-07-20 07:37:26 - Training-20250720_073726 - INFO - =======================================
+2025-07-20 07:37:26 - Training-20250720_073726 - INFO - Starting training and evaluation pipeline...
+2025-07-20 07:37:26 - Training-20250720_073726 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "random_state": 42,
+    "n_estimators": 4000,
+    "learning_rate": 0.005,
+    "num_leaves": 29,
+    "n_jobs": 32,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-07-20 07:37:27 - Training-20250720_073726 - INFO - Successfully loaded features from: features_20250720_070205.parquet
+2025-07-20 07:37:28 - Training-20250720_073726 - INFO - 训练数据已对齐. X shape: (10001, 931), y shape: (10001,)
+2025-07-20 07:37:28 - Training-20250720_073726 - INFO - --- 使用的特征列表 (共 104 个) ---
+2025-07-20 07:37:28 - Training-20250720_073726 - INFO - ['RAW_1_stats_cv_whole_mul_RAW_1_stats_std_whole', 'RAW_1_stats_cv_whole', 'RAW_8_sample_entropy_left', 'RAW_10_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'RAW_10_percentage_of_reoccurring_values_to_all_values_contribution_left', 'RAW_10_quantile_0_6_ratio_to_whole_left', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_max_ratio_to_whole_left', 'RAW_1_stats_mean_whole', 'RAW_10_fft_coefficient_attr_imag_coeff_1_whole', 'RAW_8_sample_entropy_whole', 'RAW_10_quantile_0_4_contribution_left', 'RAW_4_autocorr_lag1_diff', 'RAW_3_cumsum_max_ratio_to_whole_left', 'RAW_2_ad_stat', 'RAW_11_param_0_whole', 'RAW_10_fft_coefficient_attr_imag_coeff_1_ratio_to_whole_right', 'RAW_10_percentage_of_reoccurring_values_to_all_values_contribution_left_mul_RAW_10_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'RAW_12_rpt_cost_cosine_whole', 'RAW_11_param_3_right', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_mean_diff', 'RAW_1_stats_cv_whole_mul_RAW_10_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'RAW_1_stats_median_ratio', 'RAW_8_sample_entropy_left_mul_RAW_2_ks_stat', 'RAW_2_ad_pvalue', 'RAW_2_adf_icbest_left', 'RAW_2_levene_stat', 'RAW_8_perm_entropy_left', 'RAW_10_linear_trend_attr_rvalue_ratio', 'RAW_10_percentage_of_reoccurring_values_to_all_values_contribution_left_mul_RAW_10_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left', 'RAW_1_stats_kurt_whole', 'RAW_10_ratio_value_number_to_time_series_length_ratio_to_whole_left', 'RAW_10_quantile_0_4_whole_mul_RAW_2_bartlett_pvalue', 'RAW_10_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_4_contribution_left', 'RAW_1_stats_median_whole', 'RAW_2_levene_pvalue', 'RAW_2_bartlett_pvalue', 'RAW_10_ratio_value_number_to_time_series_length_whole', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_left', 'RAW_8_katz_fd_whole', 'RAW_4_autocorr_lag1_ratio', 'RAW_10_linear_trend_attr_intercept_ratio', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_max_ratio', 'RAW_8_svd_entropy_ratio_to_whole_left', 'RAW_8_sample_entropy_left_mul_RAW_10_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left', 'RAW_1_stats_min_diff', 'RAW_1_stats_kurt_left', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4_ratio_to_whole_right', 'RAW_8_sample_entropy_contribution_right', 'RAW_2_ks_stat_mul_RAW_10_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left', 'RAW_10_fft_coefficient_attr_imag_coeff_1_left', 'RAW_10_quantile_0_4_right', 'RAW_1_stats_cv_whole_mul_RAW_10_quantile_0_4_whole', 'RAW_1_stats_mean_right', 'RAW_10_change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_4_contribution_left', 'RAW_1_stats_cv_whole_mul_RAW_10_percentage_of_reoccurring_values_to_all_values_contribution_left', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_diff', 'RAW_10_agg_linear_trend_attr_intercept_chunk_len_10_f_agg_max_ratio_to_whole_right', 'RAW_2_bartlett_stat', 'RAW_2_ttest_pvalue', 'RAW_8_perm_entropy_whole', 'RAW_10_quantile_0_6_whole', 'RAW_8_lziv_complexity_right', 'RAW_2_ks_stat_mul_RAW_2_bartlett_pvalue', 'RAW_10_percentage_of_reoccurring_values_to_all_values_right', 'RAW_10_change_quantiles_f_agg_var_isabs_False_qh_0_8_ql_0_0_right', 'RAW_8_approx_entropy_whole', 'RAW_4_autocorr_lag1_whole', 'RAW_10_ratio_beyond_r_sigma_1_5_diff', 'RAW_10_percentage_of_reoccurring_values_to_all_values_ratio', 'RAW_2_ks_stat_mul_RAW_10_fft_coefficient_attr_imag_coeff_1_ratio_to_whole_left', 'RAW_8_sample_entropy_left_mul_RAW_10_fft_coefficient_attr_imag_coeff_1_ratio_to_whole_left', 'RAW_10_fft_coefficient_attr_imag_coeff_1_ratio_to_whole_left_mul_RAW_2_bartlett_pvalue', 'RAW_10_ratio_beyond_r_sigma_1_5_contribution_left', 'RAW_2_ks_pvalue', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_5_f_agg_max_right', 'RAW_5_max_power_whole', 'RAW_11_param_5_diff', 'RAW_1_stats_skew_right', 'RAW_10_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left', 'RAW_10_percentage_of_reoccurring_datapoints_to_all_datapoints_ratio_to_whole_left', 'RAW_1_stats_std_whole_mul_RAW_2_ks_stat', 'RAW_8_spectral_entropy_left', 'RAW_1_stats_cv_whole_mul_RAW_8_sample_entropy_left', 'RAW_10_agg_linear_trend_attr_intercept_chunk_len_50_f_agg_mean_ratio_to_whole_left', 'RAW_11_param_0_ratio_to_whole_right', 'RAW_10_agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_max_contribution_left', 'RAW_10_fft_coefficient_attr_imag_coeff_2_ratio_to_whole_left', 'RAW_1_stats_cv_whole_mul_RAW_2_ks_stat', 'RAW_8_sample_entropy_left_mul_RAW_10_quantile_0_4_whole', 'RAW_1_stats_kurt_right', 'RAW_10_fft_coefficient_attr_imag_coeff_1_ratio_to_whole_left', 'RAW_10_ar_coefficient_coeff_2_k_10_left', 'RAW_10_fft_coefficient_attr_imag_coeff_3_ratio_to_whole_right', 'RAW_8_svd_entropy_whole', 'RAW_1_stats_std_whole', 'RAW_1_stats_std_whole_mul_RAW_2_bartlett_pvalue', 'RAW_10_ratio_beyond_r_sigma_1_5_whole', 'RAW_1_stats_cv_whole_mul_RAW_2_bartlett_pvalue', 'RAW_6_iqr_whole', 'RAW_2_shapiro_pvalue_left', 'RAW_10_percentage_of_reoccurring_values_to_all_values_contribution_left_mul_RAW_1_stats_std_whole', 'RAW_10_linear_trend_attr_intercept_ratio_to_whole_left', 'RAW_10_percentage_of_reoccurring_values_to_all_values_diff', 'RAW_1_stats_std_whole_mul_RAW_10_fft_coefficient_attr_imag_coeff_1_ratio_to_whole_left']
+2025-07-20 07:37:28 - Training-20250720_073726 - INFO - --------------------------------------------------
+2025-07-20 07:37:28 - Training-20250720_073726 - INFO - Starting 5-fold cross-validation with LightGBM...
+2025-07-20 07:37:28 - Training-20250720_073726 - INFO - --- Fold 1/5 ---
+2025-07-20 07:38:23 - Training-20250720_073726 - INFO - Fold 1 Train AUC: 0.99104, Val AUC: 0.88153
+2025-07-20 07:38:23 - Training-20250720_073726 - INFO - Fold 1 finished in 55.54s
+2025-07-20 07:38:23 - Training-20250720_073726 - INFO - --- Fold 2/5 ---
+2025-07-20 07:39:57 - Training-20250720_073726 - INFO - Fold 2 Train AUC: 0.99889, Val AUC: 0.86743
+2025-07-20 07:39:57 - Training-20250720_073726 - INFO - Fold 2 finished in 93.93s
+2025-07-20 07:39:57 - Training-20250720_073726 - INFO - --- Fold 3/5 ---
+2025-07-20 07:40:32 - Training-20250720_073726 - INFO - Fold 3 Train AUC: 0.97021, Val AUC: 0.87744
+2025-07-20 07:40:32 - Training-20250720_073726 - INFO - Fold 3 finished in 35.06s
+2025-07-20 07:40:32 - Training-20250720_073726 - INFO - --- Fold 4/5 ---
+2025-07-20 07:41:33 - Training-20250720_073726 - INFO - Fold 4 Train AUC: 0.99204, Val AUC: 0.87734
+2025-07-20 07:41:33 - Training-20250720_073726 - INFO - Fold 4 finished in 61.07s
+2025-07-20 07:41:33 - Training-20250720_073726 - INFO - --- Fold 5/5 ---
+2025-07-20 07:42:39 - Training-20250720_073726 - INFO - Fold 5 Train AUC: 0.99346, Val AUC: 0.86046
+2025-07-20 07:42:39 - Training-20250720_073726 - INFO - Fold 5 finished in 65.34s
+2025-07-20 07:42:39 - Training-20250720_073726 - INFO - Overall OOF AUC: 0.87174
+2025-07-20 07:42:39 - Training-20250720_073726 - INFO - All outputs will be saved to: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\experiment\output\train_20250720_074239_auc_0_87174
+2025-07-20 07:42:39 - Training-20250720_073726 - INFO - 特征重要性已保存到: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\experiment\output\train_20250720_074239_auc_0_87174\feature_importance.tsv
+2025-07-20 07:42:39 - Training-20250720_073726 - INFO - feature importance saved.
+2025-07-20 07:42:39 - Training-20250720_073726 - INFO - 训练流程结束，总耗时: 312.32 秒。

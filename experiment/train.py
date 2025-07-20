@@ -3,6 +3,7 @@ import numpy as np
 import lightgbm as lgb
 from tqdm.auto import tqdm
 
+import optuna
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
 from sklearn.inspection import permutation_importance
@@ -138,7 +139,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
             perm_result = permutation_importance(
                 model, X_val_fold, y_val_fold,
                 n_repeats=20,  # 可以根据需要调整重复次数
-                random_state=42,
+                random_state=config.SEED,
                 scoring='roc_auc',
                 n_jobs=-1
             )
@@ -195,3 +196,104 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     logger.info(f"训练流程结束，总耗时: {duration:.2f} 秒。")
     
     return models, overall_oof_auc 
+
+
+def tune_hyperparameter(feature_file_name: str, n_trials: int = 50):
+    """
+    基于Optuna进行超参数调优
+    """
+    start_time = time.time()
+    logger.info("Starting Optuna hyperparameter tuning...")
+
+    # 1. 加载特征和标签
+    feature_df, loaded_feature_name = features.load_features(feature_file_name)
+    logger.info(f"Successfully loaded features from: {loaded_feature_name}")
+    _, y_train = data.load_data()
+    # 确保对齐
+    common_index = feature_df.index.intersection(y_train.index)
+    feature_df = feature_df.loc[common_index]
+    y_train = y_train.loc[common_index]['structural_breakpoint'].astype(int)
+    logger.info(f"训练数据已对齐. X shape: {feature_df.shape}, y shape: {y_train.shape}")
+
+    # 特征选择
+    if len(config.REMAIN_FEATURES) > 0:
+        feature_df = feature_df[config.REMAIN_FEATURES]
+    # feature_df = pd.concat([feature_df, extracted_feature_df], axis=1)
+    if feature_df is None:
+        logger.error("特征加载失败，训练中止。")
+        return None, None
+
+    logger.info(f"--- 使用的特征列表 (共 {len(feature_df.columns)} 个) ---")
+    logger.info(feature_df.columns.tolist())
+    logger.info("-" * min(50, len(str(feature_df.columns.tolist()))))
+    
+    def objective(trial):
+        params = {
+            # --- 基础设定 ---
+            "objective": "binary",
+            "metric": "auc",
+            "boosting_type": "gbdt",
+            "n_estimators": trial.suggest_int("n_estimators", 2000, 8000),
+            "learning_rate": trial.suggest_loguniform("learning_rate", 5e-4, 5e-2),
+            "num_leaves": trial.suggest_int("num_leaves", 16, 64),
+            "random_state": config.SEED,
+            "n_jobs": config.N_JOBS,
+
+            # --- 正则化和采样 ---
+            "min_child_samples": trial.suggest_int("min_child_samples", 15, 50),
+            "subsample": trial.suggest_uniform("subsample", 0.8, 1.0),
+            "subsample_freq": trial.suggest_int("subsample_freq", 0, 10),
+            "colsample_bytree": trial.suggest_uniform("colsample_bytree", 0.8, 1.0),
+            "reg_alpha": trial.suggest_loguniform("reg_alpha", 3.0, 10.0),
+            "reg_lambda": trial.suggest_loguniform("reg_lambda", 3.0, 10.0),
+        }
+
+        oof_preds = np.zeros(len(feature_df))
+        skf = StratifiedKFold(**config.CV_PARAMS)
+        cv_iterator = skf.split(feature_df, y_train)
+
+        for fold, (train_idx, val_idx) in enumerate(cv_iterator):
+            logger.info(f"Trial {trial.number} - Fold {fold+1}/{config.CV_PARAMS['n_splits']}")
+            X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
+            X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]
+
+            model = lgb.LGBMClassifier(**params)
+            model.fit(
+                X_train_fold, y_train_fold,
+                eval_set=[(X_train_fold, y_train_fold), (X_val_fold, y_val_fold)],
+                eval_names=['train', 'valid'],
+                eval_metric='auc',
+                callbacks=[lgb.early_stopping(100, verbose=False)]
+            )
+
+            preds = model.predict_proba(X_val_fold)[:, 1]
+            oof_preds[val_idx] = preds
+
+            train_auc = model.best_score_['train']['auc']
+            val_auc = roc_auc_score(y_val_fold, preds)
+            logger.info(f"Fold {fold + 1} - Train AUC: {train_auc:.5f}, Val AUC: {val_auc:.5f}")
+
+        overall_auc = roc_auc_score(y_train, oof_preds)
+        logger.info(f"Trial {trial.number} - Overall OOF AUC: {overall_auc:.5f}")
+        return overall_auc
+
+    # 3. Run Optuna study
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=n_trials)
+
+    logger.info(f"Best Trial AUC: {study.best_value:.5f}")
+    logger.info(f"Best Params: {study.best_params}")
+
+    # 4. 创建带时间和AUC分数的输出文件夹
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    auc_str = f"{study.best_value:.5f}".replace('.', '_')
+    run_output_dir = config.OUTPUT_DIR / f'train_{timestamp}_auc_{auc_str}'
+    run_output_dir.mkdir(exist_ok=True, parents=True)
+    logger.info(f"Optuna results saved to: {run_output_dir}")
+    with open(run_output_dir / 'best_params.json', 'w') as f:
+        json.dump(study.best_params, f, indent=4)
+
+    duration = time.time() - start_time
+    logger.info(f"Optuna tuning finished in {duration:.2f}s")
+    
+    return study.best_value

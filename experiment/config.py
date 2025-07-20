@@ -27,17 +27,19 @@ TRAIN_Y_FILE = DATA_DIR / 'y_train.parquet'
 
 # --- Feature Engineer ---
 N_JOBS = 12
+SEED = 42
 
 # --- Model ---
 LGBM_PARAMS = {
+    # --- 基础设定 ---
     'objective': 'binary',
     'metric': 'auc',
     'boosting_type': 'gbdt',
-    'random_state': 42,
     'n_estimators': 4000, 
     'learning_rate': 0.005,
     'num_leaves': 29,
-    'n_jobs': 32,
+    'random_state': SEED,
+    'n_jobs': N_JOBS,
 
     # --- 正则化和采样 ---
     'reg_alpha': 3,          # L1 正则化
@@ -50,7 +52,7 @@ LGBM_PARAMS = {
 CV_PARAMS = {
     'n_splits': 5,
     'shuffle': True,
-    'random_state': 42
+    'random_state': SEED
 } 
 
 # --- Exclude Features ---

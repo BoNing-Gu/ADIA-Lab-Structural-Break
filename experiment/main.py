@@ -47,6 +47,11 @@ def main():
     parser_train.add_argument('--save-model', action='store_true', help='是否保存训练好的模型文件。')
     parser_train.add_argument('--perm-imp', action='store_true', help='是否计算permutation importance。')
 
+    # --- 超参调优命令 ---
+    parser_tune = subparsers.add_parser('tune', help='使用Optuna进行超参调优')
+    parser_tune.add_argument('--feature-file', type=str, default=None, help='可选，指定用于训练的特征文件名。如果为空，则使用最新的特征文件。')
+    parser_tune.add_argument('--n-trials', type=int, default=50, help='Optuna 试验次数，默认50')
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -121,6 +126,32 @@ def main():
             
             # 2. 重命名文件
             auc_str = f"{oof_auc:.5f}".replace('.', '_')
+            new_log_path = log_file_path.with_name(f"{log_file_path.stem}_auc_{auc_str}{log_file_path.suffix}")
+            try:
+                log_file_path.rename(new_log_path)
+                print(f"Log file renamed to: {new_log_path.name}")
+            except OSError as e:
+                print(f"Error renaming log file: {e}")
+
+    elif args.command == 'tune':
+        from . import train, features
+        train.logger = logger
+        features.logger = logger
+        best_oof_auc = train.tune_hyperparameter(
+            feature_file_name=args.feature_file,
+            n_trials=args.n_trials,
+        )
+        
+        # 训练成功后重命名日志文件
+        if best_oof_auc is not None:
+            # 1. 关闭 logger 的文件处理器，释放对文件的占用
+            for handler in logger.handlers[:]:
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
+                    logger.removeHandler(handler)
+            
+            # 2. 重命名文件
+            auc_str = f"{best_oof_auc:.5f}".replace('.', '_')
             new_log_path = log_file_path.with_name(f"{log_file_path.stem}_auc_{auc_str}{log_file_path.suffix}")
             try:
                 log_file_path.rename(new_log_path)

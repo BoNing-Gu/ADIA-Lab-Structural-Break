@@ -109,15 +109,8 @@ def main():
         # 确保 features 模块的 logger 也被设置
         from . import features
         features.logger = logger
-        # interactions.generate_interaction_features(
-        #     importance_file_path=args.importance_file,
-        #     base_feature_file=args.base_file,
-        #     create_mul=args.mul,
-        #     create_add=args.add,
-        #     create_sub=args.sub,
-        #     create_div=args.div
-        # )
-        interactions.generate_one2all_interactions(
+        interactions.generate_interaction_features(
+            importance_file_path=args.importance_file,
             base_feature_file=args.base_file,
             create_mul=args.mul,
             create_add=args.add,
@@ -125,6 +118,14 @@ def main():
             create_div=args.div,
             create_sq=args.sq
         )
+        # interactions.generate_one2all_interactions(
+        #     base_feature_file=args.base_file,
+        #     create_mul=args.mul,
+        #     create_add=args.add,
+        #     create_sub=args.sub,
+        #     create_div=args.div,
+        #     create_sq=args.sq
+        # )
 
     elif args.command == 'filter':
         if args.filter_method == 'corr':

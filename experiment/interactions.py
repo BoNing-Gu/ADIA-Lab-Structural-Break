@@ -12,7 +12,8 @@ def generate_interaction_features(
     create_mul: bool = True,
     create_add: bool = False,
     create_sub: bool = False,
-    create_div: bool = False
+    create_div: bool = False,
+    create_sq: bool = False
 ):
     """
     根据特征重要性文件生成交互特征。
@@ -26,6 +27,7 @@ def generate_interaction_features(
         create_add (bool): 是否创建加法交互项。默认为 False。
         create_sub (bool): 是否创建减法交互项。默认为 False。
         create_div (bool): 是否创建除法交互项。默认为 False。
+        create_sq (bool): 是否创建平方交互项。默认为 False。
     """
     # 1. 加载重要性文件并获取 Top N 特征
     if len(config.TOP_FEATURES) > 0:
@@ -114,6 +116,10 @@ def generate_interaction_features(
             if create_div:
                 interaction_features[f'{f1}_div_{f2}'] = feature_df[f1] / (feature_df[f2] + epsilon)
                 interaction_features[f'{f2}_div_{f1}'] = feature_df[f2] / (feature_df[f1] + epsilon)
+
+        if create_sq:
+            for f in available_features:
+                interaction_features[f'f_sq_{f}'] = feature_df[f] ** 2
         
         if interaction_features.empty:
             logger.info(f"数据ID '{data_id}' 没有选择任何交互项类型，跳过。")

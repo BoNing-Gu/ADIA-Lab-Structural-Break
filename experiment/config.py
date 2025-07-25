@@ -29,6 +29,11 @@ TRAIN_Y_FILE = DATA_DIR / 'y_train.parquet'
 N_JOBS = 12
 SEED = 42
 
+# --- Data Enhancement ---
+# 数据增强配置，指定要加载的增强数据ID列表
+# 如果为'0'，则只使用原始数据
+ENHANCEMENT_IDS = ['0', '1', '2'] 
+
 # --- Model ---
 LGBM_PARAMS = {
     # --- 基础设定 ---
@@ -60,7 +65,7 @@ CV_PARAMS = {
 # 如果要运行这些特征，需要在命令行中通过 --funcs 参数明确指定
 # 例如: python -m experiment.main gen-feats --funcs ar_model_features
 EXPERIMENTAL_FEATURES = [
-    "chow_test_features",
+    
 ] 
 
 # --- Top Features ---

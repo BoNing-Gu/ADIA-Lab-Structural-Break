@@ -1,0 +1,36 @@
+2025-07-25 15:28:07 - Training-20250725_152807 - INFO - ========== Running Command: train ==========
+2025-07-25 15:28:07 - Training-20250725_152807 - INFO - Args: {'command': 'train', 'feature_file': None, 'train_data_ids': ['0', '1', '2'], 'perm_imp': False, 'save_oof': False, 'save_model': False}
+2025-07-25 15:28:07 - Training-20250725_152807 - INFO - =======================================
+2025-07-25 15:28:07 - Training-20250725_152807 - INFO - Starting training and evaluation pipeline...
+2025-07-25 15:28:07 - Training-20250725_152807 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 4000,
+    "learning_rate": 0.005,
+    "num_leaves": 29,
+    "random_state": 42,
+    "n_jobs": 12,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-07-25 15:28:07 - Training-20250725_152807 - INFO - Successfully loaded features from: features_20250725_152349.parquet
+2025-07-25 15:28:07 - Training-20250725_152807 - INFO - Loading data...
+2025-07-25 15:28:08 - Training-20250725_152807 - INFO - Original data loaded successfully.
+2025-07-25 15:28:08 - Training-20250725_152807 - INFO - X_train shape: (23715734, 2)
+2025-07-25 15:28:08 - Training-20250725_152807 - INFO - y_train shape: (10001, 1)
+2025-07-25 15:28:08 - Training-20250725_152807 - INFO - Loading enhancement data with IDs: ['0', '1', '2']
+2025-07-25 15:28:08 - Training-20250725_152807 - WARNING - Enhancement data files for 0 not found, skipping.
+2025-07-25 15:28:10 - Training-20250725_152807 - INFO - Enhancement data 1 loaded and added.
+2025-07-25 15:28:10 - Training-20250725_152807 - INFO - New X_enhance shape: (23715734, 2)
+2025-07-25 15:28:10 - Training-20250725_152807 - INFO - New y_enhance shape: (10001,)
+2025-07-25 15:28:11 - Training-20250725_152807 - INFO - Enhancement data 2 loaded and added.
+2025-07-25 15:28:11 - Training-20250725_152807 - INFO - New X_enhance shape: (23715734, 2)
+2025-07-25 15:28:11 - Training-20250725_152807 - INFO - New y_enhance shape: (10001,)
+2025-07-25 15:28:11 - Training-20250725_152807 - INFO - Total datasets loaded: 3
+2025-07-25 15:28:11 - Training-20250725_152807 - INFO - Dataset 0: X shape (23715734, 2), y shape (10001, 1)
+2025-07-25 15:28:11 - Training-20250725_152807 - INFO - Dataset 1: X shape (23715734, 2), y shape (10001,)
+2025-07-25 15:28:11 - Training-20250725_152807 - INFO - Dataset 2: X shape (23715734, 2), y shape (10001,)
+2025-07-25 15:28:12 - Training-20250725_152807 - INFO - Return CONCATED data shape: X (71147202, 2), y (30003, 2)

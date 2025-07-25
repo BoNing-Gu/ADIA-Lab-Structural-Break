@@ -1087,6 +1087,35 @@ def _load_feature_file(file_path: Path):
         logger.warning(f"无法加载特征文件 {file_path}: {e}。")
         return pd.DataFrame(), {}
 
+def _load_feature_dict_file(file_path: Path):
+    """加载字典格式的特征文件及其元数据。"""
+    if not file_path or not file_path.exists():
+        return {}, {}
+    try:
+        # 加载主文件获取元数据
+        main_table = pd.read_parquet(file_path)
+        metadata_str = main_table.attrs.get('feature_metadata', '{}')
+        metadata = json.loads(metadata_str)
+        
+        # 加载字典格式的特征数据
+        feature_dict = {}
+        base_name = file_path.stem  # 去掉扩展名
+        
+        # 查找所有相关的特征文件
+        for data_id_file in file_path.parent.glob(f"{base_name}_id_*.parquet"):
+            # 从文件名提取数据ID
+            data_id = data_id_file.stem.split('_id_')[-1]
+            feature_dict[data_id] = pd.read_parquet(data_id_file)
+        
+        # 如果没有找到分离的文件，尝试从主文件加载（向后兼容）
+        if not feature_dict and not main_table.empty:
+            feature_dict["0"] = main_table
+            
+        return feature_dict, metadata
+    except Exception as e:
+        logger.warning(f"无法加载字典格式特征文件 {file_path}: {e}。")
+        return {}, {}
+
 def _save_feature_file(df: pd.DataFrame, metadata: dict) -> Path:
     """将特征保存到一个新的、带时间戳的文件中，并返回其路径。"""
     config.FEATURE_DIR.mkdir(exist_ok=True, parents=True)
@@ -1097,13 +1126,64 @@ def _save_feature_file(df: pd.DataFrame, metadata: dict) -> Path:
     df.to_parquet(new_feature_path)
     return new_feature_path
 
+def _save_feature_dict_file(feature_dict: dict, metadata: dict) -> Path:
+    """将字典格式的特征保存到带时间戳的文件中，并返回主文件路径。"""
+    config.FEATURE_DIR.mkdir(exist_ok=True, parents=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    base_name = f'features_{timestamp}'
+    main_feature_path = config.FEATURE_DIR / f'{base_name}.parquet'
+    
+    # 保存每个数据ID的特征文件
+    for data_id, df in feature_dict.items():
+        if not df.empty:
+            data_id_path = config.FEATURE_DIR / f'{base_name}_id_{data_id}.parquet'
+            df.to_parquet(data_id_path)
+    
+    # 创建主文件用于存储元数据（可以是空的DataFrame）
+    main_df = pd.DataFrame()
+    main_df.attrs['feature_metadata'] = json.dumps(metadata)
+    main_df.to_parquet(main_feature_path)
+    
+    return main_feature_path
+
 def _backup_feature_file(file_path: Path):
-    """如果文件路径有效，则备份它。"""
-    if file_path and file_path.exists():
-        config.FEATURE_BACKUP_DIR.mkdir(exist_ok=True, parents=True)
-        backup_path = config.FEATURE_BACKUP_DIR / file_path.name
-        file_path.rename(backup_path)
-        logger.info(f"已将文件 {file_path.name} 备份到: {config.FEATURE_BACKUP_DIR}")
+    """
+    备份特征文件及其所有相关的增强数据文件。
+    
+    Args:
+        file_path: 基础特征文件路径（例如 features_20250724_232149.parquet）
+    """
+    if not file_path or not file_path.exists():
+        return
+    
+    config.FEATURE_BACKUP_DIR.mkdir(exist_ok=True, parents=True)
+    
+    # 备份基础文件
+    backup_path = config.FEATURE_BACKUP_DIR / file_path.name
+    file_path.rename(backup_path)
+    logger.info(f"已将基础文件 {file_path.name} 备份到: {config.FEATURE_BACKUP_DIR}")
+    
+    # 查找并备份所有相关的增强数据文件
+    # 从基础文件名中提取时间戳部分
+    base_name = file_path.stem  # 去掉 .parquet 后缀
+    if base_name.startswith('features_'):
+        # 查找所有匹配的增强数据文件
+        pattern = f"{base_name}_id_*.parquet"
+        feature_dir = file_path.parent
+        
+        # 使用 glob 查找所有匹配的文件
+        related_files = list(feature_dir.glob(pattern))
+        
+        if related_files:
+            logger.info(f"找到 {len(related_files)} 个相关的增强数据文件")
+            for related_file in related_files:
+                related_backup_path = config.FEATURE_BACKUP_DIR / related_file.name
+                related_file.rename(related_backup_path)
+                logger.info(f"已将增强数据文件 {related_file.name} 备份到: {config.FEATURE_BACKUP_DIR}")
+        else:
+            logger.info("未找到相关的增强数据文件")
+    else:
+        logger.warning(f"文件名格式不符合预期: {file_path.name}")
 
 def _apply_feature_func_sequential(func, X_df: pd.DataFrame) -> pd.DataFrame:
     """顺序应用单个特征函数"""
@@ -1227,9 +1307,9 @@ def clean_feature_names(df: pd.DataFrame, prefix: str = "f") -> pd.DataFrame:
         cleaned_columns.append(cleaned)
     df.columns = cleaned_columns
     return df
-
+    
 def generate_features(
-        X_df: pd.DataFrame, 
+        X_data, 
         funcs_to_run: list = None, 
         trans_to_run: list = None, 
         base_feature_file: str = None
@@ -1237,18 +1317,30 @@ def generate_features(
     """
     生成指定的特征，或者如果未指定，则生成所有已注册的特征。
     可以基于一个现有的特征文件进行增量更新。
+    现在支持字典格式的输入数据和特征存储。
 
     Args:
-        X_df (pd.DataFrame): 包含 `series_id` 和 `time_step` 的输入数据。
+        X_data: 输入数据，可以是:
+            - pd.DataFrame: 单个数据框（向后兼容）
+            - dict: 字典格式，键为数据ID（"0"表示原始数据，"1"、"2"等表示增强数据），值为对应的数据框
         funcs_to_run (list, optional): 要运行的特征函数名称列表。
             如果为 None，则运行所有在 `FEATURE_REGISTRY` 中注册的、且不在 `EXPERIMENTAL_FEATURES` 中的函数。
         trans_to_run (list, optional): 要运行的变换函数名称列表。
         base_feature_file (str, optional): 基础特征文件名。如果提供，
             将加载此文件并在此基础上添加或更新特征。否则，将创建一个新的特征集。
-        clip_outliers (bool): 是否在特征工程前裁剪极端离群值。默认为 True。
-        clip_threshold (float): 定义离群值的IQR乘数。默认为 5.0。
     """
     utils.ensure_feature_dirs()
+    
+    # 处理输入数据格式
+    if isinstance(X_data, pd.DataFrame):
+        # 向后兼容：单个数据框转换为字典格式
+        X_data_dict = {"0": X_data}
+        logger.info("输入为单个数据框，已转换为字典格式（数据ID: '0'）")
+    elif isinstance(X_data, dict):
+        X_data_dict = X_data
+        logger.info(f"输入为字典格式，包含数据ID: {list(X_data_dict.keys())}")
+    else:
+        raise ValueError("X_data必须是pd.DataFrame或dict类型")
     
     if funcs_to_run is None:
         # 如果未指定函数，则运行所有非实验性特征
@@ -1274,84 +1366,128 @@ def generate_features(
     else:
         base_path = _get_latest_feature_file()
 
-    # 2. 加载基础特征
+    # 2. 加载基础特征（字典格式）
     if base_path and base_path.exists():
         logger.info(f"将基于特征文件进行更新: {base_path.name}")
-        feature_df, metadata = _load_feature_file(base_path)
-        # 更新操作需要备份旧文件
-        # _backup_feature_file(base_path) # <<< 移除此处的调用
+        feature_dict, metadata = _load_feature_dict_file(base_path)
+        # 如果加载失败，尝试旧格式
+        if not feature_dict:
+            logger.info("尝试加载旧格式特征文件...")
+            old_feature_df, metadata = _load_feature_file(base_path)
+            if not old_feature_df.empty:
+                feature_dict = {"0": old_feature_df}
     else:
         logger.info("未找到基础特征文件，将创建全新的特征集。")
-        feature_df, metadata = pd.DataFrame(index=X_df.index.get_level_values('id').unique()), {}
-    logger.info(f"基础特征文件格式：{feature_df.shape}")
+        feature_dict, metadata = {}, {}
+    
+    # 确保每个数据ID都有对应的特征DataFrame
+    for data_id in X_data_dict.keys():
+        if data_id not in feature_dict:
+            # 获取该数据ID的唯一ID列表
+            unique_ids = X_data_dict[data_id].index.get_level_values('id').unique()
+            feature_dict[data_id] = pd.DataFrame(index=unique_ids)
+            logger.info(f"为数据ID '{data_id}' 创建新的特征DataFrame，包含 {len(unique_ids)} 个样本")
+    
+    logger.info(f"基础特征字典包含数据ID: {list(feature_dict.keys())}")
+    for data_id, df in feature_dict.items():
+        logger.info(f"  数据ID '{data_id}': {df.shape}")
 
-    # 3. 时序分解
-    logger.info("=== 开始时序分解 ===")
-    transformed_data = apply_transformation(X_df, trans_to_run)
-    logger.info(f"分解完成，共生成 {len(transformed_data)} 个模态: {list(transformed_data.keys())}")
+    # 3. 为每个数据ID生成特征
+    initial_feature_counts = {data_id: len(df.columns) for data_id, df in feature_dict.items()}
+    
+    for data_id, X_df in X_data_dict.items():
+        logger.info(f"=== 开始为数据ID '{data_id}' 生成特征 ===")
+        
+        # 时序分解
+        logger.info(f"--- 开始时序分解（数据ID: {data_id}） ---")
+        transformed_data = apply_transformation(X_df, trans_to_run)
+        logger.info(f"分解完成，共生成 {len(transformed_data)} 个模态: {list(transformed_data.keys())}")
+        
+        # 获取当前数据ID的特征DataFrame
+        current_feature_df = feature_dict[data_id]
+        loaded_features = current_feature_df.columns.tolist()
+        
+        # 逐个生成新特征并更新
+        for mode_name, mode_df in transformed_data.items():
+            logger.info(f"=== 开始为数据ID '{data_id}' 的模态 '{mode_name}' 生成特征 ===")
+            for func_name in funcs_to_run:
+                logger.info(f"--- 开始生成特征: {func_name} ---")
+                start_time = time.time()
+                
+                feature_info = FEATURE_REGISTRY[func_name]
+                func = feature_info['func']
+                is_parallelizable = feature_info['parallelizable']
+                func_id = feature_info['func_id']
+                
+                if is_parallelizable:
+                    new_features_df = _apply_feature_func_parallel(func, mode_df)
+                else:
+                    logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
+                    new_features_df = _apply_feature_func_sequential(func, mode_df)
+                new_features_df.columns = [f"{mode_name}_{func_id}_{col}" for col in new_features_df.columns]
+                new_features_df = clean_feature_names(new_features_df)
 
-    # 4. 逐个生成新特征并更新
-    loaded_features = feature_df.columns.tolist()
-    initial_feature_count = len(feature_df.columns)
+                # 记录日志
+                duration = time.time() - start_time
+                logger.info(f"'{func_name}' 生成完毕，耗时: {duration:.2f} 秒。")
+                logger.info(f"  新生成特征列名: {new_features_df.columns.tolist()}")
+                
+                for col in new_features_df.columns:
+                    null_ratio = new_features_df[col].isnull().sum() / len(new_features_df)
+                    zero_ratio = (new_features_df[col] == 0).sum() / len(new_features_df)
+                    logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
 
-    for mode_name, mode_df in transformed_data.items():
-        logger.info(f"=== 开始为模态 '{mode_name}' 生成特征 ===")
-        for func_name in funcs_to_run:
-            logger.info(f"--- 开始生成特征: {func_name} ---")
-            start_time = time.time()
-            
-            feature_info = FEATURE_REGISTRY[func_name]
-            func = feature_info['func']
-            is_parallelizable = feature_info['parallelizable']
-            func_id = feature_info['func_id']
-            
-            if is_parallelizable:
-                new_features_df = _apply_feature_func_parallel(func, mode_df)
-            else:
-                logger.info(f"函数 '{func_name}' 不可并行化，将顺序执行。")
-                new_features_df = _apply_feature_func_sequential(func, mode_df)
-            new_features_df.columns = [f"{mode_name}_{func_id}_{col}" for col in new_features_df.columns]
+                # 删除旧版本特征（如果存在），然后合并
+                current_feature_df = current_feature_df.drop(columns=new_features_df.columns, errors='ignore')
+                current_feature_df = current_feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
+                loaded_features = current_feature_df.columns.tolist()
+        
+        # 更新特征字典
+        feature_dict[data_id] = current_feature_df
+        logger.info(f"数据ID '{data_id}' 特征生成完成，最终特征数: {len(current_feature_df.columns)}")
 
-            # 记录日志
-            duration = time.time() - start_time
-            logger.info(f"'{func_name}' 生成完毕，耗时: {duration:.2f} 秒。")
-            logger.info(f"  新生成特征列名: {new_features_df.columns.tolist()}")
-            
-            for col in new_features_df.columns:
-                null_ratio = new_features_df[col].isnull().sum() / len(new_features_df)
-                zero_ratio = (new_features_df[col] == 0).sum() / len(new_features_df)
-                logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
-
-            # 删除旧版本特征（如果存在），然后合并
-            feature_df = feature_df.drop(columns=new_features_df.columns, errors='ignore')
-            feature_df = feature_df.merge(new_features_df, left_index=True, right_index=True, how='left')
-            feature_df, removed_features = check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95)
-            feature_df = clean_feature_names(feature_df)
-            loaded_features = feature_df.columns.tolist()
-
-    # 3. 保存结果
-    new_feature_count = len(feature_df.columns)
-    if new_feature_count > initial_feature_count:
+    # 4. 保存结果
+    # 检查是否有新特征生成
+    has_new_features = False
+    final_feature_counts = {}
+    
+    for data_id, df in feature_dict.items():
+        final_feature_counts[data_id] = len(df.columns)
+        if final_feature_counts[data_id] > initial_feature_counts[data_id]:
+            has_new_features = True
+    
+    if has_new_features:
         # 只有在成功生成新特征后，才备份旧文件
         if base_path and base_path.exists():
             _backup_feature_file(base_path)
             
         metadata['last_updated_funcs'] = funcs_to_run
-        new_file_path = _save_feature_file(feature_df, metadata)
+        metadata['data_ids'] = list(feature_dict.keys())
+        new_file_path = _save_feature_dict_file(feature_dict, metadata)
         logger.info(f"特征已保存到新文件: {new_file_path.name}")
-        logger.info("--- 生成后完整特征列表 ---")
-        logger.info(f"{feature_df.columns.tolist()}")
+        
+        logger.info("--- 生成后完整特征统计 ---")
+        for data_id, df in feature_dict.items():
+            logger.info(f"数据ID '{data_id}': {len(df.columns)} 个特征")
+            logger.info(f"  特征列表: {df.columns.tolist()[:10]}{'...' if len(df.columns) > 10 else ''}")
         logger.info("-----------------------------")
     else:
         logger.info("没有新特征生成，文件未保存。")
+        new_file_path = None
 
-    final_feature_count = len(feature_df.columns)
-    logger.info(f"生成/更新完成。新文件: {new_file_path.name if new_feature_count > initial_feature_count else 'N/A'}, 总特征数: {final_feature_count}")
+    logger.info("=== 特征生成完成统计 ===")
+    for data_id in feature_dict.keys():
+        initial_count = initial_feature_counts[data_id]
+        final_count = final_feature_counts[data_id]
+        logger.info(f"数据ID '{data_id}': {initial_count} -> {final_count} 个特征 (+{final_count - initial_count})")
+    
+    logger.info(f"生成/更新完成。新文件: {new_file_path.name if new_file_path else 'N/A'}")
 
 def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_to_delete: list = None):
     """
     从指定的特征文件中删除特征，并生成一个新的带时间戳的文件。
     可以按函数名删除，也可以按特定的列名删除。
+    支持字典格式的特征数据。
     """
     base_path = config.FEATURE_DIR / base_feature_file
     if not base_path.exists():
@@ -1359,49 +1495,69 @@ def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_t
         return
 
     logger.info(f"将从文件 {base_feature_file} 中删除特征...")
-    feature_df, metadata = _load_feature_file(base_path)
     
-    if feature_df.empty:
-        logger.error(f"无法从 {base_feature_file} 加载数据，操作中止。")
-        return
+    # 尝试加载字典格式的特征文件
+    try:
+        feature_dict, metadata = _load_feature_dict_file(base_path)
+        is_dict_format = True
+        logger.info(f"加载字典格式特征文件，包含数据ID: {list(feature_dict.keys())}")
+    except Exception:
+        # 回退到旧格式
+        feature_df, metadata = _load_feature_file(base_path)
+        if feature_df.empty:
+            logger.error(f"无法从 {base_feature_file} 加载数据，操作中止。")
+            return
+        feature_dict = {"0": feature_df}
+        is_dict_format = False
+        logger.info("加载旧格式特征文件，转换为字典格式处理")
 
     _backup_feature_file(base_path)
     
-    initial_columns = set(feature_df.columns)
-    cols_to_drop = []
+    # 为每个数据ID处理特征删除
+    updated_feature_dict = {}
+    total_deleted_features = {}
+    
+    for data_id, feature_df in feature_dict.items():
+        logger.info(f"\n处理数据ID '{data_id}' 的特征删除...")
+        initial_columns = set(feature_df.columns)
+        cols_to_drop = []
 
-    if funcs_to_delete:
-        logger.info(f"按函数名删除: {funcs_to_delete}")
-        # 修复逻辑: 检查 metadata['last_updated_funcs'] 中生成的列
-        # 旧逻辑依赖于 metadata[func_name]，但这个key没有被创建
-        generated_cols_by_func = {}
-        # 假设 metadata['generated_by'][col] = func_name 的结构，需要先改造 generate_features
-        # 当前元数据不健全，无法安全地按函数名删除。
-        # 作为一个临时的、更鲁棒的方案，我们基于函数名约定来猜测列名
-        for func_name in funcs_to_delete:
-            # 这是一个简化的匹配，可能会误删。更可靠的方式是改造 generate_features 来记录每个特征由谁生成。
-            # 例如，'distributional_stats' 会匹配 'distributional_stats_mean_diff' 等
-            # 为了安全，我们只匹配以函数名开头的列
-            matched_cols = [col for col in feature_df.columns if col.startswith(func_name)]
-            if matched_cols:
-                logger.info(f"  函数 '{func_name}' 匹配到 {len(matched_cols)} 列: {matched_cols}")
-                cols_to_drop.extend(matched_cols)
-            else:
-                logger.warning(f"  未找到与函数 '{func_name}' 相关的特征列。")
+        if funcs_to_delete:
+            logger.info(f"  按函数名删除: {funcs_to_delete}")
+            for func_name in funcs_to_delete:
+                # 基于函数名约定来匹配列名
+                matched_cols = [col for col in feature_df.columns if col.startswith(func_name)]
+                if matched_cols:
+                    logger.info(f"    函数 '{func_name}' 匹配到 {len(matched_cols)} 列: {matched_cols}")
+                    cols_to_drop.extend(matched_cols)
+                else:
+                    logger.warning(f"    未找到与函数 '{func_name}' 相关的特征列。")
 
+        if cols_to_delete:
+            logger.info(f"  按列名删除: {cols_to_delete}")
+            # 验证列名是否存在
+            valid_cols = [c for c in cols_to_delete if c in feature_df.columns]
+            invalid_cols = set(cols_to_delete) - set(valid_cols)
+            if invalid_cols:
+                logger.warning(f"    以下列名不存在，将被忽略: {list(invalid_cols)}")
+            cols_to_drop.extend(valid_cols)
 
-    if cols_to_delete:
-        logger.info(f"按列名删除: {cols_to_delete}")
-        # 验证列名是否存在
-        valid_cols = [c for c in cols_to_delete if c in feature_df.columns]
-        invalid_cols = set(cols_to_delete) - set(valid_cols)
-        if invalid_cols:
-            logger.warning(f"  以下列名不存在，将被忽略: {list(invalid_cols)}")
-        cols_to_drop.extend(valid_cols)
-
-    # 去重并执行删除
-    final_cols_to_drop = sorted(list(set(cols_to_drop)))
-    if not final_cols_to_drop:
+        # 去重并执行删除
+        final_cols_to_drop = sorted(list(set(cols_to_drop)))
+        if final_cols_to_drop:
+            logger.info(f"  数据ID '{data_id}' 将删除 {len(final_cols_to_drop)} 个特征列: {final_cols_to_drop}")
+            feature_df_copy = feature_df.copy()
+            feature_df_copy.drop(columns=final_cols_to_drop, inplace=True)
+            updated_feature_dict[data_id] = feature_df_copy
+            total_deleted_features[data_id] = final_cols_to_drop
+        else:
+            logger.info(f"  数据ID '{data_id}' 没有找到要删除的特征列")
+            updated_feature_dict[data_id] = feature_df.copy()
+            total_deleted_features[data_id] = []
+    
+    # 检查是否有任何特征被删除
+    total_deleted_count = sum(len(deleted) for deleted in total_deleted_features.values())
+    if total_deleted_count == 0:
         logger.warning("没有找到任何要删除的特征列，操作中止。")
         # 恢复备份，因为没有变化
         backup_path = config.FEATURE_BACKUP_DIR / base_path.name
@@ -1409,19 +1565,36 @@ def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_t
             backup_path.rename(base_path)
             logger.info("已恢复原始文件。")
         return
-        
-    logger.info(f"总计将删除 {len(final_cols_to_drop)} 个特征列: {final_cols_to_drop}")
-    feature_df.drop(columns=final_cols_to_drop, inplace=True)
     
-    # 更新元数据（简单地移除一个标记，表示文件被修改过）
-    metadata['last_deleted_features'] = final_cols_to_drop
+    # 更新元数据
+    metadata['last_deleted_features'] = total_deleted_features
+    metadata['data_ids'] = list(updated_feature_dict.keys())
     
-    new_path = _save_feature_file(feature_df, metadata)
-    logger.info(f"删除完成。新文件: {new_path.name}, 总特征数: {len(feature_df.columns)}")
+    # 保存结果
+    if is_dict_format or len(updated_feature_dict) > 1:
+        new_path = _save_feature_dict_file(updated_feature_dict, metadata)
+    else:
+        # 如果原来是单个DataFrame格式且只有一个数据ID，保持兼容性
+        new_path = _save_feature_file(updated_feature_dict["0"], metadata)
+    
+    logger.info(f"\n=== 特征删除完成统计 ===")
+    for data_id, deleted_features in total_deleted_features.items():
+        remaining_count = len(updated_feature_dict[data_id].columns)
+        logger.info(f"数据ID '{data_id}': 删除了 {len(deleted_features)} 个特征，剩余 {remaining_count} 个特征")
+    
+    logger.info(f"删除完成。新文件: {new_path.name}, 总计删除 {total_deleted_count} 个特征")
 
 
-def load_features(feature_file: str = None) -> tuple[pd.DataFrame | None, str | None]:
-    """加载指定的或最新的特征文件。"""
+def load_features(feature_file: str = None, data_ids: list = None) -> tuple[pd.DataFrame | None, str | None]:
+    """加载指定的或最新的特征文件，并拼接指定数据ID的特征数据。
+    
+    Args:
+        feature_file (str, optional): 特征文件名。如果未指定，将加载最新版本。
+        data_ids (list, optional): 要使用的数据ID列表，例如["0", "1"]。如果未指定，默认使用["0"]。
+    
+    Returns:
+        tuple: (拼接后的特征数据, 文件名) 或 (None, None)
+    """
     # 使用一个临时的logger，避免依赖全局logger
     import logging
     temp_logger = logging.getLogger('load_features')
@@ -1440,101 +1613,55 @@ def load_features(feature_file: str = None) -> tuple[pd.DataFrame | None, str | 
         return None, None
 
     temp_logger.info(f"正在从 {path_to_load.name} 加载特征...")
-    feature_df, _ = _load_feature_file(path_to_load)
     
-    if feature_df.empty:
-        return None, None
-        
-    temp_logger.info(f"特征加载成功，共 {len(feature_df.columns)} 个特征。")
-    return feature_df, path_to_load.name
-
-def generate_interaction_features(importance_file_path: str, base_feature_file: str = None):
-    """
-    根据特征重要性文件生成交互特征。
-
-    Args:
-        importance_file_path (str): 特征重要性文件路径 (e.g., permutation_importance.tsv)。
-        base_feature_file (str, optional): 基础特征文件名。如果提供，
-            将加载此文件并在此基础上添加或更新特征。否则，将使用最新的特征集。
-    """
-    from itertools import combinations
-    # 1. 加载重要性文件并获取 Top N 特征
+    # 如果未指定data_ids，默认使用["0"]
+    if data_ids is None:
+        data_ids = ["0"]
+    
+    # 尝试加载字典格式的特征文件
     try:
-        importance_df = pd.read_csv(importance_file_path, sep='\t', engine='python')
-    except FileNotFoundError:
-        logger.error(f"重要性文件未找到: {importance_file_path}")
-        return
-
-    # 确定重要性列名
-    if 'importance_mean' in importance_df.columns:
-        importance_col = 'importance_mean' # for permutation importance
-    elif 'importance' in importance_df.columns:
-        importance_col = 'importance' # for lgbm feature importance
-    elif 'gain' in importance_df.columns: # for lgbm feature importance
-        importance_col = 'gain'
-    else:
-        logger.error(f"在文件中找不到有效的特征重要性列 (e.g., 'importance_mean', 'importance', 'gain'): {importance_file_path}")
-        return
-
-    top_features = importance_df.sort_values(by=importance_col, ascending=False).head(10)['feature'].tolist()
-    logger.info(f"从 {importance_file_path} 中识别出 Top 10 特征: {top_features}")
-
-    # 2. 确定并加载基础特征文件
-    if base_feature_file:
-        base_path = config.FEATURE_DIR / base_feature_file
-    else:
-        base_path = _get_latest_feature_file()
-
-    if not base_path or not base_path.exists():
-        logger.error(f"无法找到基础特征文件。请提供一个有效的文件或确保存在特征文件。")
-        return
-
-    logger.info(f"将基于特征文件进行更新: {base_path.name}")
-    feature_df, metadata = _load_feature_file(base_path)
-    if feature_df.empty:
-        logger.error("加载的基础特征文件为空，操作中止。")
-        return
+        feature_dict, _ = _load_feature_dict_file(path_to_load)
+        temp_logger.info(f"加载字典格式特征文件成功，包含数据ID: {list(feature_dict.keys())}")
         
-    initial_feature_count = len(feature_df.columns)
-
-    # 检查top features是否都在feature_df中
-    missing_features = [f for f in top_features if f not in feature_df.columns]
-    if missing_features:
-        logger.error(f"以下 Top 特征在基础特征文件中缺失，无法创建交互项: {missing_features}")
-        return
-
-    # 3. 创建交互特征
-    interaction_features = pd.DataFrame(index=feature_df.index)
-    epsilon = 1e-6
-
-    for f1, f2 in combinations(top_features, 2):
-        interaction_features[f'{f1}_mul_{f2}'] = feature_df[f1] * feature_df[f2]
-        interaction_features[f'{f1}_sub_{f2}'] = feature_df[f1] - feature_df[f2]
-        interaction_features[f'{f1}_add_{f2}'] = feature_df[f1] + feature_df[f2]
-        interaction_features[f'{f1}_div_{f2}'] = feature_df[f1] / (feature_df[f2] + epsilon)
-        interaction_features[f'{f2}_div_{f1}'] = feature_df[f2] / (feature_df[f1] + epsilon)
-
-    logger.info(f"成功创建 {len(interaction_features.columns)} 个交互特征。")
-
-    # 4. 合并并保存
-    feature_df = feature_df.drop(columns=interaction_features.columns, errors='ignore')
-    feature_df = feature_df.merge(interaction_features, left_index=True, right_index=True, how='left')
-    feature_df = clean_feature_names(feature_df, prefix="f_inter")
-
-    # 5. 保存结果
-    new_feature_count = len(feature_df.columns)
-    if new_feature_count > initial_feature_count:
-        if base_path and base_path.exists():
-            _backup_feature_file(base_path)
+        # 检查请求的数据ID是否存在
+        available_ids = list(feature_dict.keys())
+        missing_ids = [id for id in data_ids if id not in available_ids]
+        if missing_ids:
+            temp_logger.warning(f"请求的数据ID {missing_ids} 在特征文件中不存在，可用的ID: {available_ids}")
+            # 只使用存在的ID
+            data_ids = [id for id in data_ids if id in available_ids]
+            if not data_ids:
+                temp_logger.error("没有可用的数据ID")
+                return None, None
         
-        metadata['last_updated_interaction_file'] = importance_file_path
-        metadata['last_interaction_features'] = interaction_features.columns.tolist()
+        # 拼接指定数据ID的特征数据
+        feature_dfs = []
+        for data_id in data_ids:
+            df = feature_dict[data_id].copy()
+            feature_dfs.append(df)
         
-        new_file_path = _save_feature_file(feature_df, metadata)
-        logger.info(f"交互特征已保存到新文件: {new_file_path.name}")
-    else:
-        logger.info("没有新特征生成，文件未保存。")
+        # 按行拼接（concat along axis=0），保持特征列数不变
+        if len(feature_dfs) == 1:
+            concatenated_df = feature_dfs[0]
+        else:
+            concatenated_df = pd.concat(feature_dfs, axis=0, ignore_index=False)
         
-    final_feature_count = len(feature_df.columns)
-    new_file_name = new_file_path.name if 'new_file_path' in locals() and new_feature_count > initial_feature_count else 'N/A'
-    logger.info(f"交互特征生成完成。新文件: {new_file_name}, 总特征数: {final_feature_count}")
+        total_features = len(concatenated_df.columns)
+        total_rows = len(concatenated_df)
+        temp_logger.info(f"特征拼接成功，使用数据ID: {data_ids}，共 {total_features} 个特征，{total_rows} 行数据。")
+        return concatenated_df, path_to_load.name
+                
+    except Exception:
+        # 回退到旧格式
+        feature_df, _ = _load_feature_file(path_to_load)
+        
+        if feature_df.empty:
+            return None, None
+        
+        # 对于旧格式，只能返回单个DataFrame（相当于数据ID "0"）
+        if "0" in data_ids:
+            temp_logger.info(f"特征加载成功（旧格式），共 {len(feature_df.columns)} 个特征。")
+            return feature_df, path_to_load.name
+        else:
+            temp_logger.warning(f"旧格式特征文件只支持数据ID '0'，但请求的是 {data_ids}")
+            return None, None

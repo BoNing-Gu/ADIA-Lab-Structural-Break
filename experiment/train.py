@@ -47,7 +47,7 @@ def save_permutation_importance(permutation_results, feature_names, output_dir):
     logger.info(f"Permutation importance已保存到: {save_path}")
     
     
-def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_model: bool = False, perm_imp: bool = False):
+def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof: bool = False, save_model: bool = False, perm_imp: bool = False):
     """
     加载指定的特征文件和标签，进行交叉验证，并根据参数选择性保存产出物。
     """
@@ -56,9 +56,9 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     logger.info(f"Model Parameters: {json.dumps(config.LGBM_PARAMS, indent=4)}")
 
     # 1. 加载特征和标签
-    feature_df, loaded_feature_name = features.load_features(feature_file_name)
+    feature_df, loaded_feature_name = features.load_features(feature_file_name, data_ids=data_ids)
     logger.info(f"Successfully loaded features from: {loaded_feature_name}")
-    _, y_train = data.load_data()
+    _, y_train = data.load_data(enhancement_ids=data_ids, return_dict=False)
     # 确保对齐
     common_index = feature_df.index.intersection(y_train.index)
     feature_df = feature_df.loc[common_index]
@@ -198,7 +198,7 @@ def train_and_evaluate(feature_file_name: str, save_oof: bool = False, save_mode
     return models, overall_oof_auc 
 
 
-def tune_hyperparameter(feature_file_name: str, n_trials: int = 50):
+def tune_hyperparameter(feature_file_name: str, data_ids: list = ["0"], n_trials: int = 50):
     """
     基于Optuna进行超参数调优
     """
@@ -206,9 +206,9 @@ def tune_hyperparameter(feature_file_name: str, n_trials: int = 50):
     logger.info("Starting Optuna hyperparameter tuning...")
 
     # 1. 加载特征和标签
-    feature_df, loaded_feature_name = features.load_features(feature_file_name)
+    feature_df, loaded_feature_name = features.load_features(feature_file_name, data_ids=data_ids)
     logger.info(f"Successfully loaded features from: {loaded_feature_name}")
-    _, y_train = data.load_data()
+    _, y_train = data.load_data(enhancement_ids=data_ids, return_dict=False)
     # 确保对齐
     common_index = feature_df.index.intersection(y_train.index)
     feature_df = feature_df.loc[common_index]

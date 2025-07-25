@@ -36,20 +36,32 @@ def main():
     parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不创建乘法交互项(默认为创建)。')
 
     # --- 特征筛选命令 ---
-    parser_filter = subparsers.add_parser('filter-perm-imp', help='根据特征重要性阈值筛选特征并导出')
-    parser_filter.add_argument('--version', type=str, required=True, help='输出文件夹名，例如 train_20250719_174900_auc_0_76876')
-    parser_filter.add_argument('--path', type=str, default='permutation_importance.tsv', help='permutation importance 文件名')
+    parser_filter = subparsers.add_parser('filter', help='特征筛选工具')
+    filter_subparsers = parser_filter.add_subparsers(dest='filter_method', required=True, help='筛选方法')
+    # 相关性筛选子命令
+    parser_corr = filter_subparsers.add_parser('corr', help='根据特征相关性筛选特征并导出')
+    parser_corr.add_argument('--feature-file', type=str, default=None, help='可选，指定特征文件名。如果为空，则使用最新的特征文件。')
+    # 置换重要性筛选子命令
+    parser_perm_imp = filter_subparsers.add_parser('perm-imp', help='根据特征重要性阈值筛选特征并导出')
+    parser_perm_imp.add_argument('--train-version', type=str, help='训练输出文件夹名，例如 train_20250719_174900_auc_0_76876')
+    parser_perm_imp.add_argument('--feature-file', type=str, help='特征文件名，用于创建输出目录')
+     
+    # --- 数据增强命令 ---
+    parser_enhance = subparsers.add_parser('data-aug', help='应用数据增强并保存增强数据')
+    parser_enhance.add_argument('--augs', nargs='*', default=None, help='要应用的数据增强函数名列表。如果为空，则运行所有注册的增强函数。')
 
     # --- 训练命令 ---
     parser_train = subparsers.add_parser('train', help='使用特征文件进行训练')
     parser_train.add_argument('--feature-file', type=str, default=None, help='可选，指定用于训练的特征文件名。如果为空，则使用最新的特征文件。')
+    parser_train.add_argument('--train-data-ids', nargs='*', default=["0"], help='可选，指定用于训练的数据ID列表。如果为空，则使用原始数据。')
+    parser_train.add_argument('--perm-imp', action='store_true', help='是否计算permutation importance。')
     parser_train.add_argument('--save-oof', action='store_true', help='是否保存OOF预测文件。')
     parser_train.add_argument('--save-model', action='store_true', help='是否保存训练好的模型文件。')
-    parser_train.add_argument('--perm-imp', action='store_true', help='是否计算permutation importance。')
 
     # --- 超参调优命令 ---
     parser_tune = subparsers.add_parser('tune', help='使用Optuna进行超参调优')
     parser_tune.add_argument('--feature-file', type=str, default=None, help='可选，指定用于训练的特征文件名。如果为空，则使用最新的特征文件。')
+    parser_tune.add_argument('--train-data-ids', nargs='*', default=["0"], help='可选，指定用于训练的数据ID列表。如果为空，则使用原始数据。')
     parser_tune.add_argument('--n-trials', type=int, default=50, help='Optuna 试验次数，默认50')
 
     if len(sys.argv) == 1:
@@ -60,22 +72,26 @@ def main():
     
     # 根据命令选择 logger
     log_file_path = None # 初始化
-    if args.command in ['gen-feats', 'del-feats', 'gen-interactions']:
+    if args.command in ['gen-feats', 'del-feats', 'gen-interactions', 'data-aug']:
         logger, log_file_path = utils.get_logger('FeatureEng', config.FEATURE_LOG_DIR)
     else: # train
         logger, log_file_path = utils.get_logger('Training', config.TRAINING_LOG_DIR)
 
-    
     logger.info(f"========== Running Command: {args.command} ==========")
     logger.info(f"Args: {vars(args)}")
     logger.info("=======================================")
 
-    if args.command == 'gen-feats':
+    if args.command == 'data-aug':
+        from . import data
+        data.logger = logger
+        data.apply_data_enhancement(func_names=args.augs)
+
+    elif args.command == 'gen-feats':
         from . import data, features
         features.logger = logger
-        data.logger = logging.getLogger('data')
-        X_train, _ = data.load_data()
-        features.generate_features(X_train, funcs_to_run=args.funcs, trans_to_run=args.trans, base_feature_file=args.base_file)
+        data.logger = logger
+        X_data, y_data = data.load_data(enhancement_ids=config.ENHANCEMENT_IDS)
+        features.generate_features(X_data, funcs_to_run=args.funcs, trans_to_run=args.trans, base_feature_file=args.base_file)
 
     elif args.command == 'del-feats':
         from . import features
@@ -101,16 +117,27 @@ def main():
             create_div=args.div
         )
 
-    elif args.command == 'filter-perm-imp':
-        from . import filter_perm_imp
-        filter_perm_imp.filter_and_save(version=args.version, path=args.path)
+    elif args.command == 'filter':
+        if args.filter_method == 'corr':
+            from . import filter
+            filter.corr_filter(
+                feature_file=args.feature_file
+            )
+        elif args.filter_method == 'perm-imp':
+            from . import filter
+            filter.perm_imp_filter(
+                train_version=args.train_version, 
+                feature_file=args.feature_file
+            )
 
     elif args.command == 'train':
-        from . import train, features
+        from . import train, features, data
+        data.logger = logger
         train.logger = logger
         features.logger = logger
         models, oof_auc = train.train_and_evaluate(
             feature_file_name=args.feature_file,
+            data_ids=args.train_data_ids,
             save_oof=args.save_oof,
             save_model=args.save_model,
             perm_imp=args.perm_imp
@@ -134,11 +161,13 @@ def main():
                 print(f"Error renaming log file: {e}")
 
     elif args.command == 'tune':
-        from . import train, features
+        from . import train, features, data
+        data.logger = logger
         train.logger = logger
         features.logger = logger
         best_oof_auc = train.tune_hyperparameter(
             feature_file_name=args.feature_file,
+            data_ids=args.train_data_ids,
             n_trials=args.n_trials,
         )
         
@@ -160,4 +189,4 @@ def main():
                 print(f"Error renaming log file: {e}")
 
 if __name__ == '__main__':
-    main() 
+    main()

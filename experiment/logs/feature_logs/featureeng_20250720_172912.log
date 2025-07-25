@@ -1,0 +1,22 @@
+2025-07-20 17:29:12 - FeatureEng-20250720_172912 - INFO - ========== Running Command: data-aug ==========
+2025-07-20 17:29:12 - FeatureEng-20250720_172912 - INFO - Args: {'command': 'data-aug', 'augs': None}
+2025-07-20 17:29:12 - FeatureEng-20250720_172912 - INFO - =======================================
+2025-07-20 17:29:12 - FeatureEng-20250720_172912 - INFO - Loading original data for enhancement...
+2025-07-20 17:29:12 - FeatureEng-20250720_172912 - INFO - Loading data...
+2025-07-20 17:29:13 - FeatureEng-20250720_172912 - INFO - Original data loaded successfully.
+2025-07-20 17:29:13 - FeatureEng-20250720_172912 - INFO - X_train shape: (23715734, 2)
+2025-07-20 17:29:13 - FeatureEng-20250720_172912 - INFO - y_train shape: (10001, 1)
+2025-07-20 17:29:13 - FeatureEng-20250720_172912 - INFO - Applying data enhancement functions: ['scale_augmentation', 'noise_augmentation']
+2025-07-20 17:29:13 - FeatureEng-20250720_172912 - INFO - Applying enhancement function: scale_augmentation
+2025-07-20 17:29:41 - FeatureEng-20250720_172912 - INFO - Enhancement data saved:
+2025-07-20 17:29:41 - FeatureEng-20250720_172912 - INFO -   X: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\data\X_train_enhance1.parquet
+2025-07-20 17:29:41 - FeatureEng-20250720_172912 - INFO -   y: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\data\y_train_enhance1.parquet
+2025-07-20 17:29:41 - FeatureEng-20250720_172912 - INFO -   Enhanced X shape: (23715734, 2)
+2025-07-20 17:29:41 - FeatureEng-20250720_172912 - INFO -   Enhanced y shape: (10001,)
+2025-07-20 17:29:41 - FeatureEng-20250720_172912 - INFO - Applying enhancement function: noise_augmentation
+2025-07-20 17:30:12 - FeatureEng-20250720_172912 - INFO - Enhancement data saved:
+2025-07-20 17:30:12 - FeatureEng-20250720_172912 - INFO -   X: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\data\X_train_enhance2.parquet
+2025-07-20 17:30:12 - FeatureEng-20250720_172912 - INFO -   y: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\data\y_train_enhance2.parquet
+2025-07-20 17:30:12 - FeatureEng-20250720_172912 - INFO -   Enhanced X shape: (23715734, 2)
+2025-07-20 17:30:12 - FeatureEng-20250720_172912 - INFO -   Enhanced y shape: (10001,)
+2025-07-20 17:30:12 - FeatureEng-20250720_172912 - INFO - Data enhancement completed.

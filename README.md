@@ -90,24 +90,33 @@ python -m experiment.main gen-feats --funcs new_awesome_feature
 ```
 新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
 
-#### 第2.5步: 创建交互项
+#### 第3步：筛选
+```bash
+python -m experiment.main filter corr
+```
+```bash
+python -m experiment.main filter perm-imp --train-version 
+```
+
+#### 第4步: 创建交互项
 ```bash
 python -m experiment.main gen-interactions --importance-file ./experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv
 ```
 
-#### 第3步: 使用新特征集进行训练
+#### 第5步: 使用新特征集进行训练
 
 直接运行 `train` 命令。脚本会自动查找并使用 `feature_dfs` 目录中最新的特征文件进行训练。
 
 ```bash
 # 自动使用最新的特征集进行训练
-python -m experiment.main train --save-model --save-oof --perm-imp
+python -m experiment.main train --train-data-ids 0 --perm-imp --save-model --save-oof
 ```
+*   `--train-data-ids 0 1 2`: 指定用于训练的数据ID，可以接受多个值。 
+*   `--perm-imp`: 计算permutation importance。
 *   `--save-model`: 保存训练好的模型文件。
 *   `--save-oof`: 保存OOF（Out-of-Fold）预测结果。
-*   `--perm-imp`: 计算permutation importance。
 
-#### 第4步: 评估结果
+#### 第6步: 评估结果
 
 训练完成后，查看终端输出的CV分数。同时，你可以在文件系统中看到结果：
 
@@ -115,7 +124,7 @@ python -m experiment.main train --save-model --save-oof --perm-imp
 2.  **特征重要性图**: 在该文件夹内，你会找到一张 `feature_importance.png` 图，它可视化了所有特征的平均重要性，**高度会自适应调整**，确保所有特征名清晰可见。
 3.  **成功日志**: `experiment/logs/` 下对应的训练日志会被重命名，例如 `train_20250707_140000_auc_0.69000.log`。日志中包含了**训练总耗时**和**使用的全部特征列表**。
 
-#### 第5步: 决策与同步
+#### 第7步: 决策与同步
 
 *   **实验成功 (CV分数提升)**:
     1.  **确认**: 如果之前是实验性特征，记得从 `config.py` 的 `EXPERIMENTAL_FEATURES` 列表中移除它，使其成为核心特征。

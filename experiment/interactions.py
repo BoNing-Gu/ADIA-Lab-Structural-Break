@@ -16,6 +16,7 @@ def generate_interaction_features(
 ):
     """
     根据特征重要性文件生成交互特征。
+    支持字典格式的特征数据。
 
     Args:
         importance_file_path (str): 特征重要性文件路径 (e.g., permutation_importance.tsv)。
@@ -51,63 +52,129 @@ def generate_interaction_features(
         top_features = importance_df.sort_values(by=importance_col, ascending=False).head(10)['feature'].tolist()
         logger.info(f"从 {importance_file_path} 中识别出 Top 10 特征: {top_features}")
 
-    # 2. 加载基础特征文件
-    feature_df, base_file_name = features.load_features(base_feature_file)
-    if feature_df is None:
-        logger.error(f"无法加载特征文件，操作中止。")
-        return
-    base_path = config.FEATURE_DIR / base_file_name
-    initial_feature_count = len(feature_df.columns)
+    # 2. 确定并加载基础特征文件
+    if base_feature_file:
+        base_path = config.FEATURE_DIR / base_feature_file
+    else:
+        base_path = features._get_latest_feature_file()
 
-    missing_features = [f for f in top_features if f not in feature_df.columns]
-    if missing_features:
-        logger.error(f"以下 Top 特征在基础特征文件中缺失，无法创建交互项: {missing_features}")
+    if not base_path or not base_path.exists():
+        logger.error(f"无法找到基础特征文件。请提供一个有效的文件或确保存在特征文件。")
         return
 
-    # 3. 创建交互特征
-    interaction_features = pd.DataFrame(index=feature_df.index)
+    logger.info(f"将基于特征文件进行更新: {base_path.name}")
+    
+    # 尝试加载字典格式的特征文件
+    try:
+        feature_dict, metadata = features._load_feature_dict_file(base_path)
+        is_dict_format = True
+        logger.info(f"加载字典格式特征文件，包含数据ID: {list(feature_dict.keys())}")
+    except Exception:
+        # 回退到旧格式
+        feature_df, metadata = features._load_feature_file(base_path)
+        if feature_df.empty:
+            logger.error("加载的基础特征文件为空，操作中止。")
+            return
+        feature_dict = {"0": feature_df}
+        is_dict_format = False
+        logger.info("加载旧格式特征文件，转换为字典格式处理")
+        
+    initial_feature_counts = {data_id: len(df.columns) for data_id, df in feature_dict.items()}
+
+    # 3. 为每个数据ID生成交互特征
+    updated_feature_dict = {}
+    all_interaction_features = []
     epsilon = 1e-6
+    
+    for data_id, feature_df in feature_dict.items():
+        logger.info(f"\n为数据ID '{data_id}' 生成交互特征...")
+        
+        # 检查top features是否都在当前feature_df中
+        missing_features = [f for f in top_features if f not in feature_df.columns]
+        if missing_features:
+            logger.warning(f"数据ID '{data_id}' 中以下 Top 特征缺失，将跳过: {missing_features}")
+            available_features = [f for f in top_features if f in feature_df.columns]
+            if len(available_features) < 2:
+                logger.warning(f"数据ID '{data_id}' 可用特征不足2个，跳过交互特征生成")
+                updated_feature_dict[data_id] = feature_df.copy()
+                continue
+        else:
+            available_features = top_features
+        
+        # 创建交互特征
+        interaction_features = pd.DataFrame(index=feature_df.index)
+        
+        for f1, f2 in combinations(available_features, 2):
+            if create_mul:
+                interaction_features[f'{f1}_mul_{f2}'] = feature_df[f1] * feature_df[f2]
+            if create_sub:
+                interaction_features[f'{f1}_sub_{f2}'] = feature_df[f1] - feature_df[f2]
+            if create_add:
+                interaction_features[f'{f1}_add_{f2}'] = feature_df[f1] + feature_df[f2]
+            if create_div:
+                interaction_features[f'{f1}_div_{f2}'] = feature_df[f1] / (feature_df[f2] + epsilon)
+                interaction_features[f'{f2}_div_{f1}'] = feature_df[f2] / (feature_df[f1] + epsilon)
+        
+        if interaction_features.empty:
+            logger.info(f"数据ID '{data_id}' 没有选择任何交互项类型，跳过。")
+            updated_feature_dict[data_id] = feature_df.copy()
+            continue
+        
+        logger.info(f"  数据ID '{data_id}' 成功创建 {len(interaction_features.columns)} 个交互特征")
+        
+        # 合并特征
+        updated_feature_df = feature_df.drop(columns=interaction_features.columns, errors='ignore')
+        updated_feature_df = updated_feature_df.merge(interaction_features, left_index=True, right_index=True, how='left')
+        updated_feature_df = features.clean_feature_names(updated_feature_df, prefix="f_inter")
+        
+        updated_feature_dict[data_id] = updated_feature_df
+        
+        # 记录所有交互特征名称（用于元数据）
+        if data_id == list(feature_dict.keys())[0]:  # 只记录第一个数据ID的交互特征名称
+            all_interaction_features = interaction_features.columns.tolist()
 
-    for f1, f2 in combinations(top_features, 2):
-        if create_mul:
-            interaction_features[f'{f1}_mul_{f2}'] = feature_df[f1] * feature_df[f2]
-        if create_sub:
-            interaction_features[f'{f1}_sub_{f2}'] = feature_df[f1] - feature_df[f2]
-        if create_add:
-            interaction_features[f'{f1}_add_{f2}'] = feature_df[f1] + feature_df[f2]
-        if create_div:
-            interaction_features[f'{f1}_div_{f2}'] = feature_df[f1] / (feature_df[f2] + epsilon)
-            interaction_features[f'{f2}_div_{f1}'] = feature_df[f2] / (feature_df[f1] + epsilon)
-
-    if interaction_features.empty:
-        logger.info("没有选择任何交互项类型，操作中止。")
-        return
-
-    logger.info(f"成功创建 {len(interaction_features.columns)} 个交互特征。")
-    logger.info("--- 新生成的交互特征列表 ---")
-    logger.info(interaction_features.columns.tolist())
-    logger.info("------------------------------")
-
-    # 4. 合并并保存
-    feature_df = feature_df.drop(columns=interaction_features.columns, errors='ignore')
-    feature_df = feature_df.merge(interaction_features, left_index=True, right_index=True, how='left')
-    feature_df = features.clean_feature_names(feature_df)
-
-    # 5. 保存结果
-    new_feature_count = len(feature_df.columns)
-    if new_feature_count > initial_feature_count:
+    # 4. 检查是否有新特征生成并保存结果
+    has_new_features = False
+    final_feature_counts = {}
+    
+    for data_id, df in updated_feature_dict.items():
+        final_feature_counts[data_id] = len(df.columns)
+        if final_feature_counts[data_id] > initial_feature_counts[data_id]:
+            has_new_features = True
+    
+    if has_new_features:
         if base_path and base_path.exists():
             features._backup_feature_file(base_path)
         
-        metadata = json.loads(feature_df.attrs.get('feature_metadata', '{}'))
         metadata['last_updated_interaction_file'] = importance_file_path
-        metadata['last_interaction_features'] = interaction_features.columns.tolist()
+        metadata['last_interaction_features'] = all_interaction_features
+        metadata['data_ids'] = list(updated_feature_dict.keys())
         
-        new_file_path = features._save_feature_file(feature_df, metadata)
+        # 保存结果
+        if is_dict_format or len(updated_feature_dict) > 1:
+            new_file_path = features._save_feature_dict_file(updated_feature_dict, metadata)
+        else:
+            # 如果原来是单个DataFrame格式且只有一个数据ID，保持兼容性
+            new_file_path = features._save_feature_file(updated_feature_dict["0"], metadata)
+        
         logger.info(f"交互特征已保存到新文件: {new_file_path.name}")
+        
+        logger.info("\n=== 交互特征生成完成统计 ===")
+        for data_id in updated_feature_dict.keys():
+            initial_count = initial_feature_counts[data_id]
+            final_count = final_feature_counts[data_id]
+            logger.info(f"数据ID '{data_id}': {initial_count} -> {final_count} 个特征 (+{final_count - initial_count})")
+        
+        # 打印新增的交互特征名列表
+        if all_interaction_features:
+            logger.info(f"\n新增的交互特征列表 (共 {len(all_interaction_features)} 个):")
+            logger.info(f"{all_interaction_features}")
+        else:
+            logger.info("\n未生成新的交互特征")
     else:
         logger.info("没有新特征生成，文件未保存。")
+        new_file_path = None
         
-    final_feature_count = len(feature_df.columns)
-    new_file_name = new_file_path.name if 'new_file_path' in locals() and new_feature_count > initial_feature_count else 'N/A'
-    logger.info(f"交互特征生成完成。新文件: {new_file_name}, 总特征数: {final_feature_count}")
+    new_file_name = new_file_path.name if new_file_path else 'N/A'
+    total_final_features = sum(final_feature_counts.values())
+    logger.info(f"交互特征生成完成。新文件: {new_file_name}, 总特征数: {total_final_features}")

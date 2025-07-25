@@ -19,6 +19,81 @@ from .model import DimReducer, NeighborFeatureExtractor
 # logger 将由 main.py 在运行时注入
 logger = None
 
+def create_enhanced_cv_splits(feature_df, y_train, data_ids, cv_params):
+    """
+    创建增强数据的交叉验证分割策略。
+    
+    该函数确保：
+    1. 只使用原始数据（索引0-10000）创建CV分割
+    2. 验证集只包含原始数据
+    3. 训练集包含原始数据及其对应的增强数据
+    
+    Args:
+        feature_df: 包含所有数据（原始+增强）的特征DataFrame
+        y_train: 包含所有数据（原始+增强）的标签Series
+        data_ids: 数据增强ID列表，如["0", "1", "2"]
+        cv_params: 交叉验证参数
+    
+    Returns:
+        generator: 生成器，每次yield (train_idx, val_idx)
+    """
+    logger.info("创建增强数据交叉验证分割...")
+    
+    # 1. 识别原始数据索引（0-10000）
+    original_indices = []
+    enhanced_indices = {}  # {original_id: [enhanced_id1, enhanced_id2, ...]}
+    
+    for idx in feature_df.index:
+        if idx <= 10000:  # 原始数据
+            original_indices.append(idx)
+            enhanced_indices[idx] = []
+        else:  # 增强数据
+            # 根据增强数据生成规律反推原始ID
+            # new_id = int(func_id) * 1000000 + i * 100000 + int(original_id)
+            original_id = idx % 100000  # 提取原始ID
+            if original_id in enhanced_indices:
+                enhanced_indices[original_id].append(idx)
+            else:
+                enhanced_indices[original_id] = [idx]
+    
+    original_indices = sorted(original_indices)
+    logger.info(f"识别到 {len(original_indices)} 条原始数据")
+    
+    # 统计增强数据
+    total_enhanced = sum(len(enhanced_list) for enhanced_list in enhanced_indices.values())
+    logger.info(f"识别到 {total_enhanced} 条增强数据")
+    
+    # 2. 使用原始数据创建CV分割
+    original_feature_df = feature_df.loc[original_indices]
+    original_y_train = y_train.loc[original_indices]
+    
+    skf = StratifiedKFold(**cv_params)
+    
+    # 3. 为每个fold生成训练集和验证集索引
+    for fold, (original_train_idx, original_val_idx) in enumerate(skf.split(original_feature_df, original_y_train)):
+        # 获取原始数据的实际索引
+        original_train_ids = [original_indices[i] for i in original_train_idx]
+        original_val_ids = [original_indices[i] for i in original_val_idx]
+        
+        # 验证集只包含原始数据
+        val_idx = original_val_ids
+        
+        # 训练集包含原始数据 + 对应的增强数据
+        train_idx = original_train_ids.copy()
+        
+        # 为训练集中的每个原始数据添加对应的增强数据
+        for original_id in original_train_ids:
+            if original_id in enhanced_indices:
+                train_idx.extend(enhanced_indices[original_id])
+        
+        # 转换为在feature_df中的位置索引
+        train_positions = [feature_df.index.get_loc(idx) for idx in train_idx if idx in feature_df.index]
+        val_positions = [feature_df.index.get_loc(idx) for idx in val_idx if idx in feature_df.index]
+        
+        logger.info(f"Fold {fold+1}: 训练集 {len(train_positions)} 条 (原始: {len(original_train_ids)}, 增强: {len(train_positions)-len(original_train_ids)}), 验证集 {len(val_positions)} 条 (仅原始数据)")
+        
+        yield train_positions, val_positions
+
 def save_feature_importance(feature_importances, feature_names, output_dir):
     """将特征重要性降序保存为 tsv 文件。"""
     df = pd.DataFrame({'feature': feature_names, 'importance': feature_importances})
@@ -92,16 +167,15 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     logger.info("-" * min(50, len(str(feature_df.columns.tolist()))))
     
     # 3. 交叉验证
-    logger.info("Starting 5-fold cross-validation with LightGBM...")
+    logger.info("Starting 5-fold cross-validation with enhanced data strategy...")
 
-    skf = StratifiedKFold(**config.CV_PARAMS)
-
-    oof_preds = np.zeros(len(feature_df))
+    oof_preds = np.zeros(len(feature_df[0:10001]))
     models = []
     feature_importances = pd.DataFrame(index=feature_df.columns)
     permutation_results = pd.DataFrame(index=feature_df.columns)
     
-    cv_iterator = skf.split(feature_df, y_train)
+    # 使用增强数据交叉验证策略
+    cv_iterator = create_enhanced_cv_splits(feature_df, y_train, data_ids, config.CV_PARAMS)
     for fold, (train_idx, val_idx) in enumerate(cv_iterator):
         logger.info(f"--- Fold {fold+1}/{config.CV_PARAMS['n_splits']} ---")
         fold_start_time = time.time()
@@ -148,7 +222,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
             perm_duration = time.time() - perm_start_time
             logger.info(f"Fold {fold+1} permutation importance finished in {perm_duration:.2f}s")
 
-    overall_oof_auc = roc_auc_score(y_train, oof_preds)
+    overall_oof_auc = roc_auc_score(y_train[0:10001], oof_preds)
     logger.info(f"Overall OOF AUC: {overall_oof_auc:.5f}")
 
     # 4. 创建带时间和AUC分数的输出文件夹

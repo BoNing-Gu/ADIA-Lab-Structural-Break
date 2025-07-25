@@ -15,39 +15,42 @@
 
 ```
 ADIA-Lab-Structural-Break/
-|
-├── data/                       # 原始数据
-|
-├── experiment/                 # 核心实验代码
-|   ├── backups/                # 特征文件的自动备份
-|   ├── feature_dfs/            # 所有版本的时间戳特征文件 (e.g., features_20231029_153000.parquet)
-|   ├── logs/                   # 所有运行日志
-|   |   ├── feature_eng_...log  # 特征工程日志
-|   |   └── train_...log        # 训练日志 (成功后会重命名加入CV分数)
-|   ├── output/                 # 所有训练产出
-|   |   └── train_20231029_160000_cv_0.81234/ # 以"时间戳_auc_分数"命名的单次训练结果
-|   |       ├── model_fold_1.txt
-|   |       ├── oof_preds.csv
-|   |       ├── training_metadata.json
-|   |       └── feature_importance.png # 特征重要性图
-|   ├── config.py
-|   ├── features.py             # **所有激活特征函数的定义之处**
-|   ├── features_deprecated.py  # **已废弃或实验失败的特征函数**
-|   ├── main.py                 # 命令行入口
-|   ├── train.py                # 训练逻辑
-|   └── utils.py                # 工具函数 (如日志)
-|
-├── notebooks/                  # EDA 和快速原型验证
-└── README.md                   # 本文档
+├── experiment/                   # 主要实验模块
+│   ├── config.py                 # 配置文件
+│   ├── data.py                   # 数据加载和预处理
+│   ├── features.py               # **所有激活特征函数的定义之处**
+│   ├── features_deprecated.py    # **已废弃或实验失败的特征函数**
+│   ├── filter.py                 # 特征过滤
+│   ├── interactions.py           # 特征交互
+│   ├── model.py                  # 模型定义
+│   ├── train.py                  # 训练和评估（含增强数据交叉验证）
+│   ├── main.py                   # 主程序入口
+│   ├── utils.py                  # 工具函数
+│   ├── logs/                     # 日志文件
+│   │   ├── feature_logs/         # 特征工程日志
+│   │   └── training_logs/        # 训练日志
+│   └── output/                   # 输出结果（按时间戳和AUC分类）
+├── submit.ipynb                  # 提交文件生成
+├── requirements.txt              # 依赖包
+├── .gitignore                    # Git忽略文件
+└── README.md                     # 项目说明
 ```
 
 ---
 
-## 3. 日常工作流：一次完整的特征实验
+## 3. 工作流说明
 
-假设你想添加一个新特征 `new_awesome_feature`。
+#### 第1步：数据增强
 
-#### 第1步: 在 `features.py` 中开发特征函数
+在 `experiment/data.py` 文件中，添加数据增强函数，并用 `@register_data_enhancement` 装饰器标记。
+
+```python
+python -m experiment.main data-aug
+```
+
+然后在 `experiment/config.py` 中，添加数据增强函数的名称到 `DATA_ENHANCEMENTS` 列表中，这将标记哪些增强数据会在 `gen-feats` 命令中生成特征。
+
+#### 第2步: 在 `features.py` 中开发特征函数
 
 在 `experiment/features.py` 文件中，添加你的特征函数，并用 `@register_feature` 装饰器标记。
 
@@ -64,7 +67,7 @@ def new_awesome_feature(u: pd.DataFrame) -> dict:
     return {'new_awesome_feature': 42}
 ```
 
-#### 第1.5步: (可选) 将其设为实验性特征
+#### 第2.5步: (可选) 将其设为实验性特征
 如果你不确定这个特征是否有效，可以先将其加入 `experiment/config.py` 的 `EXPERIMENTAL_FEATURES` 列表。
 
 ```python
@@ -75,7 +78,6 @@ EXPERIMENTAL_FEATURES = [
 ```
 这样，默认的 `gen-feats` 命令会跳过它。只有当你通过 `--funcs` 参数明确指定它时，它才会被生成。这有助于保持主特征集的稳定。
 
-#### 第2步: 生成包含新特征的新版特征集
 打开终端，运行 `gen-feats` 命令并用 `--funcs` 指定要运行的函数。
 
 ```bash
@@ -91,14 +93,23 @@ python -m experiment.main gen-feats --funcs new_awesome_feature
 新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
 
 #### 第3步：筛选
+
+生成特征后，执行相关性剔除，筛选结果呈现在 `./experiment/output/filter_***` 中，将保留下来的特征列表复制到 `experiment/config.py` 的 `REMAIN_FEATURES` 列表。
+
 ```bash
 python -m experiment.main filter corr
 ```
+
+训练后，使用permutation importance筛选特征，请指定训练版本，筛选结果会保存在 `./experiment/output/filter_***` 中。
+
 ```bash
 python -m experiment.main filter perm-imp --train-version 
 ```
 
 #### 第4步: 创建交互项
+
+有两种方法生成交互项，其一是在 `experiment/config.py` 的 `TOP_FEATURES` 列表中指定要交互的特征，其二是在 `gen-interactions` 命令中通过 `importance-file` 参数指定特征重要性文件。
+
 ```bash
 python -m experiment.main gen-interactions --importance-file ./experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv
 ```
@@ -111,6 +122,7 @@ python -m experiment.main gen-interactions --importance-file ./experiment/output
 # 自动使用最新的特征集进行训练
 python -m experiment.main train --train-data-ids 0 --perm-imp --save-model --save-oof
 ```
+
 *   `--train-data-ids 0 1 2`: 指定用于训练的数据ID，可以接受多个值。 
 *   `--perm-imp`: 计算permutation importance。
 *   `--save-model`: 保存训练好的模型文件。
@@ -191,7 +203,7 @@ python -m experiment.main train --train-data-ids 0 --perm-imp --save-model --sav
     *   `--save-model`: Flag, 是否保存模型文件。
     *   `--save-oof`: Flag, 是否保存OOF预测文件。 
 
-# 提交记录
+# 7. 提交记录
 | 提交号 | 本地CV | 公开LB | 描述 |
 | --- | --- | --- | --- |
 | #7  | 0.7875 | 0.7812 | Perm阈值0.0005，Drop到55个特征 |

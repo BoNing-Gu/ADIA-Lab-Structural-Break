@@ -206,5 +206,5 @@ python -m experiment.main train --train-data-ids 0 --perm-imp --save-model --sav
 # 7. 提交记录
 | 提交号 | 本地CV | 公开LB | 描述 |
 | --- | --- | --- | --- |
-| #7  | 0.7875 | 0.7812 | Perm阈值0.0005，Drop到55个特征 |
-
+| #7  | 0.7875 | 0.7812 | Perm阈值0.0005，55个特征 |
+| #8  | 0.8739 | 0.8646 | Perm阈值0.0002，添加Top10特征交互项，86个特征 |

@@ -1025,7 +1025,7 @@ def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 
     return result_dfs
 
-# @register_transform(output_mode_names=['MAde_trend', 'MAde_resid'])
+# @register_transform(output_mode_names=['MAtrend', 'MAresid'])
 def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     """
     滑动平均分解

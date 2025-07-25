@@ -33,6 +33,7 @@ def main():
     parser_inter.add_argument('--add', action='store_true', help='创建加法交互项。')
     parser_inter.add_argument('--sub', action='store_true', help='创建减法交互项。')
     parser_inter.add_argument('--div', action='store_true', help='创建除法交互项。')
+    parser_inter.add_argument('--sq', action='store_true', help='创建平方交互项。')
     parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不创建乘法交互项(默认为创建)。')
 
     # --- 特征筛选命令 ---
@@ -114,7 +115,8 @@ def main():
             create_mul=args.mul,
             create_add=args.add,
             create_sub=args.sub,
-            create_div=args.div
+            create_div=args.div,
+            create_sq=args.sq
         )
 
     elif args.command == 'filter':

@@ -10,6 +10,7 @@ def generate_interaction_features(
     importance_file_path: str, 
     base_feature_file: str = None,
     create_mul: bool = True,
+    create_sqmul: bool = False,
     create_add: bool = False,
     create_sub: bool = False,
     create_div: bool = False,
@@ -24,6 +25,7 @@ def generate_interaction_features(
         base_feature_file (str, optional): 基础特征文件名。如果提供，
             将加载此文件并在此基础上添加或更新特征。否则，将使用最新的特征集。
         create_mul (bool): 是否创建乘法交互项。默认为 True。
+        create_sqmul (bool): 是否创建乘法平方交互项。默认为 False。
         create_add (bool): 是否创建加法交互项。默认为 False。
         create_sub (bool): 是否创建减法交互项。默认为 False。
         create_div (bool): 是否创建除法交互项。默认为 False。
@@ -109,6 +111,9 @@ def generate_interaction_features(
         for f1, f2 in combinations(available_features, 2):
             if create_mul:
                 interaction_features[f'{f1}_mul_{f2}'] = feature_df[f1] * feature_df[f2]
+            if create_sqmul:
+                interaction_features[f'{f1}_sqmul_{f2}'] = feature_df[f1] * (feature_df[f2] ** 2)
+                interaction_features[f'{f2}_sqmul_{f1}'] = feature_df[f2] * (feature_df[f1] ** 2)
             if create_sub:
                 interaction_features[f'{f1}_sub_{f2}'] = feature_df[f1] - feature_df[f2]
             if create_add:
@@ -117,9 +122,9 @@ def generate_interaction_features(
                 interaction_features[f'{f1}_div_{f2}'] = feature_df[f1] / (feature_df[f2] + epsilon)
                 interaction_features[f'{f2}_div_{f1}'] = feature_df[f2] / (feature_df[f1] + epsilon)
 
-        if create_sq:
-            for f in available_features:
-                interaction_features[f'f_sq_{f}'] = feature_df[f] ** 2
+        for f in available_features:
+            if create_sq:
+                interaction_features[f'{f}_sq'] = feature_df[f] ** 2
         
         if interaction_features.empty:
             logger.info(f"数据ID '{data_id}' 没有选择任何交互项类型，跳过。")
@@ -195,16 +200,16 @@ def generate_one2all_interactions(
             将加载此文件并在此基础上添加或更新特征。否则，将使用最新的特征集。
         target_feature (str): 要进行交互的目标特征名，默认为 'RAW_1_stats_cv_whole'。
     """
-    # 1. 获取 REMAIN_FEATURES 中不含 'mul' 的特征
-    non_mul_features = [f for f in config.REMAIN_FEATURES if 'mul' not in f and f != target_feature]
+    # 1. 获取 REMAIN_FEATURES 中不含 'mul'/'sub'/'div'/'add'/'sq' 的特征
+    raw_features = [f for f in config.REMAIN_FEATURES if 'mul' not in f and 'sub' not in f and 'div' not in f and 'add' not in f and 'sq' not in f and f != target_feature]
     
-    if not non_mul_features:
-        logger.warning(f"在 REMAIN_FEATURES 中没有找到不含 'mul' 且不等于 '{target_feature}' 的特征")
+    if not raw_features:
+        logger.warning(f"在 REMAIN_FEATURES 中没有找到不含 'mul'/'sub'/'div'/'add'/'sq' 且不等于 '{target_feature}' 的特征")
         return
     
-    logger.info(f"找到 {len(non_mul_features)} 个不含 'mul' 的特征将与 '{target_feature}' 进行交互")
+    logger.info(f"找到 {len(raw_features)} 个不含 'mul'/'sub'/'div'/'add'/'sq' 的特征将与 '{target_feature}' 进行交互")
     logger.info(f"目标特征: {target_feature}")
-    logger.info(f"交互特征列表: {non_mul_features}")
+    logger.info(f"交互特征列表: {raw_features}")
 
     # 2. 确定并加载基础特征文件
     if base_feature_file:
@@ -249,8 +254,8 @@ def generate_one2all_interactions(
             continue
         
         # 检查有多少个交互特征在当前feature_df中
-        available_features = [f for f in non_mul_features if f in feature_df.columns]
-        missing_features = [f for f in non_mul_features if f not in feature_df.columns]
+        available_features = [f for f in raw_features if f in feature_df.columns]
+        missing_features = [f for f in raw_features if f not in feature_df.columns]
         
         if missing_features:
             logger.warning(f"数据ID '{data_id}' 中以下特征缺失，将跳过: {missing_features}")

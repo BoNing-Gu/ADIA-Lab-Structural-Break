@@ -1,0 +1,3 @@
+2025-07-26 00:41:23 - Training-20250726_004123 - INFO - ========== Running Command: filter ==========
+2025-07-26 00:41:23 - Training-20250726_004123 - INFO - Args: {'command': 'filter', 'filter_method': 'perm-imp', 'train_version': 'train_20250726_003748_auc_0_87090', 'feature_file': None}
+2025-07-26 00:41:23 - Training-20250726_004123 - INFO - =======================================

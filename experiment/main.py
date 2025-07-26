@@ -30,11 +30,13 @@ def main():
     parser_inter = subparsers.add_parser('gen-interactions', help='根据特征重要性文件生成交互特征')
     parser_inter.add_argument('--importance-file', type=str, required=False, help='特征重要性文件路径 (e.g., permutation_importance.tsv).')
     parser_inter.add_argument('--base-file', type=str, default=None, help='可选，指定一个基础特征文件名进行更新。如果为空，则使用最新的特征文件。')
+    parser_inter.add_argument('--sqmul', action='store_true', help='创建乘法平方交互项。')
     parser_inter.add_argument('--add', action='store_true', help='创建加法交互项。')
     parser_inter.add_argument('--sub', action='store_true', help='创建减法交互项。')
     parser_inter.add_argument('--div', action='store_true', help='创建除法交互项。')
     parser_inter.add_argument('--sq', action='store_true', help='创建平方交互项。')
     parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不创建乘法交互项(默认为创建)。')
+    parser_inter.add_argument('--one2all', action='store_true', help='是否创建所有特征与目标特征的交互项。')
 
     # --- 特征筛选命令 ---
     parser_filter = subparsers.add_parser('filter', help='特征筛选工具')
@@ -104,27 +106,24 @@ def main():
         )
 
     elif args.command == 'gen-interactions':
-        from . import interactions
+        from . import interactions, features
         interactions.logger = logger
-        # 确保 features 模块的 logger 也被设置
-        from . import features
         features.logger = logger
-        # interactions.generate_interaction_features(
-        #     importance_file_path=args.importance_file,
-        #     base_feature_file=args.base_file,
-        #     create_mul=args.mul,
-        #     create_add=args.add,
-        #     create_sub=args.sub,
-        #     create_div=args.div
-        # )
-        interactions.generate_one2all_interactions(
+        interactions.generate_interaction_features(
+            importance_file_path=args.importance_file,
             base_feature_file=args.base_file,
             create_mul=args.mul,
+            create_sqmul=args.sqmul,
             create_add=args.add,
             create_sub=args.sub,
             create_div=args.div,
-            create_sq=args.sq
+            create_sq=args.sq,
         )
+        if args.one2all:
+            interactions.generate_one2all_interactions(
+                base_feature_file=args.base_file,
+                target_feature='RAW_1_stats_cv_whole'
+            )
 
     elif args.command == 'filter':
         if args.filter_method == 'corr':

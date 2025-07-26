@@ -111,6 +111,8 @@ def main():
         features.logger = logger
         interactions.generate_interaction_features(
             importance_file_path=args.importance_file,
+        interactions.generate_interaction_features(
+            importance_file_path=args.importance_file,
             base_feature_file=args.base_file,
             create_mul=args.mul,
             create_sqmul=args.sqmul,

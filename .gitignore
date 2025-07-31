@@ -1,6 +1,7 @@
 data/
 saves/
 .crunchdao/
+.vscode/
 feature_dfs/
 __pycache__/
 try_features/

@@ -32,7 +32,7 @@ SEED = 42
 # --- Data Enhancement ---
 # 数据增强配置，指定要加载的增强数据ID列表
 # 如果为'0'，则只使用原始数据
-ENHANCEMENT_IDS = ["0","3"] 
+ENHANCEMENT_IDS = ["0"] 
 
 # --- Model ---
 LGBM_PARAMS = {

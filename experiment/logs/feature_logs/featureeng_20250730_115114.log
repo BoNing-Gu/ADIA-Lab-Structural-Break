@@ -1,0 +1,18 @@
+2025-07-30 11:51:14 - FeatureEng-20250730_115114 - INFO - ========== Running Command: data-aug ==========
+2025-07-30 11:51:14 - FeatureEng-20250730_115114 - INFO - Args: {'command': 'data-aug', 'augs': ['swap_periods_augmentation']}
+2025-07-30 11:51:14 - FeatureEng-20250730_115114 - INFO - =======================================
+2025-07-30 11:51:14 - FeatureEng-20250730_115114 - INFO - Loading original data for enhancement...
+2025-07-30 11:51:14 - FeatureEng-20250730_115114 - INFO - Loading data...
+2025-07-30 11:51:16 - FeatureEng-20250730_115114 - INFO - Original data loaded successfully.
+2025-07-30 11:51:16 - FeatureEng-20250730_115114 - INFO - X_train shape: (23715734, 2)
+2025-07-30 11:51:16 - FeatureEng-20250730_115114 - INFO - y_train shape: (10001, 1)
+2025-07-30 11:51:16 - FeatureEng-20250730_115114 - INFO - Total datasets loaded: 1
+2025-07-30 11:51:16 - FeatureEng-20250730_115114 - INFO - Dataset 0: X shape (23715734, 2), y shape (10001, 1)
+2025-07-30 11:51:16 - FeatureEng-20250730_115114 - INFO - Applying data enhancement functions: ['swap_periods_augmentation']
+2025-07-30 11:51:16 - FeatureEng-20250730_115114 - INFO - Applying enhancement function: swap_periods_augmentation
+2025-07-30 11:51:33 - FeatureEng-20250730_115114 - INFO - Enhancement data saved:
+2025-07-30 11:51:33 - FeatureEng-20250730_115114 - INFO -   X: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\data\X_train_enhance3.parquet
+2025-07-30 11:51:33 - FeatureEng-20250730_115114 - INFO -   y: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\data\y_train_enhance3.parquet
+2025-07-30 11:51:33 - FeatureEng-20250730_115114 - INFO -   Enhanced X shape: (6899484, 2)
+2025-07-30 11:51:33 - FeatureEng-20250730_115114 - INFO -   Enhanced y shape: (2909,)
+2025-07-30 11:51:33 - FeatureEng-20250730_115114 - INFO - Data enhancement completed.

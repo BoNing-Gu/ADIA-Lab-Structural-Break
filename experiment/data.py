@@ -304,6 +304,76 @@ def noise_augmentation(u: pd.DataFrame, y: bool, id: int) -> dict:
     
     return {'X_enhanced': u_enhanced, 'y_enhanced': y_enhanced}
 
+@register_data_enhancement(times=1, func_id="3")
+def swap_periods_augmentation(u: pd.DataFrame, y: bool, id: int) -> dict:
+    """
+    交换 period 0 和 period 1 的数据段。
+    此增强仅在存在结构断点时应用 (y=True)。
+    
+    Args:
+        u: 单个id对应的DataFrame，包含time, value, period列
+        y: 单个id对应的标签，bool类型
+    
+    Returns:
+        dict: 包含增强后的数据，格式为 {'X_enhanced': DataFrame, 'y_enhanced': Series}
+    """
+    # 如果没有结构断点，则不进行增强，直接返回空结果
+    if not y:
+        return {'X_enhanced': pd.DataFrame(), 'y_enhanced': pd.Series(dtype='bool')}
+
+    func_info = DATA_ENHANCEMENT_REGISTRY['swap_periods_augmentation']
+    times = func_info['times']
+    func_id = func_info['func_id']
+
+    enhanced_data = []
+    enhanced_labels = []
+
+    for i in range(times):
+        u_aug = u.copy()
+        
+        period_0_df = u_aug[u_aug['period'] == 0].copy()
+        period_1_df = u_aug[u_aug['period'] == 1].copy()
+
+        # 如果任一段为空，则不进行增强
+        if period_0_df.empty or period_1_df.empty:
+            continue
+
+        # 新的时间轴和period
+        len_1 = len(period_1_df)
+        len_0 = len(period_0_df)
+
+        # 将原来的period 1 放到前面
+        period_1_df['time'] = range(len_1)
+        period_1_df['period'] = 0
+
+        # 将原来的period 0 放到后面
+        period_0_df['time'] = range(len_1, len_1 + len_0)
+        period_0_df['period'] = 1
+
+        # 合并
+        u_swapped = pd.concat([period_1_df, period_0_df])
+
+        # 生成新的ID
+        new_id = int(func_id) * 1000000 + i * 100000 + int(id)
+        
+        # 重置索引并设置新的ID
+        if isinstance(u_swapped.index, pd.MultiIndex):
+            u_swapped = u_swapped.reset_index(drop=True)
+        u_swapped['id'] = new_id
+        u_swapped['id'] = u_swapped['id'].astype('int64')
+        u_swapped = u_swapped.set_index(['id', 'time'])
+
+        enhanced_data.append(u_swapped)
+        enhanced_labels.append(pd.Series([y], index=pd.Index([new_id], dtype='int64'), name='structural_breakpoint'))
+
+    if not enhanced_data:
+        return {'X_enhanced': pd.DataFrame(), 'y_enhanced': pd.Series(dtype='bool')}
+        
+    u_enhanced = pd.concat(enhanced_data, axis=0)
+    y_enhanced = pd.concat(enhanced_labels, axis=0)
+
+    return {'X_enhanced': u_enhanced, 'y_enhanced': y_enhanced}
+
 def _apply_data_enhancement_sequential(func, X_df: pd.DataFrame, y_df: pd.DataFrame) -> tuple:
     """
     顺序应用单个数据增强函数
@@ -332,6 +402,10 @@ def _apply_data_enhancement_sequential(func, X_df: pd.DataFrame, y_df: pd.DataFr
         # 应用增强函数
         result = func(u, y, id_val)
         
+        # 跳过空的增强结果
+        if result['X_enhanced'].empty:
+            continue
+
         all_X_enhanced.append(result['X_enhanced'])
         all_y_enhanced.append(result['y_enhanced'])
     

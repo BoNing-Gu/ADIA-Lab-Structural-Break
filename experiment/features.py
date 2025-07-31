@@ -61,6 +61,27 @@ def register_feature(_func=None, *, parallelizable=True, func_id=""):
         # Used as @register_feature
         return decorator_register(_func)
 
+def _add_diff_ratio_feats(feats: dict, name: str, left, right):
+    """
+    一个辅助函数，用于向特征字典中添加差异和比例特征。
+
+    Args:
+        feats (dict): 要更新的特征字典。
+        name (str): 特征的基础名称 (例如, 'stats_mean')。
+        left (float): 左侧分段的特征值。
+        right (float): 右侧分段的特征值。
+    """
+    # check nan/None 
+    if np.isnan(left) or np.isnan(right) or left is None or right is None:
+        feats[f'{name}_diff'] = 0.0
+        feats[f'{name}_ratio'] = 0.0
+        return
+    # 做差
+    feats[f'{name}_diff'] = right - left
+    # 做比
+    feats[f'{name}_ratio'] = right / (left + 1e-6)
+
+
 def _add_contribution_ratio_feats(feats: dict, name: str, left, right, whole):
     """
     一个辅助函数，用于向特征字典中添加贡献度和与整体的比例特征。
@@ -72,14 +93,16 @@ def _add_contribution_ratio_feats(feats: dict, name: str, left, right, whole):
         right (float): 右侧分段的特征值。
         whole (float): 整个序列的特征值。
     """
-    # np.isnan for both None and np.nan
-    if np.isnan(left) or np.isnan(right) or np.isnan(whole) or whole is None or left is None or right is None:
+    # check nan/None 
+    if np.isnan(left) or np.isnan(right) or np.isnan(whole) or left is None or right is None or whole is None :
+        feats[f'{name}_contribution_left'] = 0.0
+        feats[f'{name}_contribution_right'] = 0.0
+        feats[f'{name}_ratio_to_whole_left'] = 0.0
+        feats[f'{name}_ratio_to_whole_right'] = 0.0
         return
-        
     # 特征贡献度
     feats[f'{name}_contribution_left'] = left / (left + right + 1e-6)
     feats[f'{name}_contribution_right'] = right / (left + right + 1e-6)
-    
     # 与整体特征的比例
     feats[f'{name}_ratio_to_whole_left'] = left / (whole + 1e-6)
     feats[f'{name}_ratio_to_whole_right'] = right / (whole + 1e-6)
@@ -91,7 +114,7 @@ def safe_cv(s):
     std = s.std()
     return std / m if abs(m) > 1e-6 else 0.0
 
-def rolling_std_mean(s, window=5):
+def rolling_std_mean(s, window=50):
     s = pd.Series(s)
     if len(s) < window:
         return 0.0
@@ -150,15 +173,16 @@ class STATSFeatureExtractor:
                 left = self.calculate(func, 0, boundary)
                 right = self.calculate(func, boundary, n)
                 whole = self.calculate(func, 0, n)
-                diff = right - left
-                ratio = right / (left + 1e-6)
+                # diff = right - left
+                # ratio = right / (left + 1e-6)
             except Exception:
                 left = None
                 right = None
                 whole = None
-                diff = None
-                ratio = None
-            result[name] = {'left': left, 'right': right, 'whole': whole, 'diff': diff, 'ratio': ratio}
+                # diff = None
+                # ratio = None
+            # Move to _add_diff_ratio_feats, 'diff': diff, 'ratio': ratio
+            result[name] = {'left': left, 'right': right, 'whole': whole}   
         return result
 
 @register_feature(func_id="1")
@@ -177,6 +201,7 @@ def distribution_stats_features(u: pd.DataFrame) -> dict:
     for k, v in features.items():
         for seg, value in v.items():
             feats[f'stats_{k}_{seg}'] = value
+        _add_diff_ratio_feats(feats, f'stats_{k}', v['left'], v['right'])
         _add_contribution_ratio_feats(feats, f'stats_{k}', v['left'], v['right'], v['whole'])
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
@@ -210,13 +235,9 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     feats['mannwhitney_pvalue'] = -mw_pvalue if not np.isnan(mw_pvalue) else 1
     
     # Wilcoxon秩和检验
-    try:
-        w_stat, w_pvalue = scipy.stats.ranksums(s1, s2)
-        feats['wilcoxon_stat'] = w_stat if not np.isnan(w_stat) else 0
-        feats['wilcoxon_pvalue'] = -w_pvalue if not np.isnan(w_pvalue) else 1
-    except ValueError:
-        feats['wilcoxon_stat'] = 0
-        feats['wilcoxon_pvalue'] = 1
+    w_stat, w_pvalue = scipy.stats.ranksums(s1, s2)
+    feats['wilcoxon_stat'] = w_stat if not np.isnan(w_stat) else 0
+    feats['wilcoxon_pvalue'] = -w_pvalue if not np.isnan(w_pvalue) else 1
 
     # Levene检验
     levene_stat, levene_pvalue = scipy.stats.levene(s1, s2)
@@ -231,34 +252,30 @@ def test_stats_features(u: pd.DataFrame) -> dict:
     """分段假设检验的分段值、Diff值、Ratio值"""
     # Shapiro-Wilk检验
     sw1_stat, sw1_pvalue, sw2_stat, sw2_pvalue, sw_whole_stat, sw_whole_pvalue = (np.nan,)*6
-    if len(s1) <= 5000 and len(s1) > 2:
+    try:
         sw1_stat, sw1_pvalue = scipy.stats.shapiro(s1)
-    if len(s2) <= 5000 and len(s2) > 2:
         sw2_stat, sw2_pvalue = scipy.stats.shapiro(s2)
-    if len(s_whole) <= 5000 and len(s_whole) > 2:
         sw_whole_stat, sw_whole_pvalue = scipy.stats.shapiro(s_whole)
-    
+    except:
+        pass
     feats['shapiro_pvalue_left'] = sw1_pvalue
     feats['shapiro_pvalue_right'] = sw2_pvalue
     feats['shapiro_pvalue_whole'] = sw_whole_pvalue
-    feats['shapiro_pvalue_diff'] = sw2_pvalue - sw1_pvalue if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
-    feats['shapiro_pvalue_ratio'] = sw2_pvalue / (sw1_pvalue + 1e-6) if not (np.isnan(sw1_pvalue) or np.isnan(sw2_pvalue)) else 0
+    _add_diff_ratio_feats(feats, 'shapiro_pvalue', sw1_pvalue, sw2_pvalue)
     _add_contribution_ratio_feats(feats, 'shapiro_pvalue', sw1_pvalue, sw2_pvalue, sw_whole_pvalue)
 
     # Jarque-Bera检验差异
     jb1_stat, jb1_pvalue, jb2_stat, jb2_pvalue, jb_whole_stat, jb_whole_pvalue = (np.nan,)*6
     try:
-        if len(s1) > 2: jb1_stat, jb1_pvalue = scipy.stats.jarque_bera(s1)
-        if len(s2) > 2: jb2_stat, jb2_pvalue = scipy.stats.jarque_bera(s2)
-        if len(s_whole) > 2: jb_whole_stat, jb_whole_pvalue = scipy.stats.jarque_bera(s_whole)
+        jb1_stat, jb1_pvalue = scipy.stats.jarque_bera(s1)
+        jb2_stat, jb2_pvalue = scipy.stats.jarque_bera(s2)
+        jb_whole_stat, jb_whole_pvalue = scipy.stats.jarque_bera(s_whole)
     except:
         pass
-    
     feats['jb_pvalue_left'] = jb1_pvalue
     feats['jb_pvalue_right'] = jb2_pvalue
     feats['jb_pvalue_whole'] = jb_whole_pvalue
-    feats['jb_pvalue_diff'] = jb2_pvalue - jb1_pvalue if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
-    feats['jb_pvalue_ratio'] = jb2_pvalue / (jb1_pvalue + 1e-6) if not (np.isnan(jb1_pvalue) or np.isnan(jb2_pvalue)) else 0
+    _add_diff_ratio_feats(feats, 'jb_pvalue', jb1_pvalue, jb2_pvalue)
     _add_contribution_ratio_feats(feats, 'jb_pvalue', jb1_pvalue, jb2_pvalue, jb_whole_pvalue)
 
     # KPSS检验
@@ -283,15 +300,13 @@ def test_stats_features(u: pd.DataFrame) -> dict:
         feats['kpss_pvalue_left'] = k1['p']
         feats['kpss_pvalue_right'] = k2['p']
         feats['kpss_pvalue_whole'] = k_whole['p']
-        feats['kpss_pvalue_diff'] = k2['p'] - k1['p']
-        feats['kpss_pvalue_ratio'] = k2['p'] / (k1['p'] + 1e-6)
+        _add_diff_ratio_feats(feats, 'kpss_pvalue', k1['p'], k2['p'])
         _add_contribution_ratio_feats(feats, 'kpss_pvalue', k1['p'], k2['p'], k_whole['p'])
 
         feats['kpss_stat_left'] = k1['stat']
         feats['kpss_stat_right'] = k2['stat']
         feats['kpss_stat_whole'] = k_whole['stat']
-        feats['kpss_stat_diff'] = k2['stat'] - k1['stat']
-        feats['kpss_stat_ratio'] = k2['stat'] / (k1['stat'] + 1e-6)
+        _add_diff_ratio_feats(feats, 'kpss_stat', k1['stat'], k2['stat'])
         _add_contribution_ratio_feats(feats, 'kpss_stat', k1['stat'], k2['stat'], k_whole['stat'])
     except:
         feats.update({
@@ -322,22 +337,19 @@ def test_stats_features(u: pd.DataFrame) -> dict:
         feats['adf_pvalue_left'] = f1['p']
         feats['adf_pvalue_right'] = f2['p']
         feats['adf_pvalue_whole'] = f_whole['p']
-        feats['adf_pvalue_diff'] = f2['p'] - f1['p']
-        feats['adf_pvalue_ratio'] = f2['p'] / (f1['p'] + 1e-6)
+        _add_diff_ratio_feats(feats, 'adf_pvalue', f1['p'], f2['p'])
         _add_contribution_ratio_feats(feats, 'adf_pvalue', f1['p'], f2['p'], f_whole['p'])
 
         feats['adf_stat_left'] = f1['stat']
         feats['adf_stat_right'] = f2['stat']
         feats['adf_stat_whole'] = f_whole['stat']
-        feats['adf_stat_diff'] = f2['stat'] - f1['stat']
-        feats['adf_stat_ratio'] = f2['stat'] / (f1['stat'] + 1e-6)
+        _add_diff_ratio_feats(feats, 'adf_stat', f1['stat'], f2['stat'])
         _add_contribution_ratio_feats(feats, 'adf_stat', f1['stat'], f2['stat'], f_whole['stat'])
 
         feats['adf_icbest_left'] = f1['ic']
         feats['adf_icbest_right'] = f2['ic']
         feats['adf_icbest_whole'] = f_whole['ic']
-        feats['adf_icbest_diff'] = f2['ic'] - f1['ic']
-        feats['adf_icbest_ratio'] = f2['ic'] / (f1['ic'] + 1e-6)
+        _add_diff_ratio_feats(feats, 'adf_icbest', f1['ic'], f2['ic'])
         _add_contribution_ratio_feats(feats, 'adf_icbest', f1['ic'], f2['ic'], f_whole['ic'])
     except:
         feats.update({
@@ -345,7 +357,6 @@ def test_stats_features(u: pd.DataFrame) -> dict:
             'adf_stat_left': 0, 'adf_stat_right': 0, 'adf_stat_whole': 0, 'adf_stat_diff': 0, 'adf_stat_ratio': 0,
             'adf_icbest_left': 0, 'adf_icbest_right': 0, 'adf_icbest_whole': 0, 'adf_icbest_diff': 0, 'adf_icbest_ratio': 0
         })
-
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -356,24 +367,48 @@ def cumulative_features(u: pd.DataFrame) -> dict:
     s2 = u['value'][u['period'] == 1]
     s_whole = u['value']
     feats = {}
+
+    def analyze_cumsum_curve(series, seg):
+        """分析累积和曲线的各种特征"""
+        if len(series) < 3:
+            return {}
+        
+        cumsum_curve = series.cumsum()
+        curve_feats = {}
+        
+        # 线性趋势
+        x = np.arange(len(cumsum_curve))
+        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, cumsum_curve)
+        curve_feats[f'cumsum_linear_trend_slope_{seg}'] = slope
+        curve_feats[f'cumsum_linear_trend_r2_{seg}'] = r_value ** 2
+        curve_feats[f'cumsum_linear_trend_pvalue_{seg}'] = p_value
+
+        # 波动率
+        curve_feats[f'cumsum_std_{seg}'] = np.std(cumsum_curve)
+        curve_feats[f'cumsum_cv_{seg}'] = safe_cv(cumsum_curve)
     
-    sum1, sum2, sum_whole = s1.sum(), s2.sum(), s_whole.sum()
-    feats['sum_left'] = sum1
-    feats['sum_right'] = sum2
-    feats['sum_whole'] = sum_whole
-    feats['sum_diff'] = sum2 - sum1
-    feats['sum_ratio'] = sum2 / (sum1 + 1e-6)
-    _add_contribution_ratio_feats(feats, 'sum', sum1, sum2, sum_whole)
+        # 趋势背离
+        linear_trend = slope * x + intercept
+        detrended = cumsum_curve - linear_trend
+        curve_feats[f'cumsum_detrend_volatility_{seg}'] = np.std(detrended)
+        curve_feats[f'cumsum_detrend_volatility_normalized_{seg}'] = np.std(detrended) / (np.abs(np.mean(cumsum_curve)) + 1e-6)
+        curve_feats[f'cumsum_detrend_max_deviation_{seg}'] = np.max(np.abs(detrended))
+        
+        # 极值特征
+        curve_feats[f'cumsum_min_{seg}'] = np.min(cumsum_curve)
+        curve_feats[f'cumsum_max_{seg}'] = np.max(cumsum_curve)
+        
+        return curve_feats
     
-    cumsum1_max = s1.cumsum().max()
-    cumsum2_max = s2.cumsum().max()
-    cumsum_whole_max = s_whole.cumsum().max()
-    feats['cumsum_max_left'] = cumsum1_max
-    feats['cumsum_max_right'] = cumsum2_max
-    feats['cumsum_max_whole'] = cumsum_whole_max
-    feats['cumsum_max_diff'] = cumsum2_max - cumsum1_max
-    feats['cumsum_max_ratio'] = cumsum2_max / (cumsum1_max + 1e-6)
-    _add_contribution_ratio_feats(feats, 'cumsum_max', cumsum1_max, cumsum2_max, cumsum_whole_max)
+    feats.update(analyze_cumsum_curve(s1, 'left'))
+    feats.update(analyze_cumsum_curve(s2, 'right'))
+    feats.update(analyze_cumsum_curve(s_whole, 'whole'))
+    
+    _add_diff_ratio_feats(feats, 'cumsum_linear_trend_slope', feats.get('cumsum_linear_trend_slope_left', 0), feats.get('cumsum_linear_trend_slope_right', 0))
+    _add_diff_ratio_feats(feats, 'cumsum_std', feats.get('cumsum_std_left', 0), feats.get('cumsum_std_right', 0))
+    _add_diff_ratio_feats(feats, 'cumsum_cv', feats.get('cumsum_cv_left', 0), feats.get('cumsum_cv_right', 0))
+    _add_contribution_ratio_feats(feats, 'cumsum_min', feats.get('cumsum_min_left', 0), feats.get('cumsum_min_right', 0), feats.get('cumsum_min_whole', 0))
+    _add_contribution_ratio_feats(feats, 'cumsum_max', feats.get('cumsum_max_left', 0), feats.get('cumsum_max_right', 0), feats.get('cumsum_max_whole', 0))
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -395,8 +430,7 @@ def oscillation_features(u: pd.DataFrame) -> dict:
     feats['zero_cross_left'] = zc1
     feats['zero_cross_right'] = zc2
     feats['zero_cross_whole'] = zc_whole
-    feats['zero_cross_diff'] = zc2 - zc1
-    feats['zero_cross_ratio'] = zc2 / (zc1 + 1e-6)
+    _add_diff_ratio_feats(feats, 'zero_cross', zc1, zc2)
     _add_contribution_ratio_feats(feats, 'zero_cross', zc1, zc2, zc_whole)
     
     def autocorr_lag1(s):
@@ -408,21 +442,19 @@ def oscillation_features(u: pd.DataFrame) -> dict:
     feats['autocorr_lag1_left'] = ac1
     feats['autocorr_lag1_right'] = ac2
     feats['autocorr_lag1_whole'] = ac_whole
-    feats['autocorr_lag1_diff'] = ac2 - ac1
-    feats['autocorr_lag1_ratio'] = ac2 / (ac1 + 1e-6)
+    _add_diff_ratio_feats(feats, 'autocorr_lag1', ac1, ac2)
     _add_contribution_ratio_feats(feats, 'autocorr_lag1', ac1, ac2, ac_whole)
 
     var1, var2, var_whole = s1.diff().var(), s2.diff().var(), s_whole.diff().var()
     feats['diff_var_left'] = var1
     feats['diff_var_right'] = var2
     feats['diff_var_whole'] = var_whole
-    feats['diff_var_diff'] = var2 - var1
-    feats['diff_var_ratio'] = var2 / (var1 + 1e-6)
+    _add_diff_ratio_feats(feats, 'diff_var', var1, var2)
     _add_contribution_ratio_feats(feats, 'diff_var', var1, var2, var_whole)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 5. 周期性特征 ---
+# --- 5. 频域特征 ---
 @register_feature(func_id="5")
 def cyclic_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
@@ -451,15 +483,13 @@ def cyclic_features(u: pd.DataFrame) -> dict:
     feats['dominant_freq_left'] = freq1
     feats['dominant_freq_right'] = freq2
     feats['dominant_freq_whole'] = freq_whole
-    feats['dominant_freq_diff'] = freq2 - freq1
-    feats['dominant_freq_ratio'] = freq2 / (freq1 + 1e-6)
+    _add_diff_ratio_feats(feats, 'dominant_freq', freq1, freq2)
     _add_contribution_ratio_feats(feats, 'dominant_freq', freq1, freq2, freq_whole)
 
     feats['max_power_left'] = power1
     feats['max_power_right'] = power2
     feats['max_power_whole'] = power_whole
-    feats['max_power_diff'] = power2 - power1
-    feats['max_power_ratio'] = power2 / (power1 + 1e-6)
+    _add_diff_ratio_feats(feats, 'max_power', power1, power2)
     _add_contribution_ratio_feats(feats, 'max_power', power1, power2, power_whole)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
@@ -478,60 +508,19 @@ def amplitude_features(u: pd.DataFrame) -> dict:
     feats['ptp_left'] = ptp1
     feats['ptp_right'] = ptp2
     feats['ptp_whole'] = ptp_whole
-    feats['ptp_diff'] = ptp2 - ptp1
-    feats['ptp_ratio'] = ptp2 / (ptp1 + 1e-6)
+    _add_diff_ratio_feats(feats, 'ptp', ptp1, ptp2)
     _add_contribution_ratio_feats(feats, 'ptp', ptp1, ptp2, ptp_whole)
 
     feats['iqr_left'] = iqr1
     feats['iqr_right'] = iqr2
     feats['iqr_whole'] = iqr_whole
-    feats['iqr_diff'] = iqr2 - iqr1
-    feats['iqr_ratio'] = iqr2 / (iqr1 + 1e-6)
+    _add_diff_ratio_feats(feats, 'iqr', iqr1, iqr2)
     _add_contribution_ratio_feats(feats, 'iqr', iqr1, iqr2, iqr_whole)
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 7. 波动性的波动性特征 ---
+# --- 7. 熵信息 ---
 @register_feature(func_id="7")
-def volatility_of_volatility_features(u: pd.DataFrame) -> dict:
-    """
-    计算滚动标准差序列的统计特征，以捕捉"波动性的波动性"的变化。
-    在Period 0和Period 1内部，分别计算小窗口（如长度为50）的滚动标准差，
-    然后比较这两条新的滚动标准差序列的均值，生成四个相关特征：
-    1. Period 0 的滚动标准差均值
-    2. Period 1 的滚动标准差均值
-    3. 两者之差
-    4. 两者之比
-    """
-    s1 = u['value'][u['period'] == 0]
-    s2 = u['value'][u['period'] == 1]
-    s_whole = u['value']
-    feats = {}
-    window = 50
-
-    def get_rolling_std_mean(s, w):
-        if len(s) < w:
-            return 0.0
-        rolling_std = s.rolling(window=w).std().dropna()
-        if rolling_std.empty:
-            return 0.0
-        return rolling_std.mean()
-
-    mean1 = get_rolling_std_mean(s1, window)
-    mean2 = get_rolling_std_mean(s2, window)
-    mean_whole = get_rolling_std_mean(s_whole, window)
-
-    feats[f'rolling_std_w{window}_mean_left'] = mean1
-    feats[f'rolling_std_w{window}_mean_right'] = mean2
-    feats[f'rolling_std_w{window}_mean_whole'] = mean_whole
-    feats[f'rolling_std_w{window}_mean_diff'] = mean2 - mean1
-    feats[f'rolling_std_w{window}_mean_ratio'] = mean2 / (mean1 + 1e-6)
-    _add_contribution_ratio_feats(feats, f'rolling_std_w{window}_mean', mean1, mean2, mean_whole)
-    
-    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
-
-# --- 8. 熵信息 ---
-@register_feature(func_id="8")
 def entropy_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
@@ -562,8 +551,7 @@ def entropy_features(u: pd.DataFrame) -> dict:
             feats[f'{name}_left'] = v1
             feats[f'{name}_right'] = v2
             feats[f'{name}_whole'] = v_whole
-            feats[f'{name}_diff'] = v2 - v1
-            feats[f'{name}_ratio'] = v2 / (v1 + 1e-6)
+            _add_diff_ratio_feats(feats, name, v1, v2)
             _add_contribution_ratio_feats(feats, name, v1, v2, v_whole)
         except Exception:
             feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
@@ -574,11 +562,11 @@ def entropy_features(u: pd.DataFrame) -> dict:
         m_whole, c_whole = antropy.hjorth_params(s_whole)
         feats.update({
             'hjorth_mobility_left': m1, 'hjorth_mobility_right': m2, 'hjorth_mobility_whole': m_whole,
-            'hjorth_mobility_diff': m2 - m1, 'hjorth_mobility_ratio': m2 / (m1 + 1e-6),
             'hjorth_complexity_left': c1, 'hjorth_complexity_right': c2, 'hjorth_complexity_whole': c_whole,
-            'hjorth_complexity_diff': c2 - c1, 'hjorth_complexity_ratio': c2 / (c1 + 1e-6)
         })
+        _add_diff_ratio_feats(feats, 'hjorth_mobility', m1, m2)
         _add_contribution_ratio_feats(feats, 'hjorth_mobility', m1, m2, m_whole)
+        _add_diff_ratio_feats(feats, 'hjorth_complexity', c1, c2)
         _add_contribution_ratio_feats(feats, 'hjorth_complexity', c1, c2, c_whole)
     except Exception:
         feats.update({'hjorth_mobility_left':0, 'hjorth_mobility_right':0, 'hjorth_mobility_whole':0, 'hjorth_mobility_diff':0, 'hjorth_mobility_ratio':0,
@@ -598,8 +586,8 @@ def entropy_features(u: pd.DataFrame) -> dict:
         lz1, lz2, lz_whole = antropy.lziv_complexity(bin_str1, normalize=True), antropy.lziv_complexity(bin_str2, normalize=True), antropy.lziv_complexity(bin_str_whole, normalize=True)
         feats.update({
             'lziv_complexity_left': lz1, 'lziv_complexity_right': lz2, 'lziv_complexity_whole': lz_whole,
-            'lziv_complexity_diff': lz2 - lz1, 'lziv_complexity_ratio': lz2 / (lz1 + 1e-6)
         })
+        _add_diff_ratio_feats(feats, 'lziv_complexity', lz1, lz2)
         _add_contribution_ratio_feats(feats, 'lziv_complexity', lz1, lz2, lz_whole)
     except Exception:
         feats.update({'lziv_complexity_left':0, 'lziv_complexity_right':0, 'lziv_complexity_whole':0, 'lziv_complexity_diff':0, 'lziv_complexity_ratio':0})
@@ -620,44 +608,16 @@ def entropy_features(u: pd.DataFrame) -> dict:
         ce1, ce2, ce_whole = estimate_cond_entropy(s1), estimate_cond_entropy(s2), estimate_cond_entropy(s_whole)
         feats.update({
             'cond_entropy_left': ce1, 'cond_entropy_right': ce2, 'cond_entropy_whole': ce_whole,
-            'cond_entropy_diff': ce2 - ce1, 'cond_entropy_ratio': ce2 / (ce1 + 1e-6)
         })
+        _add_diff_ratio_feats(feats, 'cond_entropy', ce1, ce2)
         _add_contribution_ratio_feats(feats, 'cond_entropy', ce1, ce2, ce_whole)
     except Exception:
         feats.update({'cond_entropy_left':0, 'cond_entropy_right':0, 'cond_entropy_whole':0, 'cond_entropy_diff':0, 'cond_entropy_ratio':0})
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 9. 分形 ---
-@register_feature(func_id="9")
-def fractal_dimension_features(u: pd.DataFrame) -> dict:
-    s1 = u['value'][u['period'] == 0].to_numpy()
-    s2 = u['value'][u['period'] == 1].to_numpy()
-    s_whole = u['value'].to_numpy()
-    feats = {}
-    
-    fractal_funcs = {
-        'petrosian_fd': antropy.petrosian_fd,
-        'katz_fd': antropy.katz_fd,
-        'higuchi_fd': antropy.higuchi_fd,
-        'detrended_fluctuation': antropy.detrended_fluctuation,
-    }
-
-    for name, func in fractal_funcs.items():
-        try:
-            v1, v2, v_whole = func(s1), func(s2), func(s_whole)
-            feats[f'{name}_left'] = v1
-            feats[f'{name}_right'] = v2
-            feats[f'{name}_whole'] = v_whole
-            feats[f'{name}_diff'] = v2 - v1
-            feats[f'{name}_ratio'] = v2 / (v1 + 1e-6)
-        except Exception:
-            feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
-
-    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
-
-# --- 10. tsfresh --- 
-@register_feature(func_id="10")
+# --- 8. tsfresh --- 
+@register_feature(func_id="8")
 def tsfresh_features(u: pd.DataFrame) -> dict:
     """基于tsfresh的特征工程"""
     s1 = u['value'][u['period'] == 0].to_numpy()
@@ -667,15 +627,24 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
 
     funcs = {
         tsfresh_fe.ratio_value_number_to_time_series_length: None,
-        tsfresh_fe.ratio_beyond_r_sigma: [6, 1.5],
-        tsfresh_fe.quantile: [0.6, 0.4, 0.1],
+        tsfresh_fe.sum_of_reoccurring_data_points: None,
         tsfresh_fe.percentage_of_reoccurring_values_to_all_values: None,
         tsfresh_fe.percentage_of_reoccurring_datapoints_to_all_datapoints: None,
         tsfresh_fe.last_location_of_maximum: None,
         tsfresh_fe.first_location_of_maximum: None,
-        tsfresh_fe.partial_autocorrelation: [{"lag": 2}],
-        tsfresh_fe.linear_trend: [{"attr": "slope"}, {"attr": "rvalue"}, {"attr": "intercept"}],
+        tsfresh_fe.has_duplicate: None,
+        tsfresh_fe.benford_correlation: None,
+        tsfresh_fe.ratio_beyond_r_sigma: [6, 3, 1.5, 1, 0.5],
+        tsfresh_fe.quantile: [0.6, 0.4, 0.1],
+        tsfresh_fe.count_above: [0],
+        tsfresh_fe.number_peaks: [25, 50],
+        tsfresh_fe.partial_autocorrelation: [{"lag": 2}, {"lag": 6}],
+        tsfresh_fe.index_mass_quantile: [{"q": 0.1}, {"q": 0.6}, {"q": 0.7}, {"q": 0.8}],
+        tsfresh_fe.ar_coefficient: [{"coeff": 0, "k": 10}, {"coeff": 2, "k": 10}, {"coeff": 8, "k": 10}],
+        tsfresh_fe.linear_trend: [{"attr": "slope"}, {"attr": "rvalue"}, {"attr": "pvalue"}, {"attr": "intercept"}],
         tsfresh_fe.fft_coefficient: [{"coeff": 3, "attr": "imag"}, {"coeff": 2, "attr": "imag"}, {"coeff": 1, "attr": "imag"}],
+        tsfresh_fe.energy_ratio_by_chunks: [{"num_segments": 10, "segment_focus": 9}],
+        tsfresh_fe.friedrich_coefficients: [{"m": 3, "r": 30, "coeff": 2}, {"m": 3, "r": 30, "coeff": 3}],
         tsfresh_fe.change_quantiles: [
             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.4},
             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.2},
@@ -696,7 +665,6 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
             {"f_agg": "mean","isabs": True,  "qh": 1.0, "ql": 0.4},
             {"f_agg": "mean","isabs": True,  "qh": 0.6, "ql": 0.4},
         ],
-        tsfresh_fe.ar_coefficient: [{"coeff": 2, "k": 10}],
         tsfresh_fe.agg_linear_trend: [
             {"attr": "slope", "chunk_len": 50, "f_agg": "mean"},
             {"attr": "slope", "chunk_len": 5,  "f_agg": "mean"},
@@ -713,7 +681,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
             {"attr": "intercept", "chunk_len": 5,  "f_agg": "max"},
             {"attr": "intercept", "chunk_len": 10, "f_agg": "mean"},
             {"attr": "intercept", "chunk_len": 10, "f_agg": "max"},
-        ]
+        ],
     }
 
     def param_to_str(param):
@@ -766,8 +734,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
                     results[f'{feat_name_base}_left'] = v1
                     results[f'{feat_name_base}_right'] = v2
                     results[f'{feat_name_base}_whole'] = v_whole
-                    results[f'{feat_name_base}_diff'] = v2 - v1
-                    results[f'{feat_name_base}_ratio'] = v2 / (v1 + 1e-6)
+                    _add_diff_ratio_feats(feats, feat_name_base, v1, v2)
                     _add_contribution_ratio_feats(results, feat_name_base, v1, v2, v_whole)
                 return results
 
@@ -780,8 +747,7 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
                 results[f'{base_name}_left'] = v1
                 results[f'{base_name}_right'] = v2
                 results[f'{base_name}_whole'] = v_whole
-                results[f'{base_name}_diff'] = v2 - v1
-                results[f'{base_name}_ratio'] = v2 / (v1 + 1e-6)
+                _add_diff_ratio_feats(feats, base_name, v1, v2)
                 _add_contribution_ratio_feats(results, base_name, v1, v2, v_whole)
         
         except Exception:
@@ -808,8 +774,8 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 11. 时间序列建模 ---
-@register_feature(func_id="11")
+# --- 9. 时间序列建模 ---
+@register_feature(func_id="9")
 def ar_model_features(u: pd.DataFrame) -> dict:
     """
     基于AR模型派生特征。
@@ -895,36 +861,32 @@ def ar_model_features(u: pd.DataFrame) -> dict:
     feats['ar_resid_std_left'] = s1_resid_std
     feats['ar_resid_std_right'] = s2_resid_std
     feats['ar_resid_std_whole'] = swhole_resid_std
-    feats['ar_resid_std_diff'] = (s2_resid_std - s1_resid_std) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
-    feats['ar_resid_std_ratio'] = (s2_resid_std / (s1_resid_std + 1e-6)) if not (np.isnan(s1_resid_std) or np.isnan(s2_resid_std)) else 0
+    _add_diff_ratio_feats(feats, 'ar_resid_std', s1_resid_std, s2_resid_std)
     _add_contribution_ratio_feats(feats, 'ar_resid_std', s1_resid_std, s2_resid_std, swhole_resid_std)
     
     feats['ar_aic_left'] = s1_aic
     feats['ar_aic_right'] = s2_aic
     feats['ar_aic_whole'] = swhole_aic
-    feats['ar_aic_diff'] = (s2_aic - s1_aic) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
-    feats['ar_aic_ratio'] = (s2_aic / (s1_aic + 1e-6)) if not (np.isnan(s1_aic) or np.isnan(s2_aic)) else 0
+    _add_diff_ratio_feats(feats, 'ar_aic', s1_aic, s2_aic)
     _add_contribution_ratio_feats(feats, 'ar_aic', s1_aic, s2_aic, swhole_aic)
 
     feats['ar_bic_left'] = s1_bic
     feats['ar_bic_right'] = s2_bic
     feats['ar_bic_whole'] = swhole_bic
-    feats['ar_bic_diff'] = (s2_bic - s1_bic) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
-    feats['ar_bic_ratio'] = (s2_bic / (s1_bic + 1e-6)) if not (np.isnan(s1_bic) or np.isnan(s2_bic)) else 0
+    _add_diff_ratio_feats(feats, 'ar_bic', s1_bic, s2_bic)
     _add_contribution_ratio_feats(feats, 'ar_bic', s1_bic, s2_bic, swhole_bic)
     
     # 比较模型系数
     for i in range(len(s1_params)):
-        feats[f'param_{i}_left'] = s1_params[i]
-        feats[f'param_{i}_right'] = s2_params[i]
-        feats[f'param_{i}_whole'] = swhole_params[i]
-        feats[f'param_{i}_diff'] = s2_params[i] - s1_params[i]
-        feats[f'param_{i}_ratio'] = s2_params[i] / (s1_params[i] + 1e-6)
-        _add_contribution_ratio_feats(feats, f'param_{i}', s1_params[i], s2_params[i], swhole_params[i])
+        feats[f'ar_param_{i}_left'] = s1_params[i]
+        feats[f'ar_param_{i}_right'] = s2_params[i]
+        feats[f'ar_param_{i}_whole'] = swhole_params[i]
+        _add_diff_ratio_feats(feats, f'ar_param_{i}', s1_params[i], s2_params[i])
+        _add_contribution_ratio_feats(feats, f'ar_param_{i}', s1_params[i], s2_params[i], swhole_params[i])
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 12. 分段损失 ---
+# --- 10. 分段损失 ---
 class RPTFeatureExtractor:
     def __init__(self):
         # 所有可用的cost类及其名称
@@ -967,18 +929,19 @@ class RPTFeatureExtractor:
                 left = self.calculate(cost, 0, boundary)
                 right = self.calculate(cost, boundary, n)
                 whole = self.calculate(cost, 0, n)
-                diff = right - left if left is not None and right is not None else None
-                ratio = right / (left + 1e-6) if left is not None and right is not None else None
+                # diff = right - left if left is not None and right is not None else None
+                # ratio = right / (left + 1e-6) if left is not None and right is not None else None
             except Exception:
                 left = None
                 right = None
                 whole = None
-                diff = None
-                ratio = None
-            result[name] = {'left': left, 'right': right, 'whole': whole, 'diff': diff, 'ratio': ratio}
+                # diff = None
+                # ratio = None
+            # Move to _add_diff_ratio_feats, 'diff': diff, 'ratio': ratio
+            result[name] = {'left': left, 'right': right, 'whole': whole}
         return result
 
-@register_feature(func_id="12")
+@register_feature(func_id="10")
 def rupture_cost_features(u: pd.DataFrame) -> dict:
     value = u['value'].values.astype(np.float32)
     period = u['period'].values.astype(np.float32)
@@ -992,6 +955,7 @@ def rupture_cost_features(u: pd.DataFrame) -> dict:
     for k, v in features.items():
         for seg, value in v.items():
             feats[f'rpt_cost_{k}_{seg}'] = value
+        _add_diff_ratio_feats(feats, f'rpt_cost_{k}', v['left'], v['right'])
         _add_contribution_ratio_feats(feats, f'rpt_cost_{k}', v['left'], v['right'], v['whole'])
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
@@ -1061,6 +1025,78 @@ def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
         
         result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
         result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
+    
+    return result_dfs
+
+def safe_cvstd_vectorized(values, window_size=50):
+    """
+    向量化计算滑动变异系数*标准差，比逐个窗口计算更快
+    
+    Args:
+        values: numpy array，输入序列
+        window_size: int，窗口大小
+        
+    Returns:
+        numpy array: 变异系数*标准差值序列
+    """
+    values = np.asarray(values, dtype=np.float64)
+    n = len(values)
+    
+    # 使用pandas的rolling功能进行向量化计算
+    series = pd.Series(values)
+    
+    # 计算滑动均值和标准差
+    rolling_mean = series.rolling(window=window_size, center=True, min_periods=1).mean()
+    rolling_std = series.rolling(window=window_size, center=True, min_periods=1).std()
+    
+    # 计算变异系数*标准差，避免除零
+    result = np.zeros(n)
+    mask = np.abs(rolling_mean) > 1e-6
+    result[mask] = (rolling_std[mask] * rolling_std[mask]) / rolling_mean[mask]
+    result[~mask] = 0.0
+    
+    # 处理边界值
+    half_window = window_size // 2
+    if half_window > 0:
+        result[:half_window] = result[half_window]
+        result[-half_window:] = result[-half_window]
+    
+    return result
+
+# @register_transform(output_mode_names=['MCS'])
+def moving_cv_std(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    滑动变异系数*标准差
+    
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+        
+    Returns:
+        List[pd.DataFrame]: 包含数据框的列表 [变异系数*标准差值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
+    
+    # 为每个模态创建一个空的数据框
+    for mode_name in ['cvstd']:
+        mode_df = X_df_sorted.copy()
+        mode_df['value'] = np.nan
+        result_dfs.append(mode_df)
+    
+    # 获取所有唯一的series_id
+    unique_ids = X_df_sorted.index.get_level_values('id').unique()
+    
+    # 对每个id进行分解，添加进度条
+    for series_id in tqdm(unique_ids, desc="计算滑动变异系数*标准差", unit="series"):
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        # 使用向量化版本进行快速计算
+        window_size = 50
+        cvstd_values = safe_cvstd_vectorized(values, window_size)
+        
+        result_dfs[0].loc[series_id, 'value'] = cvstd_values  # 变异系数*标准差值
     
     return result_dfs
 

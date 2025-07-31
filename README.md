@@ -87,23 +87,24 @@ python -m experiment.main gen-feats
 
 ```bash
 # 基于最新的特征文件，加入 new_awesome_feature
-# 这会生成一个全新的、带时间戳的特征文件
-python -m experiment.main gen-feats --funcs new_awesome_feature
+# 这会生成一个全新的、带时间戳的特征 
+python -m experiment.main gen-feats --funcs new_awesome_feature --trans new_awesome_transform
 ```
 新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
 
 #### 第3步：筛选
 
-生成特征后，执行相关性剔除，筛选结果呈现在 `./experiment/output/filter_***` 中，将保留下来的特征列表复制到 `experiment/config.py` 的 `REMAIN_FEATURES` 列表。
+生成特征后，执行相关性剔除，筛选结果呈现在 `./experiment/output/filter_xxx` 中，将保留下来的特征列表复制到 `experiment/config.py` 的 `REMAIN_FEATURES` 列表。
 
 ```bash
 python -m experiment.main filter corr
 ```
 
-训练后，使用permutation importance筛选特征，请指定训练版本，筛选结果会保存在 `./experiment/output/filter_***` 中。
+训练后，使用feature importance / permutation importance筛选特征，请指定训练版本，筛选结果会保存在 `./experiment/output/filter_xxx` 中。
 
 ```bash
-python -m experiment.main filter perm-imp --train-version 
+python -m experiment.main filter feature-imp --train-version xxx
+python -m experiment.main filter perm-imp --train-version xxx
 ```
 
 #### 第4步: 创建交互项

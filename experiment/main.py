@@ -35,8 +35,8 @@ def main():
     parser_inter.add_argument('--sub', action='store_true', help='创建减法交互项。')
     parser_inter.add_argument('--div', action='store_true', help='创建除法交互项。')
     parser_inter.add_argument('--sq', action='store_true', help='创建平方交互项。')
+    parser_inter.add_argument('--onemulall', action='store_true', help='是否创建所有特征与目标特征的交互项。')
     parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不创建乘法交互项(默认为创建)。')
-    parser_inter.add_argument('--one2all', action='store_true', help='是否创建所有特征与目标特征的交互项。')
 
     # --- 特征筛选命令 ---
     parser_filter = subparsers.add_parser('filter', help='特征筛选工具')
@@ -44,8 +44,12 @@ def main():
     # 相关性筛选子命令
     parser_corr = filter_subparsers.add_parser('corr', help='根据特征相关性筛选特征并导出')
     parser_corr.add_argument('--feature-file', type=str, default=None, help='可选，指定特征文件名。如果为空，则使用最新的特征文件。')
+    # 特征重要性筛选子命令
+    parser_feature_imp = filter_subparsers.add_parser('feature-imp', help='根据特征重要性阈值筛选特征并导出')
+    parser_feature_imp.add_argument('--train-version', type=str, help='训练输出文件夹名，例如 train_20250719_174900_auc_0_76876')
+    parser_feature_imp.add_argument('--feature-file', type=str, help='特征文件名，用于创建输出目录')
     # 置换重要性筛选子命令
-    parser_perm_imp = filter_subparsers.add_parser('perm-imp', help='根据特征重要性阈值筛选特征并导出')
+    parser_perm_imp = filter_subparsers.add_parser('perm-imp', help='根据置换特征重要性阈值筛选特征并导出')
     parser_perm_imp.add_argument('--train-version', type=str, help='训练输出文件夹名，例如 train_20250719_174900_auc_0_76876')
     parser_perm_imp.add_argument('--feature-file', type=str, help='特征文件名，用于创建输出目录')
      
@@ -118,21 +122,22 @@ def main():
             create_sub=args.sub,
             create_div=args.div,
             create_sq=args.sq,
+            create_onemulall=args.onemulall,
+            target_feature='RAW_1_stats_cv_whole'
         )
-        if args.one2all:
-            interactions.generate_one2all_interactions(
-                base_feature_file=args.base_file,
-                target_feature='RAW_1_stats_cv_whole'
-            )
 
     elif args.command == 'filter':
+        from . import filter
         if args.filter_method == 'corr':
-            from . import filter
             filter.corr_filter(
                 feature_file=args.feature_file
             )
+        elif args.filter_method == 'feature-imp':
+            filter.feature_imp_filter(
+                train_version=args.train_version, 
+                feature_file=args.feature_file
+            )
         elif args.filter_method == 'perm-imp':
-            from . import filter
             filter.perm_imp_filter(
                 train_version=args.train_version, 
                 feature_file=args.feature_file

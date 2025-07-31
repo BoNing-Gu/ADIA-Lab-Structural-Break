@@ -292,3 +292,34 @@ def perm_imp_filter(train_version: str, feature_file: str = None, top_k: list[in
             f.write(']\n\n')
 
     print(f"[filter_perm_imp] 特征筛选结果已保存至 {output_file}")
+
+def feature_imp_filter(train_version: str, feature_file: str = None, top_k: list[int] = None):
+    if top_k is None:
+        top_k = [200, 300, 400, 500]
+
+    # 1. 加载特征数据
+    imp_path = os.path.join(config.OUTPUT_DIR, train_version, 'feature_importance.tsv')
+    df = pd.read_csv(imp_path, sep='\t')
+    _, loaded_feature_name = features.load_features(feature_file, data_ids=["0"])
+    
+    # 2. 创建输出目录
+    feature_name_without_ext = loaded_feature_name.replace('.parquet', '') if loaded_feature_name.endswith('.parquet') else loaded_feature_name
+    output_dir = os.path.join(config.OUTPUT_DIR, f'filter_{feature_name_without_ext}')
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f'filtered_by_feature_imp_{train_version}.txt')
+
+    # 3. 保存结果到txt文件
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for k in top_k:
+            selected_features = (
+                df.sort_values('importance', ascending=False)['feature']
+                .head(k)
+                .tolist()
+            )
+            f.write(f'# Top {k}\n')
+            f.write('top_features = [\n')
+            f.writelines([f"    '{feat}',\n" for feat in selected_features])
+            f.write(']\n\n')
+        f.write('\n' + '*' * 50 + '\n')
+        
+    print(f"[filter_feature_imp] 特征筛选结果已保存至 {output_file}")

@@ -5,6 +5,7 @@ saves/
 feature_dfs/
 __pycache__/
 try_features/
+catboost_info/
 
 *.csv
 *.parquet

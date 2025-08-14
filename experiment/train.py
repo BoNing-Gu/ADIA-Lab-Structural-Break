@@ -194,6 +194,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
                 eval_metric='auc',
                 callbacks=[lgb.early_stopping(100, verbose=False)]
             )
+            train_auc = model.best_score_['train']['auc']
         elif config.MODEL == 'CAT':
             model = cat.CatBoostClassifier(**config.CAT_PARAMS)
             model.fit(
@@ -202,6 +203,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
                 early_stopping_rounds=100,
                 verbose=False
             )
+            train_preds = model.predict_proba(X_train_fold)[:, 1]
+            train_auc = roc_auc_score(y_train_fold, train_preds)
         else:
             raise ValueError("Unknown config.MODEL")
 
@@ -210,7 +213,6 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         models.append(model)
         feature_importances[f'fold_{fold+1}'] = model.feature_importances_
         
-        train_auc = model.best_score_['train']['auc']
         fold_auc = roc_auc_score(y_val_fold, preds)
         logger.info(f"Fold {fold+1} Train AUC: {train_auc:.5f}, Val AUC: {fold_auc:.5f}")
 

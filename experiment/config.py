@@ -35,7 +35,7 @@ SEED = 42
 ENHANCEMENT_IDS = ["0"] 
 
 # --- Model ---
-MODEL = 'CAT'  # 'LGB' or 'CAT
+MODEL = 'LGB'  # 'LGB' or 'CAT
 LGBM_PARAMS = {
     # --- 基础设定 ---
     'objective': 'binary',
@@ -59,7 +59,7 @@ CAT_PARAMS = {
     'loss_function': 'Logloss',
     'eval_metric': 'AUC',
     'task_type': 'GPU',
-    'iterations': 1000, 
+    'iterations': 4000, 
     'learning_rate': 0.005,
     'depth': 7,
     'random_seed': SEED,

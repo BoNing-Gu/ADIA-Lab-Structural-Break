@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
+import catboost as cat
 from tqdm.auto import tqdm
 
 import optuna
@@ -183,15 +184,26 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
         X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]
 
-        model = lgb.LGBMClassifier(**config.LGBM_PARAMS)
-
-        model.fit(
-            X_train_fold, y_train_fold,
-            eval_set=[(X_train_fold, y_train_fold), (X_val_fold, y_val_fold)],
-            eval_names=['train', 'valid'],
-            eval_metric='auc',
-            callbacks=[lgb.early_stopping(100, verbose=False)]
-        )
+        # 配置模型
+        if config.MODEL == 'LGB':
+            model = lgb.LGBMClassifier(**config.LGBM_PARAMS)
+            model.fit(
+                X_train_fold, y_train_fold,
+                eval_set=[(X_train_fold, y_train_fold), (X_val_fold, y_val_fold)],
+                eval_names=['train', 'valid'],
+                eval_metric='auc',
+                callbacks=[lgb.early_stopping(100, verbose=False)]
+            )
+        elif config.MODEL == 'CAT':
+            model = cat.CatBoostClassifier(**config.CAT_PARAMS)
+            model.fit(
+                X_train_fold, y_train_fold, 
+                eval_set=[(X_val_fold, y_val_fold)],
+                early_stopping_rounds=100,
+                verbose=False
+            )
+        else:
+            raise ValueError("Unknown config.MODEL")
 
         preds = model.predict_proba(X_val_fold)[:, 1]
         oof_preds[val_idx] = preds

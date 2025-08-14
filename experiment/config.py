@@ -35,6 +35,7 @@ SEED = 42
 ENHANCEMENT_IDS = ["0"] 
 
 # --- Model ---
+MODEL = 'CAT'  # 'LGB' or 'CAT
 LGBM_PARAMS = {
     # --- 基础设定 ---
     'objective': 'binary',
@@ -51,6 +52,23 @@ LGBM_PARAMS = {
     'reg_lambda': 3,         # L2 正则化
     'colsample_bytree': 0.8,   # 构建树时对特征的列采样率
     'subsample': 0.8,          # 训练样本的采样率
+}
+CAT_PARAMS = {
+    # --- 基础设定 ---
+    'bootstrap_type': 'Bernoulli',
+    'loss_function': 'Logloss',
+    'eval_metric': 'AUC',
+    'task_type': 'GPU',
+    'iterations': 1000, 
+    'learning_rate': 0.005,
+    'depth': 7,
+    'random_seed': SEED,
+    'thread_count': N_JOBS,
+    
+    # --- 正则化和采样 ---
+    'subsample': 0.8,
+    # 'rsm': 0.7,
+    'l2_leaf_reg': 3,
 }
 
 # --- CV ---

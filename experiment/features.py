@@ -1221,12 +1221,16 @@ def _backup_feature_file(file_path: Path):
     else:
         logger.warning(f"文件名格式不符合预期: {file_path.name}")
 
-def _apply_feature_func_sequential(func, X_df: pd.DataFrame) -> pd.DataFrame:
+def _apply_feature_func_sequential(func, X_df: pd.DataFrame, use_tqdm: bool = False) -> pd.DataFrame:
     """顺序应用单个特征函数"""
     all_ids = X_df.index.get_level_values("id").unique()
+    iterator = (
+        tqdm(all_ids, desc=f"Running {func.__name__} (sequentially)")
+        if use_tqdm else all_ids
+    )
     results = [
         {**{'id': id_val}, **func(X_df.loc[id_val])}
-        for id_val in tqdm(all_ids, desc=f"Running {func.__name__} (sequentially)")
+        for id_val in iterator
     ]
     return pd.DataFrame(results).set_index('id')
 

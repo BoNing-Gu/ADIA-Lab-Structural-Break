@@ -1,5 +1,3 @@
-import lightgbm as lgb
-from sklearn.model_selection import StratifiedKFold
 from pathlib import Path
 
 # --- Dirs ---

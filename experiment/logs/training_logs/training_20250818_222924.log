@@ -1,3 +1,0 @@
-2025-08-18 22:29:24 - Training-20250818_222924 - INFO - ========== Running Command: filter ==========
-2025-08-18 22:29:24 - Training-20250818_222924 - INFO - Args: {'command': 'filter', 'filter_method': 'perm-imp', 'train_version': 'train_20250818_222720_auc_0_88437', 'feature_file': None}
-2025-08-18 22:29:24 - Training-20250818_222924 - INFO - =======================================

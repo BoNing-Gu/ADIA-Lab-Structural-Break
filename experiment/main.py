@@ -30,13 +30,17 @@ def main():
     parser_inter = subparsers.add_parser('gen-interactions', help='根据特征重要性文件生成交互特征')
     parser_inter.add_argument('--importance-file', type=str, required=False, help='特征重要性文件路径 (e.g., permutation_importance.tsv).')
     parser_inter.add_argument('--base-file', type=str, default=None, help='可选，指定一个基础特征文件名进行更新。如果为空，则使用最新的特征文件。')
-    parser_inter.add_argument('--sqmul', action='store_true', help='创建乘法平方交互项。')
-    parser_inter.add_argument('--add', action='store_true', help='创建加法交互项。')
-    parser_inter.add_argument('--sub', action='store_true', help='创建减法交互项。')
-    parser_inter.add_argument('--div', action='store_true', help='创建除法交互项。')
-    parser_inter.add_argument('--sq', action='store_true', help='创建平方交互项。')
-    parser_inter.add_argument('--onemulall', action='store_true', help='是否创建所有特征与目标特征的交互项。')
-    parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不创建乘法交互项(默认为创建)。')
+    parser_inter.add_argument('--sqmul', action='store_true', help='在 Top 特征内部创建乘法平方交互项。')
+    parser_inter.add_argument('--add', action='store_true', help='在 Top 特征内部创建加法交互项。')
+    parser_inter.add_argument('--sub', action='store_true', help='在 Top 特征内部创建减法交互项。')
+    parser_inter.add_argument('--div', action='store_true', help='在 Top 特征内部创建除法交互项。')
+    parser_inter.add_argument('--sq', action='store_true', help='在 Top 特征内部创建平方交互项。')
+    parser_inter.add_argument('--cross-mul', dest='cross_mul', action='store_true', help='在 Top 特征与非 Top 特征之间创建乘法交互项。')
+    parser_inter.add_argument('--cross-sqmul', dest='cross_sqmul', action='store_true', help='在 Top 特征与非 Top 特征之间创建乘法平方交互项。')
+    parser_inter.add_argument('--cross-add', dest='cross_add', action='store_true', help='在 Top 特征与非 Top 特征之间创建加法交互项。')
+    parser_inter.add_argument('--cross-sub', dest='cross_sub', action='store_true', help='在 Top 特征与非 Top 特征之间创建减法交互项。')
+    parser_inter.add_argument('--cross-div', dest='cross_div', action='store_true', help='在 Top 特征与非 Top 特征之间创建除法交互项。')
+    parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不在 Top 特征内部创建乘法交互项(默认为创建)。')
 
     # --- 特征筛选命令 ---
     parser_filter = subparsers.add_parser('filter', help='特征筛选工具')
@@ -122,7 +126,11 @@ def main():
             create_sub=args.sub,
             create_div=args.div,
             create_sq=args.sq,
-            create_onemulall=args.onemulall,
+            create_cross_mul=args.cross_mul,
+            create_cross_sqmul=args.cross_sqmul,
+            create_cross_add=args.cross_add,
+            create_cross_sub=args.cross_sub,
+            create_cross_div=args.cross_div,
             target_feature='RAW_1_stats_cv_whole'
         )
 

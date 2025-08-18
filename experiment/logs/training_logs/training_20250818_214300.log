@@ -1,0 +1,3 @@
+2025-08-18 21:43:00 - Training-20250818_214300 - INFO - ========== Running Command: filter ==========
+2025-08-18 21:43:00 - Training-20250818_214300 - INFO - Args: {'command': 'filter', 'filter_method': 'feature-imp', 'train_version': 'train_20250818_213545_auc_0_88187', 'feature_file': None}
+2025-08-18 21:43:00 - Training-20250818_214300 - INFO - =======================================

@@ -15,7 +15,11 @@ def generate_interaction_features(
     create_sub: bool = False,
     create_div: bool = False,
     create_sq: bool = False,
-    create_onemulall: bool = False,
+    create_cross_mul: bool = False,
+    create_cross_sqmul: bool = False,
+    create_cross_add: bool = False,
+    create_cross_sub: bool = False,
+    create_cross_div: bool = False,
     target_feature: str = 'RAW_1_stats_cv_whole'
 ):
     """
@@ -26,12 +30,17 @@ def generate_interaction_features(
         importance_file_path (str): 特征重要性文件路径 (e.g., permutation_importance.tsv)。
         base_feature_file (str, optional): 基础特征文件名。如果提供，
             将加载此文件并在此基础上添加或更新特征。否则，将使用最新的特征集。
-        create_mul (bool): 是否创建乘法交互项。默认为 True。
-        create_sqmul (bool): 是否创建乘法平方交互项。默认为 False。
-        create_add (bool): 是否创建加法交互项。默认为 False。
-        create_sub (bool): 是否创建减法交互项。默认为 False。
-        create_div (bool): 是否创建除法交互项。默认为 False。
-        create_sq (bool): 是否创建平方交互项。默认为 False。
+        create_mul (bool): 是否在 Top 特征内部创建乘法交互项。默认为 True。
+        create_sqmul (bool): 是否在 Top 特征内部创建乘法平方交互项。默认为 False。
+        create_add (bool): 是否在 Top 特征内部创建加法交互项。默认为 False。
+        create_sub (bool): 是否在 Top 特征内部创建减法交互项。默认为 False。
+        create_div (bool): 是否在 Top 特征内部创建除法交互项。默认为 False。
+        create_sq (bool): 是否在 Top 特征内部创建平方交互项。默认为 False。
+        create_cross_mul (bool): 是否在 Top 特征与非 Top 特征之间创建乘法交互项。默认为 False。
+        create_cross_sqmul (bool): 是否在 Top 特征与非 Top 特征之间创建乘法平方交互项。默认为 False。
+        create_cross_add (bool): 是否在 Top 特征与非 Top 特征之间创建加法交互项。默认为 False。
+        create_cross_sub (bool): 是否在 Top 特征与非 Top 特征之间创建减法交互项。默认为 False。
+        create_cross_div (bool): 是否在 Top 特征与非 Top 特征之间创建除法交互项。默认为 False。
     """
     # 1. 加载重要性文件并获取 Top N 特征
     if len(config.TOP_FEATURES) > 0:
@@ -106,11 +115,12 @@ def generate_interaction_features(
                 continue
         else:
             available_features = top_features
-        logger.info(f"mul/sqmul(2)/sub/add/div(2)/sq 交互 {len(available_features)} 个特征。")
+        logger.info(f"Top 特征内部交互 {len(available_features)} 个特征。")
         
         # 创建交互特征 - 使用字典收集所有特征，避免DataFrame碎片化
         interaction_features_dict = {}
         
+        # 1. Top 特征内部交互
         for f1, f2 in combinations(available_features, 2):
             if create_mul:
                 interaction_features_dict[f'mul_{f1}_{f2}'] = feature_df[f1] * feature_df[f2]
@@ -129,11 +139,38 @@ def generate_interaction_features(
             if create_sq:
                 interaction_features_dict[f'sq_{f}'] = feature_df[f] ** 2
 
-        raw_features = [f for f in config.REMAIN_FEATURES if 'mul' not in f and 'sub' not in f and 'div' not in f and 'add' not in f and 'sq' not in f and f not in available_features]
-        logger.info(f"onemulall 交互 {len(raw_features)} 个特征。")
-        for f in raw_features:
-            if create_onemulall:
-                interaction_features_dict[f'mul_{target_feature}_{f}'] = feature_df[target_feature] * feature_df[f]
+        # 2. Top 特征与非 Top 特征的交叉交互
+        # 获取所有非 Top 特征（排除已有交互特征的原始特征）
+        non_top_features = [f for f in config.REMAIN_FEATURES 
+                           if f not in available_features 
+                           and 'mul' not in f and 'sub' not in f and 'div' not in f 
+                           and 'add' not in f and 'sq' not in f and f in feature_df.columns]
+        
+        cross_interaction_count = 0
+        if any([create_cross_mul, create_cross_sqmul, create_cross_add, create_cross_sub, create_cross_div]):
+            logger.info(f"Top 特征与非 Top 特征交叉交互: {len(available_features)} x {len(non_top_features)} = {len(available_features) * len(non_top_features)} 对")
+            
+            for top_feat in available_features:
+                for non_top_feat in non_top_features:
+                    if create_cross_mul:
+                        interaction_features_dict[f'cross_mul_{top_feat}_{non_top_feat}'] = feature_df[top_feat] * feature_df[non_top_feat]
+                        cross_interaction_count += 1
+                    if create_cross_sqmul:
+                        interaction_features_dict[f'cross_sqmul_{top_feat}_{non_top_feat}'] = feature_df[top_feat] * (feature_df[non_top_feat] ** 2)
+                        interaction_features_dict[f'cross_sqmul_{non_top_feat}_{top_feat}'] = feature_df[non_top_feat] * (feature_df[top_feat] ** 2)
+                        cross_interaction_count += 2
+                    if create_cross_add:
+                        interaction_features_dict[f'cross_add_{top_feat}_{non_top_feat}'] = feature_df[top_feat] + feature_df[non_top_feat]
+                        cross_interaction_count += 1
+                    if create_cross_sub:
+                        interaction_features_dict[f'cross_sub_{top_feat}_{non_top_feat}'] = feature_df[top_feat] - feature_df[non_top_feat]
+                        cross_interaction_count += 1
+                    if create_cross_div:
+                        interaction_features_dict[f'cross_div_{top_feat}_{non_top_feat}'] = feature_df[top_feat] / (feature_df[non_top_feat] + epsilon)
+                        interaction_features_dict[f'cross_div_{non_top_feat}_{top_feat}'] = feature_df[non_top_feat] / (feature_df[top_feat] + epsilon)
+                        cross_interaction_count += 2
+            
+            logger.info(f"生成了 {cross_interaction_count} 个交叉交互特征")
         
         # 一次性创建DataFrame，避免碎片化
         if interaction_features_dict:

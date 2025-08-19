@@ -360,56 +360,76 @@ def test_stats_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 3. 累积和特征 ---
+# --- 3. 趋势特征 ---
 @register_feature(func_id="3")
-def cumulative_features(u: pd.DataFrame) -> dict:
+def trend_features(u: pd.DataFrame) -> dict:
     s1 = u['value'][u['period'] == 0]
     s2 = u['value'][u['period'] == 1]
     s_whole = u['value']
     feats = {}
 
-    def analyze_cumsum_curve(series, seg):
-        """分析累积和曲线的各种特征"""
-        if len(series) < 3:
-            return {}
+    def analyze_trend(series, seg):
+        """分析时间序列的趋势特征"""
+        trend_feats = {}
+        x = np.arange(len(series))
         
-        cumsum_curve = series.cumsum()
-        curve_feats = {}
-        
-        # 线性趋势
-        x = np.arange(len(cumsum_curve))
-        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, cumsum_curve)
-        curve_feats[f'cumsum_linear_trend_slope_{seg}'] = slope
-        curve_feats[f'cumsum_linear_trend_r2_{seg}'] = r_value ** 2
-        curve_feats[f'cumsum_linear_trend_pvalue_{seg}'] = p_value
+        try:
+            # 1. 线性趋势分析 (使用scipy.stats.linregress)
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, series)
+            trend_feats[f'linear_trend_slope_{seg}'] = slope
+            trend_feats[f'linear_trend_intercept_{seg}'] = intercept
+            trend_feats[f'linear_trend_r_value_{seg}'] = r_value
+            trend_feats[f'linear_trend_r2_{seg}'] = r_value ** 2
+            trend_feats[f'linear_trend_pvalue_{seg}'] = p_value
+            trend_feats[f'linear_trend_std_err_{seg}'] = std_err
+        except Exception as e:
+            logger.error(f"Error in linear trend analysis for {seg}: {e}")
 
-        # 波动率
-        curve_feats[f'cumsum_std_{seg}'] = np.std(cumsum_curve)
-        curve_feats[f'cumsum_cv_{seg}'] = safe_cv(cumsum_curve)
-    
-        # 趋势背离
-        linear_trend = slope * x + intercept
-        detrended = cumsum_curve - linear_trend
-        curve_feats[f'cumsum_detrend_volatility_{seg}'] = np.std(detrended)
-        curve_feats[f'cumsum_detrend_volatility_normalized_{seg}'] = np.std(detrended) / (np.abs(np.mean(cumsum_curve)) + 1e-6)
-        curve_feats[f'cumsum_detrend_max_deviation_{seg}'] = np.max(np.abs(detrended))
-        
-        # 极值特征
-        curve_feats[f'cumsum_min_{seg}'] = np.min(cumsum_curve)
-        curve_feats[f'cumsum_max_{seg}'] = np.max(cumsum_curve)
-        
-        return curve_feats
-    
-    feats.update(analyze_cumsum_curve(s1, 'left'))
-    feats.update(analyze_cumsum_curve(s2, 'right'))
-    feats.update(analyze_cumsum_curve(s_whole, 'whole'))
-    
-    _add_diff_ratio_feats(feats, 'cumsum_linear_trend_slope', feats.get('cumsum_linear_trend_slope_left', 0), feats.get('cumsum_linear_trend_slope_right', 0))
-    _add_diff_ratio_feats(feats, 'cumsum_std', feats.get('cumsum_std_left', 0), feats.get('cumsum_std_right', 0))
-    _add_diff_ratio_feats(feats, 'cumsum_cv', feats.get('cumsum_cv_left', 0), feats.get('cumsum_cv_right', 0))
-    _add_contribution_ratio_feats(feats, 'cumsum_min', feats.get('cumsum_min_left', 0), feats.get('cumsum_min_right', 0), feats.get('cumsum_min_whole', 0))
-    _add_contribution_ratio_feats(feats, 'cumsum_max', feats.get('cumsum_max_left', 0), feats.get('cumsum_max_right', 0), feats.get('cumsum_max_whole', 0))
+            trend_feats[f'linear_trend_slope_{seg}'] = 0
+            trend_feats[f'linear_trend_intercept_{seg}'] = 0
+            trend_feats[f'linear_trend_r_value_{seg}'] = 0
+            trend_feats[f'linear_trend_r2_{seg}'] = 0
+            trend_feats[f'linear_trend_pvalue_{seg}'] = 1
+            trend_feats[f'linear_trend_std_err_{seg}'] = 0
 
+        try:
+            # 2. 去趋势分析 (detrended features)
+            linear_trend = slope * x + intercept
+            detrended = series - linear_trend
+            trend_feats[f'detrend_mean_{seg}'] = np.mean(detrended)
+            trend_feats[f'detrend_volatility_{seg}'] = np.std(detrended)
+            trend_feats[f'detrend_volatility_normalized_{seg}'] = np.std(detrended) / (np.abs(np.mean(series)) + 1e-6)
+            trend_feats[f'detrend_max_deviation_{seg}'] = np.max(np.abs(detrended))
+        except Exception as e:
+            logger.error(f"Error in detrending analysis for {seg}: {e}")
+
+            trend_feats[f'detrend_mean_{seg}'] = 0
+            trend_feats[f'detrend_volatility_{seg}'] = 0
+            trend_feats[f'detrend_volatility_normalized_{seg}'] = 0
+            trend_feats[f'detrend_max_deviation_{seg}'] = 0
+
+        try:
+            # 3. 趋势变化率
+            trend_feats[f'trend_change_rate_{seg}'] = slope / (np.mean(np.abs(series)) + 1e-6)  # 相对变化率
+            trend_feats[f'trend_normalized_slope_{seg}'] = slope / (np.std(series) + 1e-6)  # 标准化斜率
+        except Exception as e:
+            logger.error(f"Error in trend change rate analysis for {seg}: {e}")
+
+            trend_feats[f'trend_change_rate_{seg}'] = 0
+            trend_feats[f'trend_normalized_slope_{seg}'] = 0
+        
+        return trend_feats
+    
+    feats.update(analyze_trend(s1, 'left'))
+    feats.update(analyze_trend(s2, 'right'))
+    feats.update(analyze_trend(s_whole, 'whole'))
+    _add_diff_ratio_feats(feats, 'linear_trend_slope', feats['linear_trend_slope_left'] if 'linear_trend_slope_left' in feats else 0, feats['linear_trend_slope_right'] if 'linear_trend_slope_right' in feats else 0)
+    _add_diff_ratio_feats(feats, 'linear_trend_r2', feats['linear_trend_r2_left'] if 'linear_trend_r2_left' in feats else 0, feats['linear_trend_r2_right'] if 'linear_trend_r2_right' in feats else 0)
+    _add_diff_ratio_feats(feats, 'linear_trend_pvalue', feats['linear_trend_pvalue_left'] if 'linear_trend_pvalue_left' in feats else 0, feats['linear_trend_pvalue_right'] if 'linear_trend_pvalue_right' in feats else 0)
+    _add_diff_ratio_feats(feats, 'detrend_mean', feats['detrend_mean_left'] if 'detrend_mean_left' in feats else 0, feats['detrend_mean_right'] if 'detrend_mean_right' in feats else 0)
+    _add_diff_ratio_feats(feats, 'detrend_volatility_normalized', feats['detrend_volatility_normalized_left'] if 'detrend_volatility_normalized_left' in feats else 0, feats['detrend_volatility_normalized_right'] if 'detrend_volatility_normalized_right' in feats else 0)
+    _add_diff_ratio_feats(feats, 'detrend_max_deviation', feats['detrend_max_deviation_left'] if 'detrend_max_deviation_left' in feats else 0, feats['detrend_max_deviation_right'] if 'detrend_max_deviation_right' in feats else 0)
+    
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 4. 振荡特征 ---
@@ -638,13 +658,40 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
         tsfresh_fe.quantile: [0.6, 0.4, 0.1],
         tsfresh_fe.count_above: [0],
         tsfresh_fe.number_peaks: [25, 50],
-        tsfresh_fe.partial_autocorrelation: [{"lag": 2}, {"lag": 6}],
-        tsfresh_fe.index_mass_quantile: [{"q": 0.1}, {"q": 0.6}, {"q": 0.7}, {"q": 0.8}],
-        tsfresh_fe.ar_coefficient: [{"coeff": 0, "k": 10}, {"coeff": 2, "k": 10}, {"coeff": 8, "k": 10}],
-        tsfresh_fe.linear_trend: [{"attr": "slope"}, {"attr": "rvalue"}, {"attr": "pvalue"}, {"attr": "intercept"}],
-        tsfresh_fe.fft_coefficient: [{"coeff": 3, "attr": "imag"}, {"coeff": 2, "attr": "imag"}, {"coeff": 1, "attr": "imag"}],
-        tsfresh_fe.energy_ratio_by_chunks: [{"num_segments": 10, "segment_focus": 9}],
-        tsfresh_fe.friedrich_coefficients: [{"m": 3, "r": 30, "coeff": 2}, {"m": 3, "r": 30, "coeff": 3}],
+        tsfresh_fe.partial_autocorrelation: [
+            {"lag": 2},
+            {"lag": 4},
+            {"lag": 6}
+        ],
+        tsfresh_fe.index_mass_quantile: [
+            {"q": 0.1}, 
+            {"q": 0.6}, 
+            {"q": 0.8}
+        ],
+        tsfresh_fe.ar_coefficient: [
+            {"coeff": 0, "k": 10}, 
+            {"coeff": 2, "k": 10}, 
+            {"coeff": 8, "k": 10}
+        ],
+        tsfresh_fe.linear_trend: [
+            {"attr": "slope"}, 
+            {"attr": "rvalue"}, 
+            {"attr": "pvalue"}, 
+            {"attr": "intercept"}
+        ],
+        tsfresh_fe.fft_coefficient: [
+            {"coeff": 3, "attr": "imag"}, 
+            {"coeff": 2, "attr": "imag"}, 
+            {"coeff": 1, "attr": "imag"}
+        ],
+        tsfresh_fe.energy_ratio_by_chunks: [
+            {"num_segments": 10, "segment_focus": 9},
+            {"num_segments": 20, "segment_focus": 16},
+        ],
+        tsfresh_fe.friedrich_coefficients: [
+            {"m": 3, "r": 30, "coeff": 2}, 
+            {"m": 3, "r": 30, "coeff": 3}
+        ],
         tsfresh_fe.change_quantiles: [
             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.4},
             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.2},
@@ -993,10 +1040,8 @@ def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     """
     滑动平均分解
-    
     Args:
         X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
-        
     Returns:
         List[pd.DataFrame]: 包含两个数据框的列表 [趋势值, 残差值]
     """
@@ -1028,76 +1073,56 @@ def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     
     return result_dfs
 
-def safe_cvstd_vectorized(values, window_size=50):
+@register_transform(output_mode_names=['CUMSUM'])
+def cumsum_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     """
-    向量化计算滑动变异系数*标准差，比逐个窗口计算更快
-    
-    Args:
-        values: numpy array，输入序列
-        window_size: int，窗口大小
-        
-    Returns:
-        numpy array: 变异系数*标准差值序列
-    """
-    values = np.asarray(values, dtype=np.float64)
-    n = len(values)
-    
-    # 使用pandas的rolling功能进行向量化计算
-    series = pd.Series(values)
-    
-    # 计算滑动均值和标准差
-    rolling_mean = series.rolling(window=window_size, center=True, min_periods=1).mean()
-    rolling_std = series.rolling(window=window_size, center=True, min_periods=1).std()
-    
-    # 计算变异系数*标准差，避免除零
-    result = np.zeros(n)
-    mask = np.abs(rolling_mean) > 1e-6
-    result[mask] = (rolling_std[mask] * rolling_std[mask]) / rolling_mean[mask]
-    result[~mask] = 0.0
-    
-    # 处理边界值
-    half_window = window_size // 2
-    if half_window > 0:
-        result[:half_window] = result[half_window]
-        result[-half_window:] = result[-half_window]
-    
-    return result
-
-# @register_transform(output_mode_names=['MCS'])
-def moving_cv_std(X_df: pd.DataFrame) -> List[pd.DataFrame]:
-    """
-    滑动变异系数*标准差
-    
+    累计和变换
     Args:
         X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
-        
     Returns:
-        List[pd.DataFrame]: 包含数据框的列表 [变异系数*标准差值]
+        List[pd.DataFrame]: 包含一个数据框的列表 [累计和值]
     """
     X_df_sorted = X_df.sort_index()
     result_dfs = []
+
+    result_df = X_df_sorted.copy()
+    result_df['value'] = np.nan
     
-    # 为每个模态创建一个空的数据框
-    for mode_name in ['cvstd']:
-        mode_df = X_df_sorted.copy()
-        mode_df['value'] = np.nan
-        result_dfs.append(mode_df)
-    
-    # 获取所有唯一的series_id
-    unique_ids = X_df_sorted.index.get_level_values('id').unique()
-    
-    # 对每个id进行分解，添加进度条
-    for series_id in tqdm(unique_ids, desc="计算滑动变异系数*标准差", unit="series"):
+    for series_id in X_df_sorted.index.get_level_values('id').unique():
         series_data = X_df_sorted.loc[series_id]
         series_data = series_data.sort_index()
         values = series_data['value'].values
         
-        # 使用向量化版本进行快速计算
-        window_size = 50
-        cvstd_values = safe_cvstd_vectorized(values, window_size)
-        
-        result_dfs[0].loc[series_id, 'value'] = cvstd_values  # 变异系数*标准差值
+        cumsum_values = np.cumsum(values)
+        result_df.loc[series_id, 'value'] = cumsum_values
     
+    result_dfs.append(result_df)
+    return result_dfs
+
+@register_transform(output_mode_names=['DIFF'])
+def diff_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    差分变换
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+    Returns:
+        List[pd.DataFrame]: 包含一个数据框的列表 [差分值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
+    
+    result_df = X_df_sorted.copy()
+    result_df['value'] = np.nan
+    
+    for series_id in X_df_sorted.index.get_level_values('id').unique():
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        diff_values = np.diff(values, prepend=0)  # 使用prepend=0使长度保持一致
+        result_df.loc[series_id, 'value'] = diff_values
+    
+    result_dfs.append(result_df)
     return result_dfs
 
 # --- 特征管理核心逻辑 ---

@@ -1348,3 +1348,166 @@ def fractal_dimension_features(u: pd.DataFrame) -> dict:
             feats.update({f'{name}_left': 0, f'{name}_right': 0, f'{name}_whole': 0, f'{name}_diff': 0, f'{name}_ratio': 0})
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 3. 累积和特征 ---
+@register_feature(func_id="3")
+def cumulative_features(u: pd.DataFrame) -> dict:
+    s1 = u['value'][u['period'] == 0]
+    s2 = u['value'][u['period'] == 1]
+    s_whole = u['value']
+    feats = {}
+
+    def analyze_cumsum_curve(series, seg):
+        """分析累积和曲线的各种特征"""
+        if len(series) < 3:
+            return {}
+        
+        cumsum_curve = series.cumsum()
+        curve_feats = {}
+        
+        # 线性趋势
+        x = np.arange(len(cumsum_curve))
+        slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, cumsum_curve)
+        curve_feats[f'cumsum_linear_trend_slope_{seg}'] = slope
+        curve_feats[f'cumsum_linear_trend_r2_{seg}'] = r_value ** 2
+        curve_feats[f'cumsum_linear_trend_pvalue_{seg}'] = p_value
+
+        # 波动率
+        curve_feats[f'cumsum_std_{seg}'] = np.std(cumsum_curve)
+        curve_feats[f'cumsum_cv_{seg}'] = safe_cv(cumsum_curve)
+    
+        # 趋势背离
+        linear_trend = slope * x + intercept
+        detrended = cumsum_curve - linear_trend
+        curve_feats[f'cumsum_detrend_volatility_{seg}'] = np.std(detrended)
+        curve_feats[f'cumsum_detrend_volatility_normalized_{seg}'] = np.std(detrended) / (np.abs(np.mean(cumsum_curve)) + 1e-6)
+        curve_feats[f'cumsum_detrend_max_deviation_{seg}'] = np.max(np.abs(detrended))
+        
+        # 极值特征
+        curve_feats[f'cumsum_min_{seg}'] = np.min(cumsum_curve)
+        curve_feats[f'cumsum_max_{seg}'] = np.max(cumsum_curve)
+        
+        return curve_feats
+    
+    feats.update(analyze_cumsum_curve(s1, 'left'))
+    feats.update(analyze_cumsum_curve(s2, 'right'))
+    feats.update(analyze_cumsum_curve(s_whole, 'whole'))
+    
+    _add_diff_ratio_feats(feats, 'cumsum_linear_trend_slope', feats.get('cumsum_linear_trend_slope_left', 0), feats.get('cumsum_linear_trend_slope_right', 0))
+    _add_diff_ratio_feats(feats, 'cumsum_std', feats.get('cumsum_std_left', 0), feats.get('cumsum_std_right', 0))
+    _add_diff_ratio_feats(feats, 'cumsum_cv', feats.get('cumsum_cv_left', 0), feats.get('cumsum_cv_right', 0))
+    _add_contribution_ratio_feats(feats, 'cumsum_min', feats.get('cumsum_min_left', 0), feats.get('cumsum_min_right', 0), feats.get('cumsum_min_whole', 0))
+    _add_contribution_ratio_feats(feats, 'cumsum_max', feats.get('cumsum_max_left', 0), feats.get('cumsum_max_right', 0), feats.get('cumsum_max_whole', 0))
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# @register_transform(output_mode_names=['MAtrend', 'MAresid'])
+def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    滑动平均分解
+    
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+        
+    Returns:
+        List[pd.DataFrame]: 包含两个数据框的列表 [趋势值, 残差值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
+    
+    # 为每个模态创建一个空的数据框
+    for mode_name in ['trend', 'resid']:
+        mode_df = X_df_sorted.copy()
+        mode_df['value'] = np.nan
+        result_dfs.append(mode_df)
+    
+    # 对每个id进行分解
+    for series_id in X_df_sorted.index.get_level_values('id').unique():
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        # 滑动平均分解
+        window_size = 200
+        trend = pd.Series(values).rolling(window=window_size, center=True, min_periods=1).mean()
+        trend.iloc[:window_size//2] = trend.iloc[window_size//2]
+        trend.iloc[-(window_size//2):] = trend.iloc[-(window_size//2)]
+        
+        residual = values - trend.values
+        
+        result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
+        result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
+    
+    return result_dfs
+
+def safe_cvstd_vectorized(values, window_size=50):
+    """
+    向量化计算滑动变异系数*标准差，比逐个窗口计算更快
+    
+    Args:
+        values: numpy array，输入序列
+        window_size: int，窗口大小
+        
+    Returns:
+        numpy array: 变异系数*标准差值序列
+    """
+    values = np.asarray(values, dtype=np.float64)
+    n = len(values)
+    
+    # 使用pandas的rolling功能进行向量化计算
+    series = pd.Series(values)
+    
+    # 计算滑动均值和标准差
+    rolling_mean = series.rolling(window=window_size, center=True, min_periods=1).mean()
+    rolling_std = series.rolling(window=window_size, center=True, min_periods=1).std()
+    
+    # 计算变异系数*标准差，避免除零
+    result = np.zeros(n)
+    mask = np.abs(rolling_mean) > 1e-6
+    result[mask] = (rolling_std[mask] * rolling_std[mask]) / rolling_mean[mask]
+    result[~mask] = 0.0
+    
+    # 处理边界值
+    half_window = window_size // 2
+    if half_window > 0:
+        result[:half_window] = result[half_window]
+        result[-half_window:] = result[-half_window]
+    
+    return result
+
+# @register_transform(output_mode_names=['MCS'])
+def moving_cv_std(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    滑动变异系数*标准差
+    
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+        
+    Returns:
+        List[pd.DataFrame]: 包含数据框的列表 [变异系数*标准差值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
+    
+    # 为每个模态创建一个空的数据框
+    for mode_name in ['cvstd']:
+        mode_df = X_df_sorted.copy()
+        mode_df['value'] = np.nan
+        result_dfs.append(mode_df)
+    
+    # 获取所有唯一的series_id
+    unique_ids = X_df_sorted.index.get_level_values('id').unique()
+    
+    # 对每个id进行分解，添加进度条
+    for series_id in tqdm(unique_ids, desc="计算滑动变异系数*标准差", unit="series"):
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        # 使用向量化版本进行快速计算
+        window_size = 50
+        cvstd_values = safe_cvstd_vectorized(values, window_size)
+        
+        result_dfs[0].loc[series_id, 'value'] = cvstd_values  # 变异系数*标准差值
+    
+    return result_dfs

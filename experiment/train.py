@@ -174,6 +174,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     models = []
     feature_importances = pd.DataFrame(index=feature_df.columns)
     permutation_results = pd.DataFrame(index=feature_df.columns)
+    fold_metrics = []
     
     # 使用增强数据交叉验证策略
     cv_iterator = create_enhanced_cv_splits(feature_df, y_train, data_ids, config.CV_PARAMS)
@@ -187,12 +188,15 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         # 配置模型
         if config.MODEL == 'LGB':
             model = lgb.LGBMClassifier(**config.LGBM_PARAMS)
+            callbacks = []
+            if getattr(config, 'EARLY_STOPPING_ROUNDS', 0) and config.EARLY_STOPPING_ROUNDS > 0:
+                callbacks.append(lgb.early_stopping(config.EARLY_STOPPING_ROUNDS, verbose=False))
             model.fit(
                 X_train_fold, y_train_fold,
                 eval_set=[(X_train_fold, y_train_fold), (X_val_fold, y_val_fold)],
                 eval_names=['train', 'valid'],
                 eval_metric='auc',
-                callbacks=[lgb.early_stopping(100, verbose=False)]
+                callbacks=callbacks
             )
             train_auc = model.best_score_['train']['auc']
         elif config.MODEL == 'CAT':
@@ -200,7 +204,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
             model.fit(
                 X_train_fold, y_train_fold, 
                 eval_set=[(X_val_fold, y_val_fold)],
-                early_stopping_rounds=100,
+                early_stopping_rounds=(config.EARLY_STOPPING_ROUNDS if getattr(config, 'EARLY_STOPPING_ROUNDS', 0) and config.EARLY_STOPPING_ROUNDS > 0 else None),
                 verbose=False
             )
             train_preds = model.predict_proba(X_train_fold)[:, 1]
@@ -215,6 +219,25 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         
         fold_auc = roc_auc_score(y_val_fold, preds)
         logger.info(f"Fold {fold+1} Train AUC: {train_auc:.5f}, Val AUC: {fold_auc:.5f}")
+
+        # 记录早停的 step（best_iteration）
+        best_iteration = None
+        if config.MODEL == 'LGB':
+            best_iteration = getattr(model, 'best_iteration_', None)
+        elif config.MODEL == 'CAT':
+            try:
+                best_iteration = model.get_best_iteration()
+            except Exception:
+                best_iteration = getattr(model, 'best_iteration_', None)
+        logger.info(f"Fold {fold+1} Early stopping step (best_iteration): {best_iteration}")
+
+        # 保存到元数据结构中
+        fold_metrics.append({
+            'fold': fold + 1,
+            'train_auc': float(train_auc),
+            'val_auc': float(fold_auc),
+            'best_iteration': int(best_iteration) if best_iteration is not None else None,
+        })
 
         fold_duration = time.time() - fold_start_time
         logger.info(f"Fold {fold+1} finished in {fold_duration:.2f}s")
@@ -270,7 +293,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         "features_used": feature_df.columns.tolist(),
         "model_params": config.LGBM_PARAMS,
         "cv_params": config.CV_PARAMS,
-        "oof_auc": overall_oof_auc
+        "oof_auc": overall_oof_auc,
+        "fold_metrics": fold_metrics
     }
     with open(run_output_dir / 'training_metadata.json', 'w') as f:
         json.dump(training_metadata, f, indent=4)

@@ -39,7 +39,7 @@ LGBM_PARAMS = {
     'objective': 'binary',
     'metric': 'auc',
     'boosting_type': 'gbdt',
-    'n_estimators': 4000, 
+    'n_estimators': 2900, 
     'learning_rate': 0.005,
     'num_leaves': 29,
     'random_state': SEED,
@@ -68,6 +68,10 @@ CAT_PARAMS = {
     # 'rsm': 0.7,
     'l2_leaf_reg': 3,
 }
+
+# --- Early Stopping ---
+# 设置为 >0 启用早停；设置为 0 禁用早停
+EARLY_STOPPING_ROUNDS = 0
 
 # --- CV ---
 CV_PARAMS = {

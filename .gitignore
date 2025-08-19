@@ -19,3 +19,4 @@ resources/
 *.pyc
 
 try.ipynb
+experiment/__pycache__/

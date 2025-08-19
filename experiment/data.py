@@ -30,7 +30,9 @@ def load_data(enhancement_ids=None, return_dict=True):
         y_train = pd.read_parquet(config.TRAIN_Y_FILE)
         logger.info("Original data loaded successfully.")
         logger.info(f"X_train shape: {X_train.shape}")
+        logger.info(f"X_train type: {type(X_train)}")
         logger.info(f"y_train shape: {y_train.shape}")
+        logger.info(f"y_train type: {type(y_train)}")
         
         # 初始化字典格式的数据
         X_data = {}

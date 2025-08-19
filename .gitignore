@@ -6,6 +6,7 @@ feature_dfs/
 __pycache__/
 try_features/
 catboost_info/
+resources/
 
 *.csv
 *.parquet
@@ -18,3 +19,4 @@ catboost_info/
 *.pyc
 
 try.ipynb
+experiment/__pycache__/

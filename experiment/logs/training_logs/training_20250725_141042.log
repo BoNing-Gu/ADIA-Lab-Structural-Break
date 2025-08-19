@@ -1,3 +1,0 @@
-2025-07-25 14:10:42 - Training-20250725_141042 - INFO - ========== Running Command: filter ==========
-2025-07-25 14:10:42 - Training-20250725_141042 - INFO - Args: {'command': 'filter', 'filter_method': 'perm-imp', 'train_version': 'train_20250725_135703_auc_0_76612', 'feature_file': None}
-2025-07-25 14:10:42 - Training-20250725_141042 - INFO - =======================================

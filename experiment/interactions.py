@@ -20,7 +20,6 @@ def generate_interaction_features(
     create_cross_add: bool = False,
     create_cross_sub: bool = False,
     create_cross_div: bool = False,
-    target_feature: str = 'RAW_1_stats_cv_whole'
 ):
     """
     根据特征重要性文件生成交互特征。

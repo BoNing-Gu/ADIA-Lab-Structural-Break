@@ -321,7 +321,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     # 6. 保存模型
     if save_model:
         for i, model in tqdm(enumerate(models), total=len(models), desc="Saving models"):
-            joblib.dump(model, run_output_dir / f'model_fold_{i+1}.pkl')
+            joblib.dump(model, run_output_dir / f'local_{config.MODEL}_model_fold_{i+1}.pkl')
         # extractor.save(run_output_dir / 'neighbor_extractor.pkl')
         logger.info("Models saved.")
 

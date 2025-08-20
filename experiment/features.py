@@ -37,6 +37,7 @@ os.environ["STUMPY_GPU"] = "0"
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.simplefilter("ignore", InterpolationWarning)
 warnings.simplefilter("ignore", FutureWarning)
+warnings.simplefilter('ignore', np.exceptions.RankWarning)
 
 # logger 将由 main.py 在运行时注入
 logger = None

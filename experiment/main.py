@@ -131,7 +131,6 @@ def main():
             create_cross_add=args.cross_add,
             create_cross_sub=args.cross_sub,
             create_cross_div=args.cross_div,
-            target_feature='RAW_1_stats_cv_whole'
         )
 
     elif args.command == 'filter':

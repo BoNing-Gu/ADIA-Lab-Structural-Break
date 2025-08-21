@@ -2,7 +2,18 @@ import pandas as pd
 import numpy as np
 import lightgbm as lgb
 import catboost as cat
+import xgboost as xgb
 from tqdm.auto import tqdm
+
+# GPU数据处理支持
+try:
+    import cudf
+    import cupy as cp
+    CUDF_AVAILABLE = True
+except ImportError:
+    CUDF_AVAILABLE = False
+    cudf = None
+    cp = None
 
 import optuna
 from sklearn.model_selection import StratifiedKFold
@@ -164,7 +175,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         return None, None
 
     logger.info(f"--- 使用的特征列表 (共 {len(feature_df.columns)} 个) ---")
-    logger.info(feature_df.columns.tolist())
+    logger.info(f"前50个特征: {feature_df.columns.tolist()[:50]}")
     logger.info("-" * min(50, len(str(feature_df.columns.tolist()))))
     
     # 3. 交叉验证
@@ -184,6 +195,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
 
         X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
         X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]
+        logger.info(f"训练数据: {X_train_fold.shape}, 验证数据: {X_val_fold.shape}")
 
         # 配置模型
         if config.MODEL == 'LGB':
@@ -208,11 +220,41 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
                 verbose=False
             )
             train_preds = model.predict_proba(X_train_fold)[:, 1]
+            # 确保y_train_fold是NumPy格式，兼容cuDF
+            y_train_fold_numpy = y_train_fold.to_numpy() if hasattr(y_train_fold, 'to_numpy') else y_train_fold
+            train_auc = roc_auc_score(y_train_fold_numpy, train_preds)
+        elif config.MODEL == 'XGB':
+            if getattr(config, 'EARLY_STOPPING_ROUNDS', 0) and config.EARLY_STOPPING_ROUNDS > 0:
+                config.XGB_PARAMS['early_stopping_rounds'] = config.EARLY_STOPPING_ROUNDS
+            model = xgb.XGBClassifier(**config.XGB_PARAMS)
+            # 如果使用GPU且cudf可用，转换数据到GPU
+            if CUDF_AVAILABLE and config.XGB_PARAMS.get('device') == 'cuda':
+                logger.info(f"Fold {fold+1}: Using cuDF for GPU data processing")
+                X_train_fold_gpu = cudf.DataFrame(X_train_fold)
+                y_train_fold_gpu = cudf.Series(y_train_fold)
+                X_val_fold_gpu = cudf.DataFrame(X_val_fold)
+                y_val_fold_gpu = cudf.Series(y_val_fold)
+                model.fit(
+                    X_train_fold_gpu, y_train_fold_gpu, 
+                    eval_set=[(X_train_fold_gpu, y_train_fold_gpu), (X_val_fold_gpu, y_val_fold_gpu)],
+                    verbose=False
+                )
+            else:
+                model.fit(
+                    X_train_fold, y_train_fold, 
+                    eval_set=[(X_train_fold, y_train_fold), (X_val_fold, y_val_fold)],
+                    verbose=False
+                )
+            train_preds = model.predict_proba(X_train_fold)[:, 1]
             train_auc = roc_auc_score(y_train_fold, train_preds)
         else:
             raise ValueError("Unknown config.MODEL")
 
+        # 预测验证集
         preds = model.predict_proba(X_val_fold)[:, 1]
+        if hasattr(preds, 'get'):
+            preds = preds.get()
+        
         oof_preds[val_idx] = preds
         models.append(model)
         feature_importances[f'fold_{fold+1}'] = model.feature_importances_
@@ -229,6 +271,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
                 best_iteration = model.get_best_iteration()
             except Exception:
                 best_iteration = getattr(model, 'best_iteration_', None)
+        elif config.MODEL == 'XGB':
+            best_iteration = getattr(model, 'best_iteration', None)
         logger.info(f"Fold {fold+1} Early stopping step (best_iteration): {best_iteration}")
 
         # 保存到元数据结构中
@@ -277,7 +321,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     # 6. 保存模型
     if save_model:
         for i, model in tqdm(enumerate(models), total=len(models), desc="Saving models"):
-            joblib.dump(model, run_output_dir / f'model_fold_{i+1}.pkl')
+            joblib.dump(model, run_output_dir / f'local_{config.MODEL}_model_fold_{i+1}.pkl')
         # extractor.save(run_output_dir / 'neighbor_extractor.pkl')
         logger.info("Models saved.")
 

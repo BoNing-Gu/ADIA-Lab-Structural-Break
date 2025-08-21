@@ -21,7 +21,7 @@ def parse_feature_name(feature_name):
     return None, None, None
 
 
-def check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95):
+def check_new_features_corr(feature_df, loaded_features, drop_flag=True, threshold=0.95, corr_matrix=None):
     """
     检查新特征与已加载特征的相关性
     
@@ -30,6 +30,7 @@ def check_new_features_corr(feature_df, loaded_features, drop_flag=True, thresho
         loaded_features: 已加载的特征列表
         drop_flag: 是否删除高相关性特征
         threshold: 相关性阈值
+        corr_matrix: 预计算的相关性矩阵，如果提供则直接使用，否则重新计算
     
     Returns:
         tuple: (处理后的feature_df, 被删除的特征列表)
@@ -42,10 +43,15 @@ def check_new_features_corr(feature_df, loaded_features, drop_flag=True, thresho
         print("[check_corr] 没有新特征需要检查")
         return feature_df, []
     
-    # 计算新特征与已加载特征的相关性
-    all_features = list(loaded_features) + new_features
-    corr_matrix = feature_df[all_features].corr()
-    cross_corr = corr_matrix.loc[new_features, loaded_features]
+    # 使用预计算的相关性矩阵或重新计算
+    if corr_matrix is not None:
+        print("[check_corr] 使用预计算的相关性矩阵")
+        cross_corr = corr_matrix.loc[new_features, loaded_features]
+    else:
+        print("[check_corr] 重新计算相关性矩阵")
+        all_features = list(loaded_features) + new_features
+        corr_matrix = feature_df[all_features].corr()
+        cross_corr = corr_matrix.loc[new_features, loaded_features]
     
     # 检查高相关性特征 (|corr| > 0.7)
     high_corr_features = cross_corr[(cross_corr.abs() > 0.75).any(axis=1)]
@@ -131,7 +137,12 @@ def corr_filter(feature_file: str = None, threshold: float = 0.95, drop_flag: bo
     if ungrouped_features:
         print(f"  未分组特征: {ungrouped_features}")
     
-    # 4. 逐类进行相关性检查
+    # 4. 预计算完整的相关性矩阵
+    print(f"\n[filter_corr] 预计算完整相关性矩阵...")
+    full_corr_matrix = feature_df.corr()
+    print(f"[filter_corr] 相关性矩阵计算完成 ({len(feature_df.columns)}x{len(feature_df.columns)})")
+    
+    # 5. 逐类进行相关性检查
     all_dropped_features = []
     processed_features = list(ungrouped_features)  # 从未分组特征开始
     group_keys = list(feature_groups.keys())
@@ -157,7 +168,8 @@ def corr_filter(feature_file: str = None, threshold: float = 0.95, drop_flag: bo
                 temp_df, 
                 processed_features, 
                 drop_flag=drop_flag, 
-                threshold=threshold
+                threshold=threshold,
+                corr_matrix=full_corr_matrix
             )
             
             all_dropped_features.extend(dropped_in_group)
@@ -169,7 +181,7 @@ def corr_filter(feature_file: str = None, threshold: float = 0.95, drop_flag: bo
             print(f"当前组保留特征: {len(remaining_group_features)}")
             print(f"当前组删除特征: {len(dropped_in_group)}")
     
-    # 5. 应用删除操作（如果启用）
+    # 6. 应用删除操作（如果启用）
     final_feature_df = feature_df.copy()
     if drop_flag and all_dropped_features:
         final_feature_df = feature_df.drop(columns=all_dropped_features)
@@ -177,7 +189,7 @@ def corr_filter(feature_file: str = None, threshold: float = 0.95, drop_flag: bo
     
     keep_features = [f for f in feature_df.columns if f not in all_dropped_features]
     
-    # 6. 保存结果到txt文件
+    # 7. 保存结果到txt文件
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(f'# 特征相关性筛选结果（逐类检查）\n')
         f.write(f'# 特征文件: {loaded_feature_name}\n')
@@ -295,7 +307,7 @@ def perm_imp_filter(train_version: str, feature_file: str = None, top_k: list[in
 
 def feature_imp_filter(train_version: str, feature_file: str = None, top_k: list[int] = None):
     if top_k is None:
-        top_k = [200, 300, 400, 500]
+        top_k = [200, 300, 400, 500, 600]
 
     # 1. 加载特征数据
     imp_path = os.path.join(config.OUTPUT_DIR, train_version, 'feature_importance.tsv')

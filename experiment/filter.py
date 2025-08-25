@@ -265,7 +265,7 @@ def perm_imp_filter(train_version: str, feature_file: str = None, top_k: list[in
     if top_k is None:
         top_k = [5, 10, 15]
     if thresholds is None:
-        thresholds = [0.0005, 0.0004, 0.0003, 0.0002, 0.0001]
+        thresholds = [0.0005, 0.0004, 0.0003, 0.0002, 0.0001, 0.0000]
 
     # 1. 加载特征数据
     imp_path = os.path.join(config.OUTPUT_DIR, train_version, 'permutation_importance.tsv')

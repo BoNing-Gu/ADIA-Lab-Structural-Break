@@ -40,6 +40,30 @@ top_features = [
     'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2_ratio_to_whole_left',
 ]
 
+# Top 20
+top_features = [
+    'RAW_1_stats_cv_mul_std_whole',
+    'RAW_8_percentage_of_reoccurring_values_to_all_values_contribution_left',
+    'RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left',
+    'RAW_1_stats_cv_whole',
+    'RAW_7_sample_entropy_left',
+    'RAW_8_index_mass_quantile_q_0_8_ratio_to_whole_left',
+    'RAW_8_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left',
+    'RAW_8_index_mass_quantile_q_0_1_right',
+    'DIFF_2_levene_pvalue',
+    'RAW_8_ratio_value_number_to_time_series_length_ratio_to_whole_left',
+    'RAW_3_detrend_volatility_normalized_whole',
+    'CUMSUM_1_stats_theil_sen_slope_whole',
+    'CUMSUM_2_ad_pvalue',
+    'RAW_8_ratio_beyond_r_sigma_1_left',
+    'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2_ratio_to_whole_left',
+    'RAW_8_benford_correlation_whole',
+    'RAW_2_bartlett_stat',
+    'DIFF_2_bartlett_pvalue',
+    'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2_whole',
+    'DIFF_8_benford_correlation_whole',
+]
+
 
 **************************************************
 # Threshold: 0.0005

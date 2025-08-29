@@ -235,6 +235,12 @@ def safe_cv(s):
     std = s.std()
     return std / m if abs(m) > 1e-6 else 0.0
 
+def safe_cv_mul_std(s):
+    s = pd.Series(s)
+    m = s.mean()
+    std = s.std()
+    return std**2 / m if abs(m) > 1e-6 else 0.0
+
 def rolling_std_mean(s, window=50):
     s = pd.Series(s)
     if len(s) < window:
@@ -265,7 +271,8 @@ class STATSFeatureExtractor:
             'kurt': scipy.stats.kurtosis,
             'cv': safe_cv,
             'mean_of_rolling_std': rolling_std_mean,
-            'theil_sen_slope': slope_theil_sen
+            'theil_sen_slope': slope_theil_sen,
+            'cv_mul_std': safe_cv_mul_std,
         }
     
     def fit(self, signal):
@@ -1130,7 +1137,7 @@ def rupture_cost_features(u: pd.DataFrame) -> dict:
 
 
 # --- 11. 金融领域特征 ---
-@register_feature(func_id="11")
+# @register_feature(func_id="11")
 def fin_domin_features(u: pd.DataFrame) -> dict:
     """金融领域特异性特征"""
     s1 = u['value'][u['period'] == 0].to_numpy()
@@ -1298,7 +1305,7 @@ def fin_domin_features(u: pd.DataFrame) -> dict:
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 12. 生物医学领域特征 ---
-@register_feature(func_id="12")
+# @register_feature(func_id="12")
 def bio_domin_features(u: pd.DataFrame) -> dict:
     """生物医学领域特异性特征"""
     s1 = u['value'][u['period'] == 0].to_numpy()

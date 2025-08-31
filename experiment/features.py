@@ -161,6 +161,32 @@ def diff_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     result_dfs.append(result_df)
     return result_dfs
 
+@register_transform(output_mode_names=['ASINH'])
+def asinh_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    反双曲正弦变换
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+    Returns:
+        List[pd.DataFrame]: 包含一个数据框的列表 [反双曲正弦值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
+    
+    result_df = X_df_sorted.copy()
+    result_df['value'] = np.nan
+    
+    for series_id in X_df_sorted.index.get_level_values('id').unique():
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        asinh_values = np.arcsinh(values)
+        result_df.loc[series_id, 'value'] = asinh_values
+    
+    result_dfs.append(result_df)
+    return result_dfs
+
 
 # --- 特征函数注册表 ---
 FEATURE_REGISTRY = {}

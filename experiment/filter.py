@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 from . import config, features
+import time
 
 def parse_feature_name(feature_name):
     """
@@ -139,8 +140,11 @@ def corr_filter(feature_file: str = None, threshold: float = 0.95, drop_flag: bo
     
     # 4. 预计算完整的相关性矩阵
     print(f"\n[filter_corr] 预计算完整相关性矩阵...")
+    s = time.time()
     full_corr_matrix = feature_df.corr()
+    e = time.time()
     print(f"[filter_corr] 相关性矩阵计算完成 ({len(feature_df.columns)}x{len(feature_df.columns)})")
+    print(f"[filter_corr] 相关性矩阵计算时间: {e - s}")
     
     # 5. 逐类进行相关性检查
     all_dropped_features = []
@@ -263,9 +267,9 @@ def corr_filter(feature_file: str = None, threshold: float = 0.95, drop_flag: bo
 
 def perm_imp_filter(train_version: str, feature_file: str = None, top_k: list[int] = None, thresholds: list[float] = None):
     if top_k is None:
-        top_k = [5, 10, 15]
+        top_k = [5, 10, 15, 20]
     if thresholds is None:
-        thresholds = [0.0005, 0.0004, 0.0003, 0.0002, 0.0001, 0.0000]
+        thresholds = [0.0005, 0.0004, 0.0003, 0.0002, 0.0001, 0.00005, 0.0000]
 
     # 1. 加载特征数据
     imp_path = os.path.join(config.OUTPUT_DIR, train_version, 'permutation_importance.tsv')
@@ -307,7 +311,7 @@ def perm_imp_filter(train_version: str, feature_file: str = None, top_k: list[in
 
 def feature_imp_filter(train_version: str, feature_file: str = None, top_k: list[int] = None):
     if top_k is None:
-        top_k = [200, 300, 400, 500, 600]
+        top_k = [200, 300, 400, 500, 600, 800, 1000]
 
     # 1. 加载特征数据
     imp_path = os.path.join(config.OUTPUT_DIR, train_version, 'feature_importance.tsv')
@@ -321,14 +325,15 @@ def feature_imp_filter(train_version: str, feature_file: str = None, top_k: list
     output_file = os.path.join(output_dir, f'filtered_by_feature_imp_{train_version}.txt')
 
     # 3. 保存结果到txt文件
+    sorted_df = df.sort_values('importance', ascending=False)
     with open(output_file, 'w', encoding='utf-8') as f:
         for k in top_k:
-            selected_features = (
-                df.sort_values('importance', ascending=False)['feature']
-                .head(k)
-                .tolist()
-            )
+            # 获取按重要性排序的特征和对应的重要性值
+            selected_features = sorted_df['feature'].head(k).tolist()
+            min_importance = sorted_df['importance'].iloc[k-1]  # 获取第k个特征的重要性值
+            
             f.write(f'# Top {k}\n')
+            f.write(f'# Min Importance in Top {k}: {min_importance:.6f}\n')
             f.write('top_features = [\n')
             f.writelines([f"    '{feat}',\n" for feat in selected_features])
             f.write(']\n\n')

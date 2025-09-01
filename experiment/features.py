@@ -752,11 +752,10 @@ def entropy_features(u: pd.DataFrame) -> dict:
             threshold = np.median(x)
             return ''.join(['1' if val > threshold else '0' for val in x])
         return None
-    bin_str1 = series_to_binary_str(s1)
-    bin_str2 = series_to_binary_str(s2)
-    bin_str_whole = series_to_binary_str(s_whole)
-
     try:
+        bin_str1 = series_to_binary_str(s1)
+        bin_str2 = series_to_binary_str(s2)
+        bin_str_whole = series_to_binary_str(s_whole)
         lz1, lz2, lz_whole = antropy.lziv_complexity(bin_str1, normalize=True), antropy.lziv_complexity(bin_str2, normalize=True), antropy.lziv_complexity(bin_str_whole, normalize=True)
         feats.update({
             'lziv_complexity_left': lz1, 'lziv_complexity_right': lz2, 'lziv_complexity_whole': lz_whole,

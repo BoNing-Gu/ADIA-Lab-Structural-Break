@@ -39,11 +39,12 @@ LGBM_PARAMS = {
     'objective': 'binary',
     'metric': 'auc',
     'boosting_type': 'gbdt',
-    'n_estimators': 3000, 
+    'n_estimators': 6800, 
     'learning_rate': 0.005,
-    'num_leaves': 29,
+    'num_leaves': 36,
     'random_state': SEED,
     'n_jobs': N_JOBS,
+    'is_unbalance': True,
 
     # --- 正则化和采样 ---
     'reg_alpha': 3,          # L1 正则化
@@ -131,7 +132,7 @@ TOP_FEATURES = [
 ]
 
 REMAIN_FEATURES = [
-        'div_RAW_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left',
+    'div_RAW_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left',
     'div_ASINH_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left',
     'add_RAW_1_stats_cv_mul_std_whole_CUMSUM_1_stats_theil_sen_slope_whole',
     'div_RAW_1_stats_cv_whole_RAW_7_sample_entropy_whole',

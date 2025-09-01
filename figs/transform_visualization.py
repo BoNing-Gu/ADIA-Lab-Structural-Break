@@ -38,14 +38,22 @@ def piecewise_log_transform(x):
     
     return result
 
+def cumsum_transform(x):
+    """累积和变换"""
+    return np.cumsum(x)
+
+def diff_transform(x):
+    """差分变换"""
+    return np.diff(x, prepend=0)  # prepend=0保持数组长度一致
+
 def plot_transformations():
     """绘制原始时间序列和各种变换的对比图"""
     # 生成随机游走数据
     data = generate_random_walk(1000)
     time_steps = np.arange(len(data))
     
-    # 创建子图
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    # 创建子图 - 增加到3行3列以容纳更多变换
+    fig, axes = plt.subplots(3, 3, figsize=(18, 16))
     fig.suptitle('Time Series Transformation Comparison', fontsize=16, fontweight='bold')
     
     # 原始时间序列
@@ -94,8 +102,26 @@ def plot_transformations():
     axes[1, 1].grid(True, alpha=0.3)
     axes[1, 1].axhline(y=0, color='r', linestyle='--', alpha=0.5)
     
+    # CUMSUM变换
+    cumsum_data = cumsum_transform(data)
+    axes[1, 2].plot(time_steps, cumsum_data, 'orange', linewidth=1, alpha=0.8)
+    axes[1, 2].set_title('Cumulative Sum Transform\ncumsum(x)', fontsize=14)
+    axes[1, 2].set_xlabel('Time Steps')
+    axes[1, 2].set_ylabel('Transformed Value')
+    axes[1, 2].grid(True, alpha=0.3)
+    axes[1, 2].axhline(y=0, color='r', linestyle='--', alpha=0.5)
+    
+    # DIFF变换
+    diff_data = diff_transform(data)
+    axes[2, 0].plot(time_steps, diff_data, 'brown', linewidth=1, alpha=0.8)
+    axes[2, 0].set_title('Difference Transform\ndiff(x)', fontsize=14)
+    axes[2, 0].set_xlabel('Time Steps')
+    axes[2, 0].set_ylabel('Transformed Value')
+    axes[2, 0].grid(True, alpha=0.3)
+    axes[2, 0].axhline(y=0, color='r', linestyle='--', alpha=0.5)
+    
     # 统计信息对比
-    axes[1, 2].axis('off')
+    axes[2, 1].axis('off')
     stats_text = f"""
 Statistical Comparison:
 
@@ -120,9 +146,20 @@ Offset Log Transform:
 Piecewise Log Transform:
   Mean: {np.mean(piecewise_log_data):.3f}
   Std: {np.std(piecewise_log_data):.3f}
+
+Cumsum Transform:
+  Mean: {np.mean(cumsum_data):.3f}
+  Std: {np.std(cumsum_data):.3f}
+
+Diff Transform:
+  Mean: {np.mean(diff_data):.3f}
+  Std: {np.std(diff_data):.3f}
     """
-    axes[1, 2].text(0.05, 0.95, stats_text, transform=axes[1, 2].transAxes, 
-                   fontsize=10, verticalalignment='top', fontfamily='monospace')
+    axes[2, 1].text(0.05, 0.95, stats_text, transform=axes[2, 1].transAxes, 
+                   fontsize=9, verticalalignment='top', fontfamily='monospace')
+    
+    # 隐藏多余的子图
+    axes[2, 2].axis('off')
     
     plt.tight_layout()
     plt.savefig('transform_comparison.png', dpi=300, bbox_inches='tight')
@@ -134,6 +171,8 @@ Piecewise Log Transform:
     print("2. asinh变换: 类似对数但可处理负值，在金融分析中常用")
     print("3. 偏移对数变换: 通过偏移使所有值为正后进行对数变换")
     print("4. 分段对数变换: 对正负值分别进行对数变换")
+    print("5. CUMSUM变换: 累积和变换，用于趋势分析")
+    print("6. DIFF变换: 差分变换，用于去除趋势和平稳化")
 
 def compare_transform_properties():
     """比较不同变换的数学性质"""

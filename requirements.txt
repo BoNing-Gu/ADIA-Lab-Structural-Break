@@ -11,6 +11,8 @@ seaborn==0.13.2
 
 tqdm==4.67.1
 lightgbm==4.6.0
+xgboost
+catboost
 scikit-learn==1.6.1
 optuna==4.4.0
 

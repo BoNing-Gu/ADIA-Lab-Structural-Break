@@ -263,7 +263,7 @@ def corr_filter(feature_file: str = None, threshold: float = 0.95, drop_flag: bo
 
 def perm_imp_filter(train_version: str, feature_file: str = None, top_k: list[int] = None, thresholds: list[float] = None):
     if top_k is None:
-        top_k = [5, 10, 15]
+        top_k = [5, 10, 15, 20, 100]
     if thresholds is None:
         thresholds = [0.0005, 0.0004, 0.0003, 0.0002, 0.0001]
 
@@ -307,7 +307,7 @@ def perm_imp_filter(train_version: str, feature_file: str = None, top_k: list[in
 
 def feature_imp_filter(train_version: str, feature_file: str = None, top_k: list[int] = None):
     if top_k is None:
-        top_k = [200, 300, 400, 500, 600]
+        top_k = [200, 300, 400, 500, 600, 800]
 
     # 1. 加载特征数据
     imp_path = os.path.join(config.OUTPUT_DIR, train_version, 'feature_importance.tsv')

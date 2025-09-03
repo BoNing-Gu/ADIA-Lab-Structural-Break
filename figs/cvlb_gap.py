@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 
 # 数据
-submissions = [7, 8, 10, 12, 17, 18, 19]
-cv_scores = [0.7875, 0.8739, 0.8883, 0.8909, 0.9059, 0.8918, 0.8945]
-lb_scores = [0.7812, 0.8646, 0.8756, 0.8776, 0.8802, 0.8745, 0.8834]
+submissions = [7, 8, 10, 12, 17, 18, 19, 20]
+cv_scores = [0.7875, 0.8739, 0.8883, 0.8909, 0.9059, 0.8918, 0.8945, 0.8966]
+lb_scores = [0.7812, 0.8646, 0.8756, 0.8776, 0.8802, 0.8745, 0.8834, 0.8838]
 gaps = [cv - lb for cv, lb in zip(cv_scores, lb_scores)]
-magic_labels = ["no", "by interaction", "by interaction", "by interaction", "by feat", "by feat", "by interaction"]
+magic_labels = ["no", "by interaction", "by interaction", "by interaction", "by feat", "by feat", "by interaction", "by interaction"]
 
 # 颜色映射
 color_map = {"no": "red", "by interaction": "blue", "by feat": "green"}

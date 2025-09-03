@@ -1038,41 +1038,41 @@ def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     return result_dfs
 
 # @register_transform(output_mode_names=['MAtrend', 'MAresid'])
-def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
-    """
-    滑动平均分解
-    Args:
-        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
-    Returns:
-        List[pd.DataFrame]: 包含两个数据框的列表 [趋势值, 残差值]
-    """
-    X_df_sorted = X_df.sort_index()
-    result_dfs = []
+# def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+#     """
+#     滑动平均分解
+#     Args:
+#         X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+#     Returns:
+#         List[pd.DataFrame]: 包含两个数据框的列表 [趋势值, 残差值]
+#     """
+#     X_df_sorted = X_df.sort_index()
+#     result_dfs = []
     
-    # 为每个模态创建一个空的数据框
-    for mode_name in ['trend', 'resid']:
-        mode_df = X_df_sorted.copy()
-        mode_df['value'] = np.nan
-        result_dfs.append(mode_df)
+#     # 为每个模态创建一个空的数据框
+#     for mode_name in ['trend', 'resid']:
+#         mode_df = X_df_sorted.copy()
+#         mode_df['value'] = np.nan
+#         result_dfs.append(mode_df)
     
-    # 对每个id进行分解
-    for series_id in X_df_sorted.index.get_level_values('id').unique():
-        series_data = X_df_sorted.loc[series_id]
-        series_data = series_data.sort_index()
-        values = series_data['value'].values
+#     # 对每个id进行分解
+#     for series_id in X_df_sorted.index.get_level_values('id').unique():
+#         series_data = X_df_sorted.loc[series_id]
+#         series_data = series_data.sort_index()
+#         values = series_data['value'].values
         
-        # 滑动平均分解
-        window_size = 200
-        trend = pd.Series(values).rolling(window=window_size, center=True, min_periods=1).mean()
-        trend.iloc[:window_size//2] = trend.iloc[window_size//2]
-        trend.iloc[-(window_size//2):] = trend.iloc[-(window_size//2)]
+#         # 滑动平均分解
+#         window_size = 200
+#         trend = pd.Series(values).rolling(window=window_size, center=True, min_periods=1).mean()
+#         trend.iloc[:window_size//2] = trend.iloc[window_size//2]
+#         trend.iloc[-(window_size//2):] = trend.iloc[-(window_size//2)]
         
-        residual = values - trend.values
+#         residual = values - trend.values
         
-        result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
-        result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
+#         result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
+#         result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
     
-    return result_dfs
+#     return result_dfs
 
 @register_transform(output_mode_names=['CUMSUM'])
 def cumsum_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
@@ -1122,6 +1122,32 @@ def diff_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
         
         diff_values = np.diff(values, prepend=0)  # 使用prepend=0使长度保持一致
         result_df.loc[series_id, 'value'] = diff_values
+    
+    result_dfs.append(result_df)
+    return result_dfs
+
+@register_transform(output_mode_names=['ASINH'])
+def asinh_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+    """
+    反双曲正弦变换
+    Args:
+        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+    Returns:
+        List[pd.DataFrame]: 包含一个数据框的列表 [反双曲正弦值]
+    """
+    X_df_sorted = X_df.sort_index()
+    result_dfs = []
+    
+    result_df = X_df_sorted.copy()
+    result_df['value'] = np.nan
+    
+    for series_id in X_df_sorted.index.get_level_values('id').unique():
+        series_data = X_df_sorted.loc[series_id]
+        series_data = series_data.sort_index()
+        values = series_data['value'].values
+        
+        asinh_values = np.arcsinh(values)
+        result_df.loc[series_id, 'value'] = asinh_values
     
     result_dfs.append(result_df)
     return result_dfs

@@ -1,0 +1,3 @@
+2025-09-03 16:46:50 - Training-20250903_164650 - INFO - ========== Running Command: filter ==========
+2025-09-03 16:46:50 - Training-20250903_164650 - INFO - Args: {'command': 'filter', 'filter_method': 'corr', 'feature_file': None}
+2025-09-03 16:46:50 - Training-20250903_164650 - INFO - =======================================

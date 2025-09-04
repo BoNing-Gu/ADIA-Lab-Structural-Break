@@ -186,6 +186,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     feature_importances = pd.DataFrame(index=feature_df.columns)
     permutation_results = pd.DataFrame(index=feature_df.columns)
     fold_metrics = []
+    X_val_folds = []
+    y_val_folds = []
     
     # 使用增强数据交叉验证策略
     cv_iterator = create_enhanced_cv_splits(feature_df, y_train, data_ids, config.CV_PARAMS)
@@ -195,6 +197,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
 
         X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
         X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]
+        X_val_folds.append(X_val_fold)
+        y_val_folds.append(y_val_fold)
         logger.info(f"训练数据: {X_train_fold.shape}, 验证数据: {X_val_fold.shape}")
 
         # 配置模型
@@ -286,8 +290,13 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         fold_duration = time.time() - fold_start_time
         logger.info(f"Fold {fold+1} finished in {fold_duration:.2f}s")
 
-        # 可选地计算permutation importance
-        if perm_imp:
+
+    overall_oof_auc = roc_auc_score(y_train[0:10001], oof_preds)
+    logger.info(f"Overall OOF AUC: {overall_oof_auc:.5f}")
+
+    # 可选地计算permutation importance
+    if perm_imp:
+        for fold, (model, X_val_fold, y_val_fold) in enumerate(zip(models, X_val_folds, y_val_folds)):
             logger.info(f"Calculate Fold {fold+1} permutation importance...")
             perm_start_time = time.time()
             # 在验证集上计算permutation importance
@@ -302,9 +311,6 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
             permutation_results[f'fold_{fold+1}'] = perm_result.importances_mean
             perm_duration = time.time() - perm_start_time
             logger.info(f"Fold {fold+1} permutation importance finished in {perm_duration:.2f}s")
-
-    overall_oof_auc = roc_auc_score(y_train[0:10001], oof_preds)
-    logger.info(f"Overall OOF AUC: {overall_oof_auc:.5f}")
 
     # 4. 创建带时间和AUC分数的输出文件夹
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

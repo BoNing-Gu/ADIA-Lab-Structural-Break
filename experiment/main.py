@@ -25,6 +25,7 @@ def main():
     group = parser_del.add_mutually_exclusive_group(required=True)
     group.add_argument('--funcs', nargs='+', help='要删除的特征函数名称列表。')
     group.add_argument('--cols', nargs='+', help='要删除的特定特征列名列表。')
+    group.add_argument('--flags', nargs='+', help='要删除的特定特征列关键词标志列表。')
 
     # --- 特征交互项生成命令 ---
     parser_inter = subparsers.add_parser('gen-interactions', help='根据特征重要性文件生成交互特征')
@@ -110,7 +111,8 @@ def main():
         features.delete_features(
             base_feature_file=args.base_file,
             funcs_to_delete=args.funcs, 
-            cols_to_delete=args.cols
+            cols_to_delete=args.cols,
+            flags_to_delete=args.flags
         )
 
     elif args.command == 'gen-interactions':

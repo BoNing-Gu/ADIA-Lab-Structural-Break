@@ -1250,7 +1250,7 @@ def matrix_profile_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     """
     w = 30
     batch_size = 64
-    device = 'cuda'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     X_df_sorted = X_df.sort_index()
     result_dfs = []

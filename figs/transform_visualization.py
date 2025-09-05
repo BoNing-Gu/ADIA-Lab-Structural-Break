@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 import stumpy
+import torch
 from typing import List
 import time
 
@@ -127,6 +128,52 @@ def matrix_profile_transform(x):
     e = time.time()
     print(f'matrix_profile time: {e-s}')
     return mp[:,0]
+
+def compute_matrix_profile(ts: np.ndarray, w: int, device='cuda', verbose=False):
+    """
+    计算一维时间序列的 self matrix profile
+    """
+    ts = torch.tensor(ts, device=device)
+    t = ts.shape[0]
+    n = t - w + 1
+
+    # 子序列矩阵
+    subseq = torch.stack([ts[i:i+w] for i in range(n)])  # (n, w)
+
+    # 标准化
+    subseq_mean = subseq.mean(dim=1, keepdim=True)
+    subseq_std = subseq.std(dim=1, keepdim=True)
+    subseq_norm = (subseq - subseq_mean) / (subseq_std + 1e-8)
+
+    # 距离矩阵
+    sq_norm = torch.sum(subseq_norm ** 2, dim=1, keepdim=True)
+    dist_matrix = torch.sqrt(
+        torch.clamp(
+            sq_norm + sq_norm.T - 2 * subseq_norm @ subseq_norm.T, min=0.0
+        ) + 1e-8
+    )
+
+    # === 矩阵化 exclusion zone ===
+    excl_zone = int(np.ceil(w / 4))
+    idx = torch.arange(n, device=device)
+    diff = idx.unsqueeze(0) - idx.unsqueeze(1)   # (n, n)，值是 i-j
+    mask = diff.abs() <= excl_zone               # True 表示要屏蔽
+    dist_matrix[mask] = float('inf')
+
+    # matrix profile
+    mp_val, mp_idx = torch.min(dist_matrix, dim=1)
+
+    return mp_val.cpu().numpy(), mp_idx.cpu().numpy()
+
+def matrix_profile_transform_torch_version(x):
+    import torch
+    """矩阵轮廓"""
+    s = time.time()
+    w = 10
+    mp, _ = compute_matrix_profile(x, w)  # gpu_stump
+    e = time.time()
+    print(f'matrix_profile time: {e-s}')
+    return mp
 
 def plot_transformations():
     """绘制原始时间序列和各种变换的对比图"""
@@ -270,6 +317,13 @@ def plot_transformations():
     axes[4, 2].set_title('Matrix Profile', fontsize=12)
     axes[4, 2].grid(True, alpha=0.3)
     axes[4, 2].axhline(y=0, color='r', linestyle='--', alpha=0.5)
+
+    # 矩阵轮廓（torch版）
+    mp_data = matrix_profile_transform_torch_version(data)
+    axes[4, 3].plot(time_steps[:len(mp_data)], mp_data, 'black', linewidth=1, alpha=0.8)
+    axes[4, 3].set_title('Matrix Profile (Torch Version)', fontsize=12)
+    axes[4, 3].grid(True, alpha=0.3)
+    axes[4, 3].axhline(y=0, color='r', linestyle='--', alpha=0.5)
     
     # 统计信息对比
 #     axes[4, 3].axis('off')

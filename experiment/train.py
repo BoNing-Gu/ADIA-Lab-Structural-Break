@@ -305,7 +305,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
                 n_repeats=20,  # 可以根据需要调整重复次数
                 random_state=config.SEED,
                 scoring='roc_auc',
-                n_jobs=-1
+                n_jobs=config.N_JOBS
             )
             # 保存每个fold的permutation importance
             permutation_results[f'fold_{fold+1}'] = perm_result.importances_mean

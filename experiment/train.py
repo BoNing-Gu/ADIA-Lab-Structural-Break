@@ -290,7 +290,6 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         fold_duration = time.time() - fold_start_time
         logger.info(f"Fold {fold+1} finished in {fold_duration:.2f}s")
 
-
     overall_oof_auc = roc_auc_score(y_train[0:10001], oof_preds)
     logger.info(f"Overall OOF AUC: {overall_oof_auc:.5f}")
 

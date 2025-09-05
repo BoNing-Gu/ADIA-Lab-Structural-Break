@@ -1239,70 +1239,70 @@ def batch_matrix_profile(sequences: List[np.ndarray], w: int, device='cuda', ver
     
     return mp_values, mp_indices
 
-@register_transform(output_mode_names=['MP'])
-def matrix_profile_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
-    """
-    矩阵轮廓变换（支持单条序列和批量序列）
-    Args:
-        X_df: 输入数据框，包含 MultiIndex (id, time)，列有 ['value', 'period']
-    Returns:
-        List[pd.DataFrame]: 包含一个 DataFrame [矩阵轮廓值]
-    """
-    w = 30
-    batch_size = 64
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# @register_transform(output_mode_names=['MP'])
+# def matrix_profile_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+#     """
+#     矩阵轮廓变换（支持单条序列和批量序列）
+#     Args:
+#         X_df: 输入数据框，包含 MultiIndex (id, time)，列有 ['value', 'period']
+#     Returns:
+#         List[pd.DataFrame]: 包含一个 DataFrame [矩阵轮廓值]
+#     """
+#     w = 30
+#     batch_size = 64
+#     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    X_df_sorted = X_df.sort_index()
-    result_dfs = []
+#     X_df_sorted = X_df.sort_index()
+#     result_dfs = []
     
-    result_df = X_df_sorted.copy()
-    result_df['value'] = np.nan
+#     result_df = X_df_sorted.copy()
+#     result_df['value'] = np.nan
 
-    all_ids = X_df_sorted.index.get_level_values('id').unique().tolist()
+#     all_ids = X_df_sorted.index.get_level_values('id').unique().tolist()
 
-    # 单条序列处理
-    if len(all_ids) == 1:
-        for series_id in all_ids:
-            series_data = X_df_sorted.loc[series_id]
-            series_data = series_data.sort_index()
-            values = series_data['value'].values
+#     # 单条序列处理
+#     if len(all_ids) == 1:
+#         for series_id in all_ids:
+#             series_data = X_df_sorted.loc[series_id]
+#             series_data = series_data.sort_index()
+#             values = series_data['value'].values
 
-            mp_values, _ = compute_matrix_profile(values, w=w, device=device)
-            torch.cuda.empty_cache()
+#             mp_values, _ = compute_matrix_profile(values, w=w, device=device)
+#             torch.cuda.empty_cache()
             
-            pad_len = len(values) - len(mp_values)
-            if pad_len > 0:
-                pad_value = np.mean(mp_values)
-                mp_values = np.pad(mp_values, (pad_len, 0), constant_values=pad_value)
-            result_df.loc[series_id, 'value'] = mp_values
+#             pad_len = len(values) - len(mp_values)
+#             if pad_len > 0:
+#                 pad_value = np.mean(mp_values)
+#                 mp_values = np.pad(mp_values, (pad_len, 0), constant_values=pad_value)
+#             result_df.loc[series_id, 'value'] = mp_values
 
-    # batch 处理
-    else:
-        for start in tqdm(range(0, len(all_ids), batch_size)):
-            batch_ids = all_ids[start:start + batch_size]
-            sequences = []
+#     # batch 处理
+#     else:
+#         for start in tqdm(range(0, len(all_ids), batch_size)):
+#             batch_ids = all_ids[start:start + batch_size]
+#             sequences = []
 
-            for series_id in batch_ids:
-                series_data = X_df_sorted.loc[series_id]
-                series_data = series_data.sort_index()
-                sequences.append(series_data['value'].values)
+#             for series_id in batch_ids:
+#                 series_data = X_df_sorted.loc[series_id]
+#                 series_data = series_data.sort_index()
+#                 sequences.append(series_data['value'].values)
 
-            # 批量计算 matrix profile
-            mp_values_batch, _ = batch_matrix_profile(sequences, w=w, device=device)
-            torch.cuda.empty_cache()
+#             # 批量计算 matrix profile
+#             mp_values_batch, _ = batch_matrix_profile(sequences, w=w, device=device)
+#             torch.cuda.empty_cache()
 
-            # 回填 result_df
-            for series_id, mp_values, series_data in zip(batch_ids, mp_values_batch,
-                                                        [X_df_sorted.loc[i] for i in batch_ids]):
-                values = series_data['value'].values
-                pad_len = len(values) - len(mp_values)
-                if pad_len > 0:
-                    pad_value = np.mean(mp_values)
-                    mp_values = np.pad(mp_values, (pad_len, 0), constant_values=pad_value)
-                result_df.loc[series_id, 'value'] = mp_values
+#             # 回填 result_df
+#             for series_id, mp_values, series_data in zip(batch_ids, mp_values_batch,
+#                                                         [X_df_sorted.loc[i] for i in batch_ids]):
+#                 values = series_data['value'].values
+#                 pad_len = len(values) - len(mp_values)
+#                 if pad_len > 0:
+#                     pad_value = np.mean(mp_values)
+#                     mp_values = np.pad(mp_values, (pad_len, 0), constant_values=pad_value)
+#                 result_df.loc[series_id, 'value'] = mp_values
 
-    result_dfs.append(result_df)
-    return result_dfs
+#     result_dfs.append(result_df)
+#     return result_dfs
 
 # --- 特征管理核心逻辑 ---
 def _get_latest_feature_file() -> Path | None:

@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import torch
 import scipy.stats
 import statsmodels.tsa.api as tsa
 from statsmodels.tsa.ar_model import AutoReg
@@ -12,6 +13,7 @@ import json
 import time
 import logging
 import inspect
+from typing import List
 from pathlib import Path
 from tqdm.auto import tqdm
 from datetime import datetime
@@ -1126,31 +1128,181 @@ def diff_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     result_dfs.append(result_df)
     return result_dfs
 
-@register_transform(output_mode_names=['ASINH'])
-def asinh_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
-    """
-    反双曲正弦变换
-    Args:
-        X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
-    Returns:
-        List[pd.DataFrame]: 包含一个数据框的列表 [反双曲正弦值]
-    """
-    X_df_sorted = X_df.sort_index()
-    result_dfs = []
+# @register_transform(output_mode_names=['ASINH'])
+# def asinh_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+#     """
+#     反双曲正弦变换
+#     Args:
+#         X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
+#     Returns:
+#         List[pd.DataFrame]: 包含一个数据框的列表 [反双曲正弦值]
+#     """
+#     X_df_sorted = X_df.sort_index()
+#     result_dfs = []
     
-    result_df = X_df_sorted.copy()
-    result_df['value'] = np.nan
+#     result_df = X_df_sorted.copy()
+#     result_df['value'] = np.nan
     
-    for series_id in X_df_sorted.index.get_level_values('id').unique():
-        series_data = X_df_sorted.loc[series_id]
-        series_data = series_data.sort_index()
-        values = series_data['value'].values
+#     for series_id in X_df_sorted.index.get_level_values('id').unique():
+#         series_data = X_df_sorted.loc[series_id]
+#         series_data = series_data.sort_index()
+#         values = series_data['value'].values
         
-        asinh_values = np.arcsinh(values)
-        result_df.loc[series_id, 'value'] = asinh_values
+#         asinh_values = np.arcsinh(values)
+#         result_df.loc[series_id, 'value'] = asinh_values
     
-    result_dfs.append(result_df)
-    return result_dfs
+#     result_dfs.append(result_df)
+#     return result_dfs
+
+def compute_matrix_profile(ts: np.ndarray, w: int, device='cuda', verbose=False):
+    """
+    计算一维时间序列的 self matrix profile
+    """
+    ts = torch.tensor(ts, device=device)
+    t = ts.shape[0]
+    n = t - w + 1
+
+    # 子序列矩阵
+    subseq = torch.stack([ts[i:i+w] for i in range(n)])  # (n, w)
+
+    # 标准化
+    subseq_mean = subseq.mean(dim=1, keepdim=True)
+    subseq_std = subseq.std(dim=1, keepdim=True)
+    subseq_norm = (subseq - subseq_mean) / (subseq_std + 1e-8)
+
+    # 距离矩阵
+    sq_norm = torch.sum(subseq_norm ** 2, dim=1, keepdim=True)
+    dist_matrix = torch.sqrt(
+        torch.clamp(
+            sq_norm + sq_norm.T - 2 * subseq_norm @ subseq_norm.T, min=0.0
+        ) + 1e-8
+    )
+
+    # === 矩阵化 exclusion zone ===
+    excl_zone = int(np.ceil(w / 4))
+    idx = torch.arange(n, device=device)
+    diff = idx.unsqueeze(0) - idx.unsqueeze(1)   # (n, n)，值是 i-j
+    mask = diff.abs() <= excl_zone               # True 表示要屏蔽
+    dist_matrix[mask] = float('inf')
+
+    # matrix profile
+    mp_val, mp_idx = torch.min(dist_matrix, dim=1)
+
+    return mp_val.cpu().numpy(), mp_idx.cpu().numpy()
+
+def batch_matrix_profile(sequences: List[np.ndarray], w: int, device='cuda', verbose=False):
+    """
+    批量计算 self-join Matrix Profile
+    """
+    n_list = [len(seq) - w + 1 for seq in sequences]
+    max_n = max(n_list)
+    batch_size = len(sequences)
+    
+    batch_tensor = torch.zeros((batch_size, max_n, w), device=device)
+    mask = torch.zeros((batch_size, max_n), dtype=torch.bool, device=device)
+    for i, seq in enumerate(sequences):
+        n = n_list[i]
+        subseq = torch.stack([torch.tensor(seq[j:j+w], device=device) for j in range(n)])
+        batch_tensor[i, :n, :] = subseq
+        mask[i, :n] = True
+    
+    mean = batch_tensor.mean(dim=2, keepdim=True)
+    std = batch_tensor.std(dim=2, keepdim=True) + 1e-8
+    batch_norm = (batch_tensor - mean) / std
+    
+    sq_norm = torch.sum(batch_norm ** 2, dim=2, keepdim=True)
+    dist_matrix = torch.sqrt(
+        torch.clamp(
+            sq_norm + sq_norm.transpose(1,2) - 2 * torch.bmm(batch_norm, batch_norm.transpose(1,2)), min=0.0
+        ) + 1e-8
+    )
+    
+    # === 矩阵化 exclusion zone ===
+    excl_zone = int(np.ceil(w / 4))
+    idx = torch.arange(max_n, device=device)
+    diff = idx.unsqueeze(0) - idx.unsqueeze(1)  # (max_n, max_n)
+    excl_mask = diff.abs() <= excl_zone         # True 表示要屏蔽
+
+    mp_values = []
+    mp_indices = []
+    for i in range(batch_size):
+        n = n_list[i]
+        # padding 屏蔽
+        dist_matrix[i, ~mask[i].unsqueeze(1).expand(-1,max_n)] = float('inf')
+        dist_matrix[i, :, ~mask[i]] = float('inf')
+        # exclusion zone 屏蔽
+        dist_matrix[i, :n, :n][excl_mask[:n, :n]] = float('inf')
+
+        mp_val, mp_idx = torch.min(dist_matrix[i, :n, :n], dim=1)
+        mp_values.append(mp_val.cpu().numpy())
+        mp_indices.append(mp_idx.cpu().numpy())
+    
+    return mp_values, mp_indices
+
+# @register_transform(output_mode_names=['MP'])
+# def matrix_profile_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
+#     """
+#     矩阵轮廓变换（支持单条序列和批量序列）
+#     Args:
+#         X_df: 输入数据框，包含 MultiIndex (id, time)，列有 ['value', 'period']
+#     Returns:
+#         List[pd.DataFrame]: 包含一个 DataFrame [矩阵轮廓值]
+#     """
+#     w = 30
+#     batch_size = 64
+#     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+#     X_df_sorted = X_df.sort_index()
+#     result_dfs = []
+    
+#     result_df = X_df_sorted.copy()
+#     result_df['value'] = np.nan
+
+#     all_ids = X_df_sorted.index.get_level_values('id').unique().tolist()
+
+#     # 单条序列处理
+#     if len(all_ids) == 1:
+#         for series_id in all_ids:
+#             series_data = X_df_sorted.loc[series_id]
+#             series_data = series_data.sort_index()
+#             values = series_data['value'].values
+
+#             mp_values, _ = compute_matrix_profile(values, w=w, device=device)
+#             torch.cuda.empty_cache()
+            
+#             pad_len = len(values) - len(mp_values)
+#             if pad_len > 0:
+#                 pad_value = np.mean(mp_values)
+#                 mp_values = np.pad(mp_values, (pad_len, 0), constant_values=pad_value)
+#             result_df.loc[series_id, 'value'] = mp_values
+
+#     # batch 处理
+#     else:
+#         for start in tqdm(range(0, len(all_ids), batch_size)):
+#             batch_ids = all_ids[start:start + batch_size]
+#             sequences = []
+
+#             for series_id in batch_ids:
+#                 series_data = X_df_sorted.loc[series_id]
+#                 series_data = series_data.sort_index()
+#                 sequences.append(series_data['value'].values)
+
+#             # 批量计算 matrix profile
+#             mp_values_batch, _ = batch_matrix_profile(sequences, w=w, device=device)
+#             torch.cuda.empty_cache()
+
+#             # 回填 result_df
+#             for series_id, mp_values, series_data in zip(batch_ids, mp_values_batch,
+#                                                         [X_df_sorted.loc[i] for i in batch_ids]):
+#                 values = series_data['value'].values
+#                 pad_len = len(values) - len(mp_values)
+#                 if pad_len > 0:
+#                     pad_value = np.mean(mp_values)
+#                     mp_values = np.pad(mp_values, (pad_len, 0), constant_values=pad_value)
+#                 result_df.loc[series_id, 'value'] = mp_values
+
+#     result_dfs.append(result_df)
+#     return result_dfs
 
 # --- 特征管理核心逻辑 ---
 def _get_latest_feature_file() -> Path | None:
@@ -1340,6 +1492,12 @@ def apply_transformation(X_df: pd.DataFrame, transform_funcs: List[str] = None) 
         # 存储结果
         for mode_name, mode_df in zip(output_mode_names, transformed_results):
             transformed_data[mode_name] = mode_df
+            
+            # 检查 mode_df 健康状态
+            nan_count = mode_df.isna().sum().sum()  # 所有列的 NaN 总数
+            inf_count = (mode_df == np.inf).sum().sum() + (mode_df == -np.inf).sum().sum()
+            if nan_count > 0 or inf_count > 0:
+                logger.warning(f"模态 '{mode_name}' 包含异常值：NaN={nan_count}, Inf={inf_count}")
         
         duration = time.time() - start_time
         logger.info(f"'{func_name}' 变换完毕，耗时: {duration:.2f} 秒，生成模态: {output_mode_names}")
@@ -1575,10 +1733,10 @@ def generate_features(
     
     logger.info(f"生成/更新完成。新文件: {new_file_path.name if new_file_path else 'N/A'}")
 
-def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_to_delete: list = None):
+def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_to_delete: list = None, flags_to_delete: list = None):
     """
     从指定的特征文件中删除特征，并生成一个新的带时间戳的文件。
-    可以按函数名删除，也可以按特定的列名删除。
+    可以按函数名删除，也可以按特定的列名删除，或按标志关键词删除。
     支持字典格式的特征数据。
     """
     base_path = config.FEATURE_DIR / base_feature_file
@@ -1633,6 +1791,15 @@ def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_t
             if invalid_cols:
                 logger.warning(f"    以下列名不存在，将被忽略: {list(invalid_cols)}")
             cols_to_drop.extend(valid_cols)
+        
+        if flags_to_delete:
+            logger.info(f"  按标志删除: {flags_to_delete}")
+            matched_cols = [col for col in feature_df.columns if any(flag in col for flag in flags_to_delete)]
+            if matched_cols:
+                logger.info(f"    标志匹配到 {len(matched_cols)} 列: {matched_cols}")
+                cols_to_drop.extend(matched_cols)
+            else:
+                logger.warning("    未找到包含指定标志的特征列。")
 
         # 去重并执行删除
         final_cols_to_drop = sorted(list(set(cols_to_drop)))

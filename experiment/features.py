@@ -18,6 +18,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 from datetime import datetime
 from joblib import Parallel, delayed
+from itertools import product
 from typing import List, Dict, Tuple, Optional
 import warnings
 from statsmodels.tools.sm_exceptions import InterpolationWarning
@@ -639,9 +640,346 @@ def entropy_features(u: pd.DataFrame) -> dict:
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 8. tsfresh --- 
+# # --- 8. tsfresh --- 
+# @register_feature(func_id="8")
+# def tsfresh_features(u: pd.DataFrame) -> dict:
+#     """基于tsfresh的特征工程"""
+#     s1 = u['value'][u['period'] == 0].to_numpy()
+#     s2 = u['value'][u['period'] == 1].to_numpy()
+#     s_whole = u['value'].to_numpy()
+#     feats = {}
+
+#     funcs = {
+#         tsfresh_fe.ratio_value_number_to_time_series_length: None,
+#         tsfresh_fe.sum_of_reoccurring_data_points: None,
+#         tsfresh_fe.percentage_of_reoccurring_values_to_all_values: None,
+#         tsfresh_fe.percentage_of_reoccurring_datapoints_to_all_datapoints: None,
+#         tsfresh_fe.last_location_of_maximum: None,
+#         tsfresh_fe.first_location_of_maximum: None,
+#         tsfresh_fe.has_duplicate: None,
+#         tsfresh_fe.benford_correlation: None,
+#         tsfresh_fe.ratio_beyond_r_sigma: [6, 3, 1.5, 1, 0.5],
+#         tsfresh_fe.quantile: [0.6, 0.4, 0.1],
+#         tsfresh_fe.count_above: [0],
+#         tsfresh_fe.number_peaks: [25, 50],
+#         tsfresh_fe.partial_autocorrelation: [
+#             {"lag": 2},
+#             {"lag": 4},
+#             {"lag": 6}
+#         ],
+#         tsfresh_fe.index_mass_quantile: [
+#             {"q": 0.1}, 
+#             {"q": 0.6}, 
+#             {"q": 0.8}
+#         ],
+#         tsfresh_fe.ar_coefficient: [
+#             {"coeff": 0, "k": 10}, 
+#             {"coeff": 2, "k": 10}, 
+#             {"coeff": 8, "k": 10}
+#         ],
+#         tsfresh_fe.linear_trend: [
+#             {"attr": "slope"}, 
+#             {"attr": "rvalue"}, 
+#             {"attr": "pvalue"}, 
+#             {"attr": "intercept"}
+#         ],
+#         tsfresh_fe.fft_coefficient: [
+#             {"coeff": 3, "attr": "imag"}, 
+#             {"coeff": 2, "attr": "imag"}, 
+#             {"coeff": 1, "attr": "imag"}
+#         ],
+#         tsfresh_fe.energy_ratio_by_chunks: [
+#             {"num_segments": 10, "segment_focus": 9},
+#             {"num_segments": 20, "segment_focus": 16},
+#         ],
+#         tsfresh_fe.friedrich_coefficients: [
+#             {"m": 3, "r": 30, "coeff": 2}, 
+#             {"m": 3, "r": 30, "coeff": 3}
+#         ],
+#         tsfresh_fe.change_quantiles: [
+#             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.4},
+#             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.2},
+#             {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.6},
+#             {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.4},
+#             {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.2},
+#             {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.4},
+#             {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.2},
+#             {"f_agg": "var", "isabs": True,  "qh": 0.4, "ql": 0.2},
+#             {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.4},
+#             {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.2},
+#             {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.4},
+#             {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.2},
+#             {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.0},
+#             {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.4},
+#             {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.2},
+#             {"f_agg": "var", "isabs": False, "qh": 0.4, "ql": 0.2},
+#             {"f_agg": "mean","isabs": True,  "qh": 1.0, "ql": 0.4},
+#             {"f_agg": "mean","isabs": True,  "qh": 0.6, "ql": 0.4},
+#         ],
+#         tsfresh_fe.agg_linear_trend: [
+#             {"attr": "slope", "chunk_len": 50, "f_agg": "mean"},
+#             {"attr": "slope", "chunk_len": 5,  "f_agg": "mean"},
+#             {"attr": "slope", "chunk_len": 10, "f_agg": "mean"},
+#             {"attr": "rvalue", "chunk_len": 50, "f_agg": "mean"},
+#             {"attr": "rvalue", "chunk_len": 50, "f_agg": "max"},
+#             {"attr": "rvalue", "chunk_len": 5,  "f_agg": "mean"},
+#             {"attr": "rvalue", "chunk_len": 5,  "f_agg": "max"},
+#             {"attr": "rvalue", "chunk_len": 10, "f_agg": "mean"},
+#             {"attr": "rvalue", "chunk_len": 10, "f_agg": "max"},
+#             {"attr": "intercept", "chunk_len": 50, "f_agg": "mean"},
+#             {"attr": "intercept", "chunk_len": 50, "f_agg": "max"},
+#             {"attr": "intercept", "chunk_len": 5,  "f_agg": "mean"},
+#             {"attr": "intercept", "chunk_len": 5,  "f_agg": "max"},
+#             {"attr": "intercept", "chunk_len": 10, "f_agg": "mean"},
+#             {"attr": "intercept", "chunk_len": 10, "f_agg": "max"},
+#         ],
+#     }
+
+#     def param_to_str(param):
+#         if isinstance(param, dict):
+#             return '_'.join([f"{k}_{v}" for k, v in param.items()])
+#         else:
+#             return str(param)
+
+#     def calculate_stats_for_feature(func, param=None):
+#         results = {}
+#         base_name = func.__name__
+#         if param is not None:
+#             base_name += f"_{param_to_str(param)}"
+
+#         try:
+#             # Prepare arguments for each segment
+#             args_s1 = [s1]
+#             args_s2 = [s2]
+#             args_s_whole = [s_whole]
+#             is_combiner = False
+
+#             if param is None: # Simple function, no params
+#                 pass
+#             elif isinstance(param, dict):
+#                 # Check if it's a combiner function or a function with kwargs
+#                 sig = inspect.signature(func)
+#                 if 'param' in sig.parameters: # Combiner function
+#                     is_combiner = True
+#                     args_s1.append([param])
+#                     args_s2.append([param])
+#                     args_s_whole.append([param])
+#                 else: # Function with kwargs
+#                     args_s1.append(param)
+#                     args_s2.append(param)
+#                     args_s_whole.append(param)
+#             else: # Simple function with a single parameter
+#                 args_s1.append(param)
+#                 args_s2.append(param)
+#                 args_s_whole.append(param)
+
+#             # Execute function for each segment
+#             if is_combiner:
+#                 v1_dict = {k: v for k, v in func(*args_s1)}
+#                 v2_dict = {k: v for k, v in func(*args_s2)}
+#                 v_whole_dict = {k: v for k, v in func(*args_s_whole)}
+                
+#                 for key in v1_dict:
+#                     v1, v2, v_whole = v1_dict[key], v2_dict[key], v_whole_dict[key]
+#                     feat_name_base = f"{func.__name__}_{key}"
+#                     results[f'{feat_name_base}_left'] = v1
+#                     results[f'{feat_name_base}_right'] = v2
+#                     results[f'{feat_name_base}_whole'] = v_whole
+#                     _add_diff_ratio_feats(feats, feat_name_base, v1, v2)
+#                     _add_contribution_ratio_feats(results, feat_name_base, v1, v2, v_whole)
+#                 return results
+
+#             else:
+#                 if isinstance(param, dict) and not is_combiner:
+#                     v1, v2, v_whole = func(args_s1[0], **args_s1[1]), func(args_s2[0], **args_s2[1]), func(args_s_whole[0], **args_s_whole[1])
+#                 else:
+#                     v1, v2, v_whole = func(*args_s1), func(*args_s2), func(*args_s_whole)
+
+#                 results[f'{base_name}_left'] = v1
+#                 results[f'{base_name}_right'] = v2
+#                 results[f'{base_name}_whole'] = v_whole
+#                 _add_diff_ratio_feats(feats, base_name, v1, v2)
+#                 _add_contribution_ratio_feats(results, base_name, v1, v2, v_whole)
+        
+#         except Exception:
+#             # For combiner functions, need to know keys to create nulls
+#             if 'param' in locals() and inspect.isfunction(func) and 'param' in inspect.signature(func).parameters:
+#                  # It's a combiner, but we can't get keys without running it. Skip for now on error.
+#                  pass
+#             else:
+#                 results[f'{base_name}_left'] = np.nan
+#                 results[f'{base_name}_right'] = np.nan
+#                 results[f'{base_name}_whole'] = np.nan
+#                 results[f'{base_name}_diff'] = np.nan
+#                 results[f'{base_name}_ratio'] = np.nan
+                
+#         return results
+
+
+#     for func, params in funcs.items():
+#         if params is None:
+#             feats.update(calculate_stats_for_feature(func))
+#         else:
+#             for param in params:
+#                 feats.update(calculate_stats_for_feature(func, param))
+
+#     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 8. 时间序列建模 ---
 @register_feature(func_id="8")
-def tsfresh_features(u: pd.DataFrame) -> dict:
+def ar_model_features(u: pd.DataFrame) -> dict:
+    """
+    基于AR模型派生特征。
+    分别在 period 0 和 1 上训练模型，比较模型参数、残差和信息准则(AIC/BIC)。
+    """
+    s1 = u['value'][u['period'] == 0].to_numpy()
+    s2 = u['value'][u['period'] == 1].to_numpy()
+    s_whole = u['value'].to_numpy()
+    feats = {}
+    lags = 10 # 固定阶数以保证可比性
+
+    # --- 分别建模，比较差异 ---
+    s1_resid_std, s1_params = np.nan, np.full(lags + 1, np.nan)
+    s1_aic, s1_bic = np.nan, np.nan
+    if len(s1) > lags:
+        try:
+            fit1 = AutoReg(s1, lags=lags).fit()
+            s1_resid_std = np.std(fit1.resid)
+            s1_params = fit1.params
+            s1_aic = fit1.aic
+            s1_bic = fit1.bic
+        except Exception:
+            pass
+
+    s2_resid_std, s2_params = np.nan, np.full(lags + 1, np.nan)
+    s2_aic, s2_bic = np.nan, np.nan
+    if len(s2) > lags:
+        try:
+            fit2 = AutoReg(s2, lags=lags).fit()
+            s2_resid_std = np.std(fit2.resid)
+            s2_params = fit2.params
+            s2_aic = fit2.aic
+            s2_bic = fit2.bic
+        except Exception:
+            pass
+
+    swhole_resid_std, swhole_params = np.nan, np.full(lags + 1, np.nan)
+    swhole_aic, swhole_bic = np.nan, np.nan
+    if len(s_whole) > lags:
+        try:
+            fit_whole = AutoReg(s_whole, lags=lags).fit()
+            swhole_resid_std = np.std(fit_whole.resid)
+            swhole_params = fit_whole.params
+            swhole_aic = fit_whole.aic
+            swhole_bic = fit_whole.bic
+        except Exception:
+            pass
+            
+    feats['ar_resid_std_left'] = s1_resid_std
+    feats['ar_resid_std_right'] = s2_resid_std
+    feats['ar_resid_std_whole'] = swhole_resid_std
+    _add_diff_ratio_feats(feats, 'ar_resid_std', s1_resid_std, s2_resid_std)
+    _add_contribution_ratio_feats(feats, 'ar_resid_std', s1_resid_std, s2_resid_std, swhole_resid_std)
+    
+    feats['ar_aic_left'] = s1_aic
+    feats['ar_aic_right'] = s2_aic
+    feats['ar_aic_whole'] = swhole_aic
+    _add_diff_ratio_feats(feats, 'ar_aic', s1_aic, s2_aic)
+    _add_contribution_ratio_feats(feats, 'ar_aic', s1_aic, s2_aic, swhole_aic)
+
+    feats['ar_bic_left'] = s1_bic
+    feats['ar_bic_right'] = s2_bic
+    feats['ar_bic_whole'] = swhole_bic
+    _add_diff_ratio_feats(feats, 'ar_bic', s1_bic, s2_bic)
+    _add_contribution_ratio_feats(feats, 'ar_bic', s1_bic, s2_bic, swhole_bic)
+    
+    # 比较模型系数
+    for i in range(lags + 1):
+        feats[f'ar_param_{i}_left'] = s1_params[i]
+        feats[f'ar_param_{i}_right'] = s2_params[i]
+        feats[f'ar_param_{i}_whole'] = swhole_params[i]
+        _add_diff_ratio_feats(feats, f'ar_param_{i}', s1_params[i], s2_params[i])
+        _add_contribution_ratio_feats(feats, f'ar_param_{i}', s1_params[i], s2_params[i], swhole_params[i])
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 9. 分段损失 ---
+class RPTFeatureExtractor:
+    def __init__(self):
+        # 所有可用的cost类及其名称
+        self.cost_classes = {
+            'l1': rpt.costs.CostL1,               # 中位数
+            'l2': rpt.costs.CostL2,               # 均值
+            'clinear': rpt.costs.CostCLinear,     # 线性协方差
+            'rbf': rpt.costs.CostRbf,             # RBF核
+            'normal': rpt.costs.CostNormal,       # 协方差
+            'ar': rpt.costs.CostAR,               # 自回归
+            'mahalanobis': rpt.costs.CostMl,      # 马氏距离
+            'rank': rpt.costs.CostRank,           # 排名
+            'cosine': rpt.costs.CostCosine,       # 余弦距离
+        }
+
+    def calculate(self, cost, start, end):
+        result = cost.error(start, end)
+        if isinstance(result, (np.ndarray, list)) and np.array(result).size == 1:
+            return float(np.array(result).squeeze())
+        return result
+
+    def extract(self, signal, boundary):
+        """
+        输入：
+            signal: 1D numpy array，单变量时间序列
+            boundary: int，分割点
+        输出：
+            result: dict，格式为 {cost_name: {'left': value, 'right': value}}
+        """
+        signal = np.asarray(signal)
+        n = len(signal)
+        result = {}
+        for name, cls in self.cost_classes.items():
+            try:
+                if name == 'ar':
+                    cost = cls(order=4)
+                else:
+                    cost = cls()
+                cost.fit(signal)
+                left = self.calculate(cost, 0, boundary)
+                right = self.calculate(cost, boundary, n)
+                whole = self.calculate(cost, 0, n)
+                # diff = right - left if left is not None and right is not None else None
+                # ratio = right / (left + 1e-6) if left is not None and right is not None else None
+            except Exception:
+                left = None
+                right = None
+                whole = None
+                # diff = None
+                # ratio = None
+            # Move to _add_diff_ratio_feats, 'diff': diff, 'ratio': ratio
+            result[name] = {'left': left, 'right': right, 'whole': whole}
+        return result
+
+@register_feature(func_id="9")
+def rupture_cost_features(u: pd.DataFrame) -> dict:
+    value = u['value'].values.astype(np.float32)
+    period = u['period'].values.astype(np.float32)
+    boundary = np.where(np.diff(period) != 0)[0].item()
+    feats = {}
+
+    extractor = RPTFeatureExtractor()
+    features = extractor.extract(value, boundary)
+
+    feats = {}
+    for k, v in features.items():
+        for seg, value in v.items():
+            feats[f'rpt_cost_{k}_{seg}'] = value
+        _add_diff_ratio_feats(feats, f'rpt_cost_{k}', v['left'], v['right'])
+        _add_contribution_ratio_feats(feats, f'rpt_cost_{k}', v['left'], v['right'], v['whole'])
+
+    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
+
+# --- 10. tsfresh --- 
+@register_feature(func_id="10")
+def tsfresh_features_light(u: pd.DataFrame) -> dict:
     """基于tsfresh的特征工程"""
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
@@ -666,6 +1004,11 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
             {"lag": 4},
             {"lag": 6}
         ],
+        tsfresh_fe.autocorrelation: [
+            {"lag": 2},
+            {"lag": 4},
+            {"lag": 6}
+        ],
         tsfresh_fe.index_mass_quantile: [
             {"q": 0.1}, 
             {"q": 0.6}, 
@@ -682,55 +1025,9 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
             {"attr": "pvalue"}, 
             {"attr": "intercept"}
         ],
-        tsfresh_fe.fft_coefficient: [
-            {"coeff": 3, "attr": "imag"}, 
-            {"coeff": 2, "attr": "imag"}, 
-            {"coeff": 1, "attr": "imag"}
-        ],
-        tsfresh_fe.energy_ratio_by_chunks: [
-            {"num_segments": 10, "segment_focus": 9},
-            {"num_segments": 20, "segment_focus": 16},
-        ],
         tsfresh_fe.friedrich_coefficients: [
             {"m": 3, "r": 30, "coeff": 2}, 
             {"m": 3, "r": 30, "coeff": 3}
-        ],
-        tsfresh_fe.change_quantiles: [
-            {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.4},
-            {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.2},
-            {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.6},
-            {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.4},
-            {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.2},
-            {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.4},
-            {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.2},
-            {"f_agg": "var", "isabs": True,  "qh": 0.4, "ql": 0.2},
-            {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.4},
-            {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.2},
-            {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.4},
-            {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.2},
-            {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.0},
-            {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.4},
-            {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.2},
-            {"f_agg": "var", "isabs": False, "qh": 0.4, "ql": 0.2},
-            {"f_agg": "mean","isabs": True,  "qh": 1.0, "ql": 0.4},
-            {"f_agg": "mean","isabs": True,  "qh": 0.6, "ql": 0.4},
-        ],
-        tsfresh_fe.agg_linear_trend: [
-            {"attr": "slope", "chunk_len": 50, "f_agg": "mean"},
-            {"attr": "slope", "chunk_len": 5,  "f_agg": "mean"},
-            {"attr": "slope", "chunk_len": 10, "f_agg": "mean"},
-            {"attr": "rvalue", "chunk_len": 50, "f_agg": "mean"},
-            {"attr": "rvalue", "chunk_len": 50, "f_agg": "max"},
-            {"attr": "rvalue", "chunk_len": 5,  "f_agg": "mean"},
-            {"attr": "rvalue", "chunk_len": 5,  "f_agg": "max"},
-            {"attr": "rvalue", "chunk_len": 10, "f_agg": "mean"},
-            {"attr": "rvalue", "chunk_len": 10, "f_agg": "max"},
-            {"attr": "intercept", "chunk_len": 50, "f_agg": "mean"},
-            {"attr": "intercept", "chunk_len": 50, "f_agg": "max"},
-            {"attr": "intercept", "chunk_len": 5,  "f_agg": "mean"},
-            {"attr": "intercept", "chunk_len": 5,  "f_agg": "max"},
-            {"attr": "intercept", "chunk_len": 10, "f_agg": "mean"},
-            {"attr": "intercept", "chunk_len": 10, "f_agg": "max"},
         ],
     }
 
@@ -824,189 +1121,134 @@ def tsfresh_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-# --- 9. 时间序列建模 ---
-@register_feature(func_id="9")
-def ar_model_features(u: pd.DataFrame) -> dict:
-    """
-    基于AR模型派生特征。
-    1. 在 period 0 上训练模型，预测 period 1，计算残差统计量。
-    2. 在 period 1 上训练模型，预测 period 0，计算残差统计量。
-    3. 分别在 period 0 和 1 上训练模型，比较模型参数、残差和信息准则(AIC/BIC)。
-    """
+# --- 11. tsfresh --- 
+@register_feature(func_id="11")
+def tsfresh_features_heavy(u: pd.DataFrame) -> dict:
+    """基于tsfresh的特征工程"""
     s1 = u['value'][u['period'] == 0].to_numpy()
     s2 = u['value'][u['period'] == 1].to_numpy()
     s_whole = u['value'].to_numpy()
     feats = {}
-    lags = 5 # 固定阶数以保证可比性
 
-    # --- 特征组1: 用 s1 训练，预测 s2 ---
-    if len(s1) > lags and len(s2) > 0:
+    funcs = {
+        tsfresh_fe.fft_coefficient: [
+            {"coeff": k, "attr": a}
+            for a, k in product(["real", "imag", "abs", "angle"], [1, 2, 3, 9, 18, 36, 42, 72])
+        ],
+        tsfresh_fe.cwt_coefficients: [
+            {"widths": width, "coeff": coeff, "w": w}
+            for width in [(2, 5, 10, 20)]
+            for coeff in range(0, 15, 3)
+            for w in (5, 10)
+        ],
+        tsfresh_fe.energy_ratio_by_chunks: [
+            {"num_segments": n, "segment_focus": i} 
+            for n in [10, 20]
+            for i in [0, 5, 9]
+        ],
+        tsfresh_fe.change_quantiles: [
+            {"ql": ql, "qh": qh, "isabs": b, "f_agg": f}
+            for ql in [0.0, 0.2, 0.4, 0.6, 0.8]
+            for qh in [0.2, 0.4, 0.6, 0.8, 1.0]
+            for b in [False, True]
+            for f in ["mean", "var"]
+            if ql < qh
+        ],
+        tsfresh_fe.agg_linear_trend: [
+            {"attr": attr, "chunk_len": i, "f_agg": f}
+            for attr in ["rvalue", "intercept", "slope"]
+            for i in [5, 10, 50]
+            for f in ["max", "mean", "var"]
+        ],
+    }
+
+    def param_to_str(param):
+        if isinstance(param, dict):
+            return '_'.join([f"{k}_{v}" for k, v in param.items()])
+        else:
+            return str(param)
+
+    def calculate_stats_for_feature(func, param=None):
+        results = {}
+        base_name = func.__name__
+        if param is not None:
+            base_name += f"_{param_to_str(param)}"
+
         try:
-            model1_fit = AutoReg(s1, lags=lags).fit()
-            predictions = model1_fit.predict(start=len(s1), end=len(s1) + len(s2) - 1, dynamic=True)
-            residuals = s2 - predictions
-            feats['ar_residuals_s2_pred_mean'] = np.mean(residuals)
-            feats['ar_residuals_s2_pred_std'] = np.std(residuals)
-            feats['ar_residuals_s2_pred_skew'] = pd.Series(residuals).skew()
-            feats['ar_residuals_s2_pred_kurt'] = pd.Series(residuals).kurt()
-        except Exception:
-            # 宽泛地捕获异常，防止因数值问题中断
-            feats.update({'ar_residuals_s2_pred_mean': 0, 'ar_residuals_s2_pred_std': 0, 'ar_residuals_s2_pred_skew': 0, 'ar_residuals_s2_pred_kurt': 0})
-    else:
-        feats.update({'ar_residuals_s2_pred_mean': 0, 'ar_residuals_s2_pred_std': 0, 'ar_residuals_s2_pred_skew': 0, 'ar_residuals_s2_pred_kurt': 0})
+            # Prepare arguments for each segment
+            args_s1 = [s1]
+            args_s2 = [s2]
+            args_s_whole = [s_whole]
+            is_combiner = False
 
-    # --- 特征组2: 用 s2 训练，预测 s1 ---
-    if len(s2) > lags and len(s1) > 0:
-        try:
-            model2_fit = AutoReg(s2, lags=lags).fit()
-            predictions_on_s1 = model2_fit.predict(start=len(s2), end=len(s2) + len(s1) - 1, dynamic=True)
-            residuals_s1_pred = s1 - predictions_on_s1
-            feats['ar_residuals_s1_pred_mean'] = np.mean(residuals_s1_pred)
-            feats['ar_residuals_s1_pred_std'] = np.std(residuals_s1_pred)
-            feats['ar_residuals_s1_pred_skew'] = pd.Series(residuals_s1_pred).skew()
-            feats['ar_residuals_s1_pred_kurt'] = pd.Series(residuals_s1_pred).kurt()
-        except Exception:
-            feats.update({'ar_residuals_s1_pred_mean': 0, 'ar_residuals_s1_pred_std': 0, 'ar_residuals_s1_pred_skew': 0, 'ar_residuals_s1_pred_kurt': 0})
-    else:
-        feats.update({'ar_residuals_s1_pred_mean': 0, 'ar_residuals_s1_pred_std': 0, 'ar_residuals_s1_pred_skew': 0, 'ar_residuals_s1_pred_kurt': 0})
+            if param is None: # Simple function, no params
+                pass
+            elif isinstance(param, dict):
+                # Check if it's a combiner function or a function with kwargs
+                sig = inspect.signature(func)
+                if 'param' in sig.parameters: # Combiner function
+                    is_combiner = True
+                    args_s1.append([param])
+                    args_s2.append([param])
+                    args_s_whole.append([param])
+                else: # Function with kwargs
+                    args_s1.append(param)
+                    args_s2.append(param)
+                    args_s_whole.append(param)
+            else: # Simple function with a single parameter
+                args_s1.append(param)
+                args_s2.append(param)
+                args_s_whole.append(param)
 
+            # Execute function for each segment
+            if is_combiner:
+                v1_dict = {k: v for k, v in func(*args_s1)}
+                v2_dict = {k: v for k, v in func(*args_s2)}
+                v_whole_dict = {k: v for k, v in func(*args_s_whole)}
+                
+                for key in v1_dict:
+                    v1, v2, v_whole = v1_dict[key], v2_dict[key], v_whole_dict[key]
+                    feat_name_base = f"{func.__name__}_{key}"
+                    results[f'{feat_name_base}_left'] = v1
+                    results[f'{feat_name_base}_right'] = v2
+                    results[f'{feat_name_base}_whole'] = v_whole
+                    _add_diff_ratio_feats(feats, feat_name_base, v1, v2)
+                    # _add_contribution_ratio_feats(results, feat_name_base, v1, v2, v_whole)
+                return results
 
-    # --- 特征组3: 分别建模，比较差异 ---
-    s1_resid_std, s1_params = np.nan, np.full(lags + 1, np.nan)
-    s1_aic, s1_bic = np.nan, np.nan
-    if len(s1) > lags:
-        try:
-            fit1 = AutoReg(s1, lags=lags).fit()
-            s1_resid_std = np.std(fit1.resid)
-            s1_params = fit1.params
-            s1_aic = fit1.aic
-            s1_bic = fit1.bic
-        except Exception:
-            pass
-
-    s2_resid_std, s2_params = np.nan, np.full(lags + 1, np.nan)
-    s2_aic, s2_bic = np.nan, np.nan
-    if len(s2) > lags:
-        try:
-            fit2 = AutoReg(s2, lags=lags).fit()
-            s2_resid_std = np.std(fit2.resid)
-            s2_params = fit2.params
-            s2_aic = fit2.aic
-            s2_bic = fit2.bic
-        except Exception:
-            pass
-
-    swhole_resid_std, swhole_params = np.nan, np.full(lags + 1, np.nan)
-    swhole_aic, swhole_bic = np.nan, np.nan
-    if len(s_whole) > lags:
-        try:
-            fit_whole = AutoReg(s_whole, lags=lags).fit()
-            swhole_resid_std = np.std(fit_whole.resid)
-            swhole_params = fit_whole.params
-            swhole_aic = fit_whole.aic
-            swhole_bic = fit_whole.bic
-        except Exception:
-            pass
-            
-    feats['ar_resid_std_left'] = s1_resid_std
-    feats['ar_resid_std_right'] = s2_resid_std
-    feats['ar_resid_std_whole'] = swhole_resid_std
-    _add_diff_ratio_feats(feats, 'ar_resid_std', s1_resid_std, s2_resid_std)
-    _add_contribution_ratio_feats(feats, 'ar_resid_std', s1_resid_std, s2_resid_std, swhole_resid_std)
-    
-    feats['ar_aic_left'] = s1_aic
-    feats['ar_aic_right'] = s2_aic
-    feats['ar_aic_whole'] = swhole_aic
-    _add_diff_ratio_feats(feats, 'ar_aic', s1_aic, s2_aic)
-    _add_contribution_ratio_feats(feats, 'ar_aic', s1_aic, s2_aic, swhole_aic)
-
-    feats['ar_bic_left'] = s1_bic
-    feats['ar_bic_right'] = s2_bic
-    feats['ar_bic_whole'] = swhole_bic
-    _add_diff_ratio_feats(feats, 'ar_bic', s1_bic, s2_bic)
-    _add_contribution_ratio_feats(feats, 'ar_bic', s1_bic, s2_bic, swhole_bic)
-    
-    # 比较模型系数
-    for i in range(len(s1_params)):
-        feats[f'ar_param_{i}_left'] = s1_params[i]
-        feats[f'ar_param_{i}_right'] = s2_params[i]
-        feats[f'ar_param_{i}_whole'] = swhole_params[i]
-        _add_diff_ratio_feats(feats, f'ar_param_{i}', s1_params[i], s2_params[i])
-        _add_contribution_ratio_feats(feats, f'ar_param_{i}', s1_params[i], s2_params[i], swhole_params[i])
-
-    return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
-
-# --- 10. 分段损失 ---
-class RPTFeatureExtractor:
-    def __init__(self):
-        # 所有可用的cost类及其名称
-        self.cost_classes = {
-            'l1': rpt.costs.CostL1,               # 中位数
-            'l2': rpt.costs.CostL2,               # 均值
-            'clinear': rpt.costs.CostCLinear,     # 线性协方差
-            'rbf': rpt.costs.CostRbf,             # RBF核
-            'normal': rpt.costs.CostNormal,       # 协方差
-            'ar': rpt.costs.CostAR,               # 自回归
-            'mahalanobis': rpt.costs.CostMl,      # 马氏距离
-            'rank': rpt.costs.CostRank,           # 排名
-            'cosine': rpt.costs.CostCosine,       # 余弦距离
-        }
-
-    def calculate(self, cost, start, end):
-        result = cost.error(start, end)
-        if isinstance(result, (np.ndarray, list)) and np.array(result).size == 1:
-            return float(np.array(result).squeeze())
-        return result
-
-    def extract(self, signal, boundary):
-        """
-        输入：
-            signal: 1D numpy array，单变量时间序列
-            boundary: int，分割点
-        输出：
-            result: dict，格式为 {cost_name: {'left': value, 'right': value}}
-        """
-        signal = np.asarray(signal)
-        n = len(signal)
-        result = {}
-        for name, cls in self.cost_classes.items():
-            try:
-                if name == 'ar':
-                    cost = cls(order=4)
+            else:
+                if isinstance(param, dict) and not is_combiner:
+                    v1, v2, v_whole = func(args_s1[0], **args_s1[1]), func(args_s2[0], **args_s2[1]), func(args_s_whole[0], **args_s_whole[1])
                 else:
-                    cost = cls()
-                cost.fit(signal)
-                left = self.calculate(cost, 0, boundary)
-                right = self.calculate(cost, boundary, n)
-                whole = self.calculate(cost, 0, n)
-                # diff = right - left if left is not None and right is not None else None
-                # ratio = right / (left + 1e-6) if left is not None and right is not None else None
-            except Exception:
-                left = None
-                right = None
-                whole = None
-                # diff = None
-                # ratio = None
-            # Move to _add_diff_ratio_feats, 'diff': diff, 'ratio': ratio
-            result[name] = {'left': left, 'right': right, 'whole': whole}
-        return result
+                    v1, v2, v_whole = func(*args_s1), func(*args_s2), func(*args_s_whole)
 
-@register_feature(func_id="10")
-def rupture_cost_features(u: pd.DataFrame) -> dict:
-    value = u['value'].values.astype(np.float32)
-    period = u['period'].values.astype(np.float32)
-    boundary = np.where(np.diff(period) != 0)[0].item()
-    feats = {}
+                results[f'{base_name}_left'] = v1
+                results[f'{base_name}_right'] = v2
+                results[f'{base_name}_whole'] = v_whole
+                _add_diff_ratio_feats(feats, base_name, v1, v2)
+                # _add_contribution_ratio_feats(results, base_name, v1, v2, v_whole)
+        
+        except Exception:
+            # For combiner functions, need to know keys to create nulls
+            if 'param' in locals() and inspect.isfunction(func) and 'param' in inspect.signature(func).parameters:
+                 # It's a combiner, but we can't get keys without running it. Skip for now on error.
+                 pass
+            else:
+                results[f'{base_name}_left'] = np.nan
+                results[f'{base_name}_right'] = np.nan
+                results[f'{base_name}_whole'] = np.nan
+                results[f'{base_name}_diff'] = np.nan
+                results[f'{base_name}_ratio'] = np.nan
+                
+        return results
 
-    extractor = RPTFeatureExtractor()
-    features = extractor.extract(value, boundary)
 
-    feats = {}
-    for k, v in features.items():
-        for seg, value in v.items():
-            feats[f'rpt_cost_{k}_{seg}'] = value
-        _add_diff_ratio_feats(feats, f'rpt_cost_{k}', v['left'], v['right'])
-        _add_contribution_ratio_feats(feats, f'rpt_cost_{k}', v['left'], v['right'], v['whole'])
+    for func, params in funcs.items():
+        if params is None:
+            feats.update(calculate_stats_for_feature(func))
+        else:
+            for param in params:
+                feats.update(calculate_stats_for_feature(func, param))
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
@@ -1039,7 +1281,7 @@ def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 
     return result_dfs
 
-# @register_transform(output_mode_names=['MAtrend', 'MAresid'])
+# @register_transform(output_mode_names=['MARES'])  # 'MAT', 
 # def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 #     """
 #     滑动平均分解
@@ -1064,7 +1306,7 @@ def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 #         values = series_data['value'].values
         
 #         # 滑动平均分解
-#         window_size = 200
+#         window_size = 50
 #         trend = pd.Series(values).rolling(window=window_size, center=True, min_periods=1).mean()
 #         trend.iloc[:window_size//2] = trend.iloc[window_size//2]
 #         trend.iloc[-(window_size//2):] = trend.iloc[-(window_size//2)]
@@ -1074,6 +1316,8 @@ def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 #         result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
 #         result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
     
+#     # 只返回残差值
+#     result_dfs = result_dfs[1:]
 #     return result_dfs
 
 @register_transform(output_mode_names=['CUMSUM'])
@@ -1305,14 +1549,32 @@ def batch_matrix_profile(sequences: List[np.ndarray], w: int, device='cuda', ver
 #     return result_dfs
 
 # --- 特征管理核心逻辑 ---
+# def _get_latest_feature_file() -> Path | None:
+#     """查找并返回最新的特征文件路径"""
+#     # 获取特征文件目录下的所有特征文件
+#     feature_files = list(config.FEATURE_DIR.glob('features_*.parquet'))
+#     # 如果没有特征文件，返回None
+#     if not feature_files:
+#         return None
+#     return max(feature_files, key=lambda p: p.stat().st_mtime)
 def _get_latest_feature_file() -> Path | None:
-    """查找并返回最新的特征文件路径"""
-    # 获取特征文件目录下的所有特征文件
+    """查找并返回最新的特征文件路径（按文件名时间戳），排除含 `_id_` 的文件"""
     feature_files = list(config.FEATURE_DIR.glob('features_*.parquet'))
-    # 如果没有特征文件，返回None
     if not feature_files:
         return None
-    return max(feature_files, key=lambda p: p.stat().st_mtime)
+
+    # 过滤掉含有 "_id_" 的文件
+    valid_files = [f for f in feature_files if "_id_" not in f.name]
+    if not valid_files:
+        return None
+
+    # 提取时间戳并排序
+    def extract_timestamp(path: Path) -> str:
+        match = re.search(r"features_(\d{8}_\d{6})", path.name)
+        return match.group(1) if match else ""
+
+    latest_file = max(valid_files, key=extract_timestamp)
+    return latest_file
 
 def _load_feature_file(file_path: Path):
     """加载指定的特征文件及其元数据。"""

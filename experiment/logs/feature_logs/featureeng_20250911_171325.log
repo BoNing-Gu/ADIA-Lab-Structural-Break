@@ -1,0 +1,5 @@
+2025-09-11 17:13:25 - FeatureEng-20250911_171325 - INFO - ========== Running Command: gen-feats ==========
+2025-09-11 17:13:25 - FeatureEng-20250911_171325 - INFO - Args: {'command': 'gen-feats', 'funcs': None, 'trans': ['moving_average_decomposition'], 'base_file': None}
+2025-09-11 17:13:25 - FeatureEng-20250911_171325 - INFO - =======================================
+2025-09-11 17:13:25 - FeatureEng-20250911_171325 - INFO - Loading data...
+2025-09-11 17:13:25 - FeatureEng-20250911_171325 - ERROR - Error loading data: [Errno 2] No such file or directory: '/public/home/gugq/ADIA-Lab-Structural-Break/data/X_train.parquet'

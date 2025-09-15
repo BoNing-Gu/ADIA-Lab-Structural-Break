@@ -26,7 +26,6 @@ import joblib
 from datetime import datetime
 
 from . import config, features, data
-from .model import DimReducer, NeighborFeatureExtractor
 
 # logger 将由 main.py 在运行时注入
 logger = None
@@ -151,20 +150,6 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     feature_df = feature_df.loc[common_index]
     y_train = y_train.loc[common_index]['structural_breakpoint'].astype(int)
     logger.info(f"训练数据已对齐. X shape: {feature_df.shape}, y shape: {y_train.shape}")
-    
-    # # 2. PCA降维
-    # reducer = DimReducer(seg='left', reducer_params={'n_components': 42})
-    # reducer.fit(feature_df)
-    # reduced_feature_df, _ = reducer.extract(feature_df)
-    # # 2. 最近邻
-    # extractor = NeighborFeatureExtractor(metric='euclidean', stage='train')
-    # extractor.fit(reduced_feature_df, y_train, n_neighbors=50)
-    # extracted_feature_df, nn_features = extractor.extract(reduced_feature_df)
-    # logger.info(f"最近邻特征提取完成，新增 {len(nn_features)} 个特征。")
-    # for col in nn_features:
-    #     null_ratio = extracted_feature_df[col].isnull().sum() / len(extracted_feature_df)
-    #     zero_ratio = (extracted_feature_df[col] == 0).sum() / len(extracted_feature_df)
-    #     logger.info(f"    - '{col}': 空值比例={null_ratio:.2%}, 零值比例={zero_ratio:.2%}")
 
     # 特征选择
     if len(config.REMAIN_FEATURES) > 0:

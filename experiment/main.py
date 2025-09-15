@@ -43,6 +43,17 @@ def main():
     parser_inter.add_argument('--cross-div', dest='cross_div', action='store_true', help='在 Top 特征与非 Top 特征之间创建除法交互项。')
     parser_inter.add_argument('--no-mul', dest='mul', action='store_false', help='不在 Top 特征内部创建乘法交互项(默认为创建)。')
 
+    # --- 特征降维和最近邻特征生成命令 ---
+    parser_dim = subparsers.add_parser('gen-advance', help='根据特征文件生成降维和最近邻特征')
+    parser_dim.add_argument('--base-file', type=str, default=None, help='可选，指定一个基础特征文件名进行更新。如果为空，则使用最新的特征文件。')
+    parser_dim.add_argument('--oof-file', type=str, default=None, help='可选，指定一个OOF预测文件名进行可视化。如果为空，则不进行可视化。')
+    parser_dim.add_argument('--method', type=str, choices=['PCA', 'UMAP'], help='降维方法')
+    parser_dim.add_argument('--n-components', type=int, default=2, help='降维后的维度数。')
+    parser_dim.add_argument('--n-neighbors', type=int, default=20, help='最近邻数。')
+    parser_dim.add_argument('--neighbor-list', type=list, default=[10], help='最近邻列表。')
+    parser_dim.add_argument('--metric', type=str, default='euclidean', help='最近邻度量方式。')
+    parser_dim.add_argument('--stage', type=str, default='train', help='阶段。')
+
     # --- 特征筛选命令 ---
     parser_filter = subparsers.add_parser('filter', help='特征筛选工具')
     filter_subparsers = parser_filter.add_subparsers(dest='filter_method', required=True, help='筛选方法')
@@ -133,6 +144,21 @@ def main():
             create_cross_add=args.cross_add,
             create_cross_sub=args.cross_sub,
             create_cross_div=args.cross_div,
+        )
+
+    elif args.command == 'gen-advance':
+        from . import advance, features
+        advance.logger = logger
+        features.logger = logger
+        advance.generate_dim_reduction_neighbor_features(
+            base_feature_file=args.base_file,
+            oof_file=args.oof_file,
+            reducer_method=args.method,
+            n_components=args.n_components,
+            n_neighbors=args.n_neighbors,
+            neighbor_list=args.neighbor_list,
+            metric=args.metric,
+            stage=args.stage
         )
 
     elif args.command == 'filter':

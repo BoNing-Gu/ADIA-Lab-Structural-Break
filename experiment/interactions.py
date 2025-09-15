@@ -171,7 +171,7 @@ def generate_interaction_features(
             
             logger.info(f"生成了 {cross_interaction_count} 个交叉交互特征")
         
-        # 一次性创建DataFrame，避免碎片化
+        # 3. 一次性创建DataFrame，避免碎片化
         if interaction_features_dict:
             interaction_features = pd.DataFrame(interaction_features_dict, index=feature_df.index)
         else:

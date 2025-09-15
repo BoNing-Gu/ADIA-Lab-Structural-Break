@@ -1,0 +1,72 @@
+2025-09-11 17:45:06 - Training-20250911_174506 - INFO - ========== Running Command: train ==========
+2025-09-11 17:45:06 - Training-20250911_174506 - INFO - Args: {'command': 'train', 'feature_file': None, 'train_data_ids': ['0'], 'perm_imp': False, 'save_oof': False, 'save_model': False}
+2025-09-11 17:45:06 - Training-20250911_174506 - INFO - =======================================
+2025-09-11 17:45:06 - Training-20250911_174506 - INFO - Starting training and evaluation pipeline...
+2025-09-11 17:45:06 - Training-20250911_174506 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 3000,
+    "learning_rate": 0.005,
+    "num_leaves": 29,
+    "random_state": 42,
+    "n_jobs": 72,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-09-11 17:45:07 - Training-20250911_174506 - INFO - Successfully loaded features from: features_20250911_173520.parquet
+2025-09-11 17:45:07 - Training-20250911_174506 - INFO - Loading data...
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - Original data loaded successfully.
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - X_train shape: (23715734, 2)
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - X_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - y_train shape: (10001, 1)
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - y_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - Loading enhancement data with IDs: ['0']
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - Total datasets loaded: 1
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - Dataset 0: X shape (23715734, 2), y shape (10001, 1)
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - Return CONCATED data shape: X (23715734, 2), y (10001, 1)
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - 训练数据已对齐. X shape: (10001, 4920), y shape: (10001,)
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - --- 使用的特征列表 (共 3395 个) ---
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - 前50个特征: ['RAW_1_stats_mean_left', 'RAW_1_stats_mean_right', 'RAW_1_stats_mean_whole', 'RAW_1_stats_mean_diff', 'RAW_1_stats_mean_ratio', 'RAW_1_stats_mean_contribution_left', 'RAW_1_stats_mean_contribution_right', 'RAW_1_stats_mean_ratio_to_whole_left', 'RAW_1_stats_mean_ratio_to_whole_right', 'RAW_1_stats_median_left', 'RAW_1_stats_median_right', 'RAW_1_stats_median_whole', 'RAW_1_stats_median_diff', 'RAW_1_stats_median_ratio', 'RAW_1_stats_median_contribution_left', 'RAW_1_stats_median_contribution_right', 'RAW_1_stats_median_ratio_to_whole_left', 'RAW_1_stats_median_ratio_to_whole_right', 'RAW_1_stats_max_left', 'RAW_1_stats_max_right', 'RAW_1_stats_max_whole', 'RAW_1_stats_max_diff', 'RAW_1_stats_max_ratio', 'RAW_1_stats_max_contribution_left', 'RAW_1_stats_max_contribution_right', 'RAW_1_stats_max_ratio_to_whole_left', 'RAW_1_stats_max_ratio_to_whole_right', 'RAW_1_stats_min_left', 'RAW_1_stats_min_right', 'RAW_1_stats_min_whole', 'RAW_1_stats_min_diff', 'RAW_1_stats_min_ratio', 'RAW_1_stats_min_contribution_left', 'RAW_1_stats_min_contribution_right', 'RAW_1_stats_min_ratio_to_whole_left', 'RAW_1_stats_min_ratio_to_whole_right', 'RAW_1_stats_range_left', 'RAW_1_stats_range_right', 'RAW_1_stats_range_whole', 'RAW_1_stats_range_diff', 'RAW_1_stats_range_ratio', 'RAW_1_stats_range_contribution_left', 'RAW_1_stats_range_contribution_right', 'RAW_1_stats_range_ratio_to_whole_left', 'RAW_1_stats_range_ratio_to_whole_right', 'RAW_1_stats_std_left', 'RAW_1_stats_std_right', 'RAW_1_stats_std_whole', 'RAW_1_stats_std_diff', 'RAW_1_stats_std_ratio']
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - --------------------------------------------------
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - Starting 5-fold cross-validation with enhanced data strategy...
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - 创建增强数据交叉验证分割...
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - 识别到 10001 条原始数据
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - 识别到 0 条增强数据
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - Fold 1: 训练集 8000 条 (原始: 8000, 增强: 0), 验证集 2001 条 (仅原始数据)
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - --- Fold 1/5 ---
+2025-09-11 17:45:08 - Training-20250911_174506 - INFO - 训练数据: (8000, 3395), 验证数据: (2001, 3395)
+2025-09-11 17:49:00 - Training-20250911_174506 - INFO - Fold 1 Train AUC: 1.00000, Val AUC: 0.78278
+2025-09-11 17:49:00 - Training-20250911_174506 - INFO - Fold 1 Early stopping step (best_iteration): 0
+2025-09-11 17:49:00 - Training-20250911_174506 - INFO - Fold 1 finished in 232.44s
+2025-09-11 17:49:00 - Training-20250911_174506 - INFO - Fold 2: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-11 17:49:00 - Training-20250911_174506 - INFO - --- Fold 2/5 ---
+2025-09-11 17:49:00 - Training-20250911_174506 - INFO - 训练数据: (8001, 3395), 验证数据: (2000, 3395)
+2025-09-11 17:52:46 - Training-20250911_174506 - INFO - Fold 2 Train AUC: 1.00000, Val AUC: 0.76195
+2025-09-11 17:52:46 - Training-20250911_174506 - INFO - Fold 2 Early stopping step (best_iteration): 0
+2025-09-11 17:52:46 - Training-20250911_174506 - INFO - Fold 2 finished in 225.18s
+2025-09-11 17:52:46 - Training-20250911_174506 - INFO - Fold 3: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-11 17:52:46 - Training-20250911_174506 - INFO - --- Fold 3/5 ---
+2025-09-11 17:52:46 - Training-20250911_174506 - INFO - 训练数据: (8001, 3395), 验证数据: (2000, 3395)
+2025-09-11 17:56:38 - Training-20250911_174506 - INFO - Fold 3 Train AUC: 1.00000, Val AUC: 0.78932
+2025-09-11 17:56:38 - Training-20250911_174506 - INFO - Fold 3 Early stopping step (best_iteration): 0
+2025-09-11 17:56:38 - Training-20250911_174506 - INFO - Fold 3 finished in 232.29s
+2025-09-11 17:56:38 - Training-20250911_174506 - INFO - Fold 4: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-11 17:56:38 - Training-20250911_174506 - INFO - --- Fold 4/5 ---
+2025-09-11 17:56:38 - Training-20250911_174506 - INFO - 训练数据: (8001, 3395), 验证数据: (2000, 3395)
+2025-09-11 18:00:29 - Training-20250911_174506 - INFO - Fold 4 Train AUC: 1.00000, Val AUC: 0.77516
+2025-09-11 18:00:29 - Training-20250911_174506 - INFO - Fold 4 Early stopping step (best_iteration): 0
+2025-09-11 18:00:29 - Training-20250911_174506 - INFO - Fold 4 finished in 231.07s
+2025-09-11 18:00:29 - Training-20250911_174506 - INFO - Fold 5: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-11 18:00:29 - Training-20250911_174506 - INFO - --- Fold 5/5 ---
+2025-09-11 18:00:29 - Training-20250911_174506 - INFO - 训练数据: (8001, 3395), 验证数据: (2000, 3395)
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - Fold 5 Train AUC: 1.00000, Val AUC: 0.77602
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - Fold 5 Early stopping step (best_iteration): 0
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - Fold 5 finished in 221.39s
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - Overall OOF AUC: 0.77712
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - All outputs will be saved to: /public/home/gugq/ADIA-Lab-Structural-Break/experiment/output/train_20250911_180410_auc_0_77712
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - 特征重要性已保存到: /public/home/gugq/ADIA-Lab-Structural-Break/experiment/output/train_20250911_180410_auc_0_77712/feature_importance.tsv
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - feature importance saved.
+2025-09-11 18:04:10 - Training-20250911_174506 - INFO - 训练流程结束，总耗时: 1144.09 秒。

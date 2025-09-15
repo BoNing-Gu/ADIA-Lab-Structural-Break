@@ -1,0 +1,3 @@
+2025-09-15 11:43:03 - Training-20250915_114303 - INFO - ========== Running Command: filter ==========
+2025-09-15 11:43:03 - Training-20250915_114303 - INFO - Args: {'command': 'filter', 'filter_method': 'perm-imp', 'train_version': 'train_20250915_111352_auc_0_79542', 'feature_file': None}
+2025-09-15 11:43:03 - Training-20250915_114303 - INFO - =======================================

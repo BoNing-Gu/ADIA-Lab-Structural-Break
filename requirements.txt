@@ -12,8 +12,17 @@ seaborn==0.13.2
 tqdm==4.67.1
 lightgbm==4.6.0
 xgboost
+catboost
+scikit-learn==1.6.1
+optuna==4.4.0
 
 pyarrow==16.1.0
 # sktime==0.38.3
 # skchange[numba]==0.13.0
 # PyWavelets==1.8.0
+
+# Deep Learning
+torch
+# lightning
+# datasets
+# swanlab

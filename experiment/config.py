@@ -25,7 +25,7 @@ TRAIN_Y_FILE = DATA_DIR / 'y_train.parquet'
 # 不再有固定的特征文件
 
 # --- Feature Engineer ---
-N_JOBS = 72
+N_JOBS = 12
 SEED = 42
 
 # --- Data Enhancement ---
@@ -45,6 +45,7 @@ LGBM_PARAMS = {
     'num_leaves': 29,
     'random_state': SEED,
     'n_jobs': N_JOBS,
+    'is_unbalance': True,
 
     # --- 正则化和采样 ---
     'reg_alpha': 3,          # L1 正则化

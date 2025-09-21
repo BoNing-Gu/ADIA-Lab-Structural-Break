@@ -596,7 +596,6 @@ def entropy_features(u: pd.DataFrame) -> dict:
         feats.update({'hjorth_mobility_left':0, 'hjorth_mobility_right':0, 'hjorth_mobility_whole':0, 'hjorth_mobility_diff':0, 'hjorth_mobility_ratio':0,
                      'hjorth_complexity_left':0, 'hjorth_complexity_right':0, 'hjorth_complexity_whole':0, 'hjorth_complexity_diff':0, 'hjorth_complexity_ratio':0})
 
-
     def series_to_binary_str(x, method='median'):
         if method == 'median':
             threshold = np.median(x)
@@ -615,7 +614,6 @@ def entropy_features(u: pd.DataFrame) -> dict:
         _add_contribution_ratio_feats(feats, 'lziv_complexity', lz1, lz2, lz_whole)
     except Exception:
         feats.update({'lziv_complexity_left':0, 'lziv_complexity_right':0, 'lziv_complexity_whole':0, 'lziv_complexity_diff':0, 'lziv_complexity_ratio':0})
-
 
     def estimate_cond_entropy(x, lag=1):
         x = x - np.mean(x)
@@ -639,191 +637,6 @@ def entropy_features(u: pd.DataFrame) -> dict:
         feats.update({'cond_entropy_left':0, 'cond_entropy_right':0, 'cond_entropy_whole':0, 'cond_entropy_diff':0, 'cond_entropy_ratio':0})
     
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
-
-# # --- 8. tsfresh --- 
-# @register_feature(func_id="8")
-# def tsfresh_features(u: pd.DataFrame) -> dict:
-#     """基于tsfresh的特征工程"""
-#     s1 = u['value'][u['period'] == 0].to_numpy()
-#     s2 = u['value'][u['period'] == 1].to_numpy()
-#     s_whole = u['value'].to_numpy()
-#     feats = {}
-
-#     funcs = {
-#         tsfresh_fe.ratio_value_number_to_time_series_length: None,
-#         tsfresh_fe.sum_of_reoccurring_data_points: None,
-#         tsfresh_fe.percentage_of_reoccurring_values_to_all_values: None,
-#         tsfresh_fe.percentage_of_reoccurring_datapoints_to_all_datapoints: None,
-#         tsfresh_fe.last_location_of_maximum: None,
-#         tsfresh_fe.first_location_of_maximum: None,
-#         tsfresh_fe.has_duplicate: None,
-#         tsfresh_fe.benford_correlation: None,
-#         tsfresh_fe.ratio_beyond_r_sigma: [6, 3, 1.5, 1, 0.5],
-#         tsfresh_fe.quantile: [0.6, 0.4, 0.1],
-#         tsfresh_fe.count_above: [0],
-#         tsfresh_fe.number_peaks: [25, 50],
-#         tsfresh_fe.partial_autocorrelation: [
-#             {"lag": 2},
-#             {"lag": 4},
-#             {"lag": 6}
-#         ],
-#         tsfresh_fe.index_mass_quantile: [
-#             {"q": 0.1}, 
-#             {"q": 0.6}, 
-#             {"q": 0.8}
-#         ],
-#         tsfresh_fe.ar_coefficient: [
-#             {"coeff": 0, "k": 10}, 
-#             {"coeff": 2, "k": 10}, 
-#             {"coeff": 8, "k": 10}
-#         ],
-#         tsfresh_fe.linear_trend: [
-#             {"attr": "slope"}, 
-#             {"attr": "rvalue"}, 
-#             {"attr": "pvalue"}, 
-#             {"attr": "intercept"}
-#         ],
-#         tsfresh_fe.fft_coefficient: [
-#             {"coeff": 3, "attr": "imag"}, 
-#             {"coeff": 2, "attr": "imag"}, 
-#             {"coeff": 1, "attr": "imag"}
-#         ],
-#         tsfresh_fe.energy_ratio_by_chunks: [
-#             {"num_segments": 10, "segment_focus": 9},
-#             {"num_segments": 20, "segment_focus": 16},
-#         ],
-#         tsfresh_fe.friedrich_coefficients: [
-#             {"m": 3, "r": 30, "coeff": 2}, 
-#             {"m": 3, "r": 30, "coeff": 3}
-#         ],
-#         tsfresh_fe.change_quantiles: [
-#             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.4},
-#             {"f_agg": "var", "isabs": True,  "qh": 1.0, "ql": 0.2},
-#             {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.6},
-#             {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.4},
-#             {"f_agg": "var", "isabs": True,  "qh": 0.8, "ql": 0.2},
-#             {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.4},
-#             {"f_agg": "var", "isabs": True,  "qh": 0.6, "ql": 0.2},
-#             {"f_agg": "var", "isabs": True,  "qh": 0.4, "ql": 0.2},
-#             {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.4},
-#             {"f_agg": "var", "isabs": False, "qh": 1.0, "ql": 0.2},
-#             {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.4},
-#             {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.2},
-#             {"f_agg": "var", "isabs": False, "qh": 0.8, "ql": 0.0},
-#             {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.4},
-#             {"f_agg": "var", "isabs": False, "qh": 0.6, "ql": 0.2},
-#             {"f_agg": "var", "isabs": False, "qh": 0.4, "ql": 0.2},
-#             {"f_agg": "mean","isabs": True,  "qh": 1.0, "ql": 0.4},
-#             {"f_agg": "mean","isabs": True,  "qh": 0.6, "ql": 0.4},
-#         ],
-#         tsfresh_fe.agg_linear_trend: [
-#             {"attr": "slope", "chunk_len": 50, "f_agg": "mean"},
-#             {"attr": "slope", "chunk_len": 5,  "f_agg": "mean"},
-#             {"attr": "slope", "chunk_len": 10, "f_agg": "mean"},
-#             {"attr": "rvalue", "chunk_len": 50, "f_agg": "mean"},
-#             {"attr": "rvalue", "chunk_len": 50, "f_agg": "max"},
-#             {"attr": "rvalue", "chunk_len": 5,  "f_agg": "mean"},
-#             {"attr": "rvalue", "chunk_len": 5,  "f_agg": "max"},
-#             {"attr": "rvalue", "chunk_len": 10, "f_agg": "mean"},
-#             {"attr": "rvalue", "chunk_len": 10, "f_agg": "max"},
-#             {"attr": "intercept", "chunk_len": 50, "f_agg": "mean"},
-#             {"attr": "intercept", "chunk_len": 50, "f_agg": "max"},
-#             {"attr": "intercept", "chunk_len": 5,  "f_agg": "mean"},
-#             {"attr": "intercept", "chunk_len": 5,  "f_agg": "max"},
-#             {"attr": "intercept", "chunk_len": 10, "f_agg": "mean"},
-#             {"attr": "intercept", "chunk_len": 10, "f_agg": "max"},
-#         ],
-#     }
-
-#     def param_to_str(param):
-#         if isinstance(param, dict):
-#             return '_'.join([f"{k}_{v}" for k, v in param.items()])
-#         else:
-#             return str(param)
-
-#     def calculate_stats_for_feature(func, param=None):
-#         results = {}
-#         base_name = func.__name__
-#         if param is not None:
-#             base_name += f"_{param_to_str(param)}"
-
-#         try:
-#             # Prepare arguments for each segment
-#             args_s1 = [s1]
-#             args_s2 = [s2]
-#             args_s_whole = [s_whole]
-#             is_combiner = False
-
-#             if param is None: # Simple function, no params
-#                 pass
-#             elif isinstance(param, dict):
-#                 # Check if it's a combiner function or a function with kwargs
-#                 sig = inspect.signature(func)
-#                 if 'param' in sig.parameters: # Combiner function
-#                     is_combiner = True
-#                     args_s1.append([param])
-#                     args_s2.append([param])
-#                     args_s_whole.append([param])
-#                 else: # Function with kwargs
-#                     args_s1.append(param)
-#                     args_s2.append(param)
-#                     args_s_whole.append(param)
-#             else: # Simple function with a single parameter
-#                 args_s1.append(param)
-#                 args_s2.append(param)
-#                 args_s_whole.append(param)
-
-#             # Execute function for each segment
-#             if is_combiner:
-#                 v1_dict = {k: v for k, v in func(*args_s1)}
-#                 v2_dict = {k: v for k, v in func(*args_s2)}
-#                 v_whole_dict = {k: v for k, v in func(*args_s_whole)}
-                
-#                 for key in v1_dict:
-#                     v1, v2, v_whole = v1_dict[key], v2_dict[key], v_whole_dict[key]
-#                     feat_name_base = f"{func.__name__}_{key}"
-#                     results[f'{feat_name_base}_left'] = v1
-#                     results[f'{feat_name_base}_right'] = v2
-#                     results[f'{feat_name_base}_whole'] = v_whole
-#                     _add_diff_ratio_feats(feats, feat_name_base, v1, v2)
-#                     _add_contribution_ratio_feats(results, feat_name_base, v1, v2, v_whole)
-#                 return results
-
-#             else:
-#                 if isinstance(param, dict) and not is_combiner:
-#                     v1, v2, v_whole = func(args_s1[0], **args_s1[1]), func(args_s2[0], **args_s2[1]), func(args_s_whole[0], **args_s_whole[1])
-#                 else:
-#                     v1, v2, v_whole = func(*args_s1), func(*args_s2), func(*args_s_whole)
-
-#                 results[f'{base_name}_left'] = v1
-#                 results[f'{base_name}_right'] = v2
-#                 results[f'{base_name}_whole'] = v_whole
-#                 _add_diff_ratio_feats(feats, base_name, v1, v2)
-#                 _add_contribution_ratio_feats(results, base_name, v1, v2, v_whole)
-        
-#         except Exception:
-#             # For combiner functions, need to know keys to create nulls
-#             if 'param' in locals() and inspect.isfunction(func) and 'param' in inspect.signature(func).parameters:
-#                  # It's a combiner, but we can't get keys without running it. Skip for now on error.
-#                  pass
-#             else:
-#                 results[f'{base_name}_left'] = np.nan
-#                 results[f'{base_name}_right'] = np.nan
-#                 results[f'{base_name}_whole'] = np.nan
-#                 results[f'{base_name}_diff'] = np.nan
-#                 results[f'{base_name}_ratio'] = np.nan
-                
-#         return results
-
-
-#     for func, params in funcs.items():
-#         if params is None:
-#             feats.update(calculate_stats_for_feature(func))
-#         else:
-#             for param in params:
-#                 feats.update(calculate_stats_for_feature(func, param))
-
-#     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
 # --- 8. 时间序列建模 ---
 @register_feature(func_id="8")

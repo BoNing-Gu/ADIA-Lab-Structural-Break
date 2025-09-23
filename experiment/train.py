@@ -194,6 +194,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     for fold, (train_idx, val_idx) in enumerate(cv_iterator):
         logger.info(f"--- Fold {fold+1}/{config.CV_PARAMS['n_splits']} ---")
         fold_start_time = time.time()
+        # # 抽样实验
+        # train_idx = np.random.choice(train_idx, size=int(len(train_idx) * 0.30), replace=False)
 
         X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
         X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]

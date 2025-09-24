@@ -1733,7 +1733,7 @@ def generate_features(
     
     logger.info(f"生成/更新完成。新文件: {new_file_path.name if new_file_path else 'N/A'}")
 
-def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_to_delete: list = None, flags_to_delete: list = None):
+def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_to_delete: list = None, flags_to_delete: list = None, only_keep_remain: bool = False):
     """
     从指定的特征文件中删除特征，并生成一个新的带时间戳的文件。
     可以按函数名删除，也可以按特定的列名删除，或按标志关键词删除。
@@ -1800,6 +1800,13 @@ def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_t
                 cols_to_drop.extend(matched_cols)
             else:
                 logger.warning("    未找到包含指定标志的特征列。")
+
+        if only_keep_remain:
+            logger.info(f"  只保留REMAIN_FEATURES，删除其他所有特征")
+            missing_features = [col for col in config.REMAIN_FEATURES if col not in feature_df.columns]
+            if missing_features:
+                logger.warning(f"    以下REMAIN_FEATURES特征不存在: {list(missing_features)}")
+            cols_to_drop = [col for col in feature_df.columns if col not in config.REMAIN_FEATURES]            
 
         # 去重并执行删除
         final_cols_to_drop = sorted(list(set(cols_to_drop)))

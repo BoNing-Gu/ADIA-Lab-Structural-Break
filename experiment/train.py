@@ -177,6 +177,19 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     logger.info(f"--- 使用的特征列表 (共 {len(feature_df.columns)} 个) ---")
     logger.info(f"前50个特征: {feature_df.columns.tolist()[:50]}")
     logger.info("-" * min(50, len(str(feature_df.columns.tolist()))))
+
+    # # 难样本挖掘
+    # hard_example_df = pd.read_csv('experiment/output/train_20250924_144307_auc_0_89453/oof_preds.csv')
+    # # 难负样本: 真实标签为 0，但预测概率高（模型以为是正类）
+    # hard_neg_idx = hard_example_df.loc[
+    #     (hard_example_df['y'] == 0) & (hard_example_df['oof_preds'] > 0.5),
+    #     'id'
+    # ].tolist()
+    # # 难正样本: 真实标签为 1，但预测概率低（模型以为是负类）
+    # hard_pos_idx = hard_example_df.loc[
+    #     (hard_example_df['y'] == 1) & (hard_example_df['oof_preds'] < 0.2),
+    #     'id'
+    # ].tolist()
     
     # 3. 交叉验证
     logger.info("Starting 5-fold cross-validation with enhanced data strategy...")
@@ -196,6 +209,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
         fold_start_time = time.time()
         # # 抽样实验
         # train_idx = np.random.choice(train_idx, size=int(len(train_idx) * 0.30), replace=False)
+        # # 剔除难样本
+        # train_idx = [i for i in train_idx if i not in hard_neg_idx] # hard_pos_idx
 
         X_train_fold, y_train_fold = feature_df.iloc[train_idx], y_train.iloc[train_idx]
         X_val_fold, y_val_fold = feature_df.iloc[val_idx], y_train.iloc[val_idx]
@@ -334,7 +349,7 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
 
     # 7. 可选地保存 OOF
     if save_oof:
-        oof_df = pd.DataFrame({'id': feature_df.index, 'oof_preds': oof_preds})
+        oof_df = pd.DataFrame({'id': feature_df.index, 'oof_preds': oof_preds, 'y': y_train[0:10001]})
         oof_df.to_csv(run_output_dir / 'oof_preds.csv', index=False)
         logger.info("OOF predictions saved.")
         

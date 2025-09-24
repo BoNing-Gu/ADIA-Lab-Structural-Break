@@ -26,6 +26,7 @@ def main():
     group.add_argument('--funcs', nargs='+', help='要删除的特征函数名称列表。')
     group.add_argument('--cols', nargs='+', help='要删除的特定特征列名列表。')
     group.add_argument('--flags', nargs='+', help='要删除的特定特征列关键词标志列表。')
+    group.add_argument('--only-keep-remain', action='store_true', help='只保留REMAIN_FEATURES，删除其他所有特征。')
 
     # --- 特征交互项生成命令 ---
     parser_inter = subparsers.add_parser('gen-interactions', help='根据特征重要性文件生成交互特征')
@@ -112,7 +113,8 @@ def main():
             base_feature_file=args.base_file,
             funcs_to_delete=args.funcs, 
             cols_to_delete=args.cols,
-            flags_to_delete=args.flags
+            flags_to_delete=args.flags,
+            only_keep_remain=args.only_keep_remain,
         )
 
     elif args.command == 'gen-interactions':

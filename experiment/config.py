@@ -46,8 +46,9 @@ LGBM_PARAMS = {
     'n_jobs': N_JOBS,
 
     # --- 正则化和采样 ---
-    'reg_alpha': 3,          # L1 正则化
-    'reg_lambda': 3,         # L2 正则化
+    'reg_alpha': 3,            # L1 正则化
+    'reg_lambda': 3,           # L2 正则化
+    # 'min_child_samples': 50,   # 叶子节点样本量
     'colsample_bytree': 0.8,   # 构建树时对特征的列采样率
     'subsample': 0.8,          # 训练样本的采样率
 }

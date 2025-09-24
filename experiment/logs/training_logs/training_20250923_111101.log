@@ -1,0 +1,22 @@
+2025-09-23 11:11:01 - Training-20250923_111101 - INFO - ========== Running Command: train ==========
+2025-09-23 11:11:01 - Training-20250923_111101 - INFO - Args: {'command': 'train', 'feature_file': None, 'train_data_ids': ['0'], 'perm_imp': False, 'save_oof': False, 'save_model': False}
+2025-09-23 11:11:01 - Training-20250923_111101 - INFO - =======================================
+2025-09-23 11:11:01 - Training-20250923_111101 - INFO - Starting training and evaluation pipeline...
+2025-09-23 11:11:01 - Training-20250923_111101 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 3000,
+    "learning_rate": 0.005,
+    "num_leaves": 29,
+    "random_state": 42,
+    "n_jobs": 32,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "min_child_samples": 50,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-09-23 11:11:06 - Training-20250923_111101 - INFO - Successfully loaded features from: features_20250820_215440_id_0.parquet
+2025-09-23 11:11:06 - Training-20250923_111101 - INFO - Loading data...
+2025-09-23 11:11:29 - Training-20250923_111101 - ERROR - Unexpected error loading data: malloc of size 268435456 failed

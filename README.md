@@ -92,6 +92,20 @@ python -m experiment.main gen-feats --trans new_awesome_transform --funcs new_aw
 ```
 新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
 
+#### GARCH 特征（实验性）
+
+本项目提供 `garch_features`，使用 GARCH(1,1) 在 `left/right/whole` 三段上拟合，并输出条件波动率统计、AIC/BIC、参数（omega/alpha1/beta1/persistence）、以及分段间的差分和比例等派生指标。为避免 `arch` 的尺度警告，内部按整体序列的稳健尺度缩放到标准差约为 10，并禁用内部 rescale。
+
+运行示例：
+
+```bash
+# 单独生成 GARCH 特征（默认跳过实验性特征，需显式指定）
+python -m experiment.main gen-feats --funcs garch_features
+
+# 与某个变换（例如 DIFF）组合
+python -m experiment.main gen-feats --trans DIFF --funcs garch_features
+```
+
 #### 第3步：筛选
 
 生成特征后，执行相关性剔除，筛选结果呈现在 `./experiment/output/filter_xxx` 中，将保留下来的特征列表复制到 `experiment/config.py` 的 `REMAIN_FEATURES` 列表。

@@ -1,0 +1,48 @@
+2025-09-14 19:44:03 - Training-20250914_194403 - INFO - ========== Running Command: train ==========
+2025-09-14 19:44:03 - Training-20250914_194403 - INFO - Args: {'command': 'train', 'feature_file': None, 'train_data_ids': ['0'], 'perm_imp': False, 'save_oof': False, 'save_model': False}
+2025-09-14 19:44:03 - Training-20250914_194403 - INFO - =======================================
+2025-09-14 19:44:03 - Training-20250914_194403 - INFO - Starting training and evaluation pipeline...
+2025-09-14 19:44:03 - Training-20250914_194403 - INFO - Using model: LGB
+2025-09-14 19:44:03 - Training-20250914_194403 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 3000,
+    "learning_rate": 0.005,
+    "num_leaves": 36,
+    "random_state": 42,
+    "n_jobs": 64,
+    "is_unbalance": true,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-09-14 19:44:04 - Training-20250914_194403 - INFO - Successfully loaded features from: features_20250914_194237_id_0.parquet
+2025-09-14 19:44:04 - Training-20250914_194403 - INFO - Loading data...
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - Original data loaded successfully.
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - X_train shape: (23715734, 2)
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - X_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - y_train shape: (10001, 1)
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - y_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - Loading enhancement data with IDs: ['0']
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - Total datasets loaded: 1
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - Dataset 0: X shape (23715734, 2), y shape (10001, 1)
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - Return CONCATED data shape: X (23715734, 2), y (10001, 1)
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - 训练数据已对齐. X shape: (10001, 5282), y shape: (10001,)
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - --- 使用的特征列表 (共 1443 个) ---
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - 前50个特征: ['RAW_8_percentage_of_reoccurring_values_to_all_values_contribution_left_yj', 'RAW_1_stats_cv_whole_yj', 'RAW_8_index_mass_quantile_q_0_8_ratio_to_whole_left', 'RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_yj', 'RAW_1_stats_std_whole_yj', 'RAW_3_detrend_volatility_normalized_whole_yj', 'CUMSUM_2_ad_pvalue_yj', 'RAW_8_index_mass_quantile_q_0_1_right_yj', 'RAW_8_quantile_0_4_whole_yj', 'DIFF_8_change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4_whole_yj', 'RAW_8_ratio_value_number_to_time_series_length_ratio_to_whole_left_yj', 'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2_whole_yj', 'RAW_8_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left_yj', 'RAW_7_sample_entropy_left_yj', 'RAW_8_benford_correlation_whole_yj', 'RAW_1_stats_min_whole_yj', 'CUMSUM_3_detrend_volatility_normalized_right_yj', 'CUMSUM_8_change_quantiles_f_agg_mean_isabs_True_qh_1_0_ql_0_4_ratio_to_whole_left', 'RAW_8_ratio_beyond_r_sigma_1_left_yj', 'RAW_1_stats_median_ratio_yj', 'RAW_5_max_power_whole_yj', 'RAW_11_garch_params_alpha1_left_yj', 'CUMSUM_1_stats_max_diff_yj', 'RAW_7_sample_entropy_diff', 'CUMSUM_2_kpss_pvalue_ratio_to_whole_left_yj', 'CUMSUM_7_hjorth_complexity_whole', 'RAW_8_energy_ratio_by_chunks_num_segments_10_segment_focus_9_left_yj', 'RAW_8_energy_ratio_by_chunks_num_segments_10_segment_focus_9_whole_yj', 'CUMSUM_2_mannwhitney_stat_yj', 'RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_ratio_to_whole_right_yj', 'RAW_2_ks_stat_yj', 'RAW_8_quantile_0_4_right_yj', 'RAW_8_agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_mean_diff', 'DIFF_7_cond_entropy_left_yj', 'DIFF_8_ratio_beyond_r_sigma_1_5_whole', 'DIFF_8_agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_mean_whole', 'CUMSUM_1_stats_min_ratio_yj', 'RAW_8_ratio_beyond_r_sigma_0_5_diff', 'RAW_8_ratio_beyond_r_sigma_1_5_whole_yj', 'CUMSUM_4_autocorr_lag1_whole_yj', 'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_4_contribution_left', 'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_4_whole_yj', 'RAW_8_count_above_0_whole', 'CUMSUM_10_rpt_cost_normal_right_yj', 'CUMSUM_3_detrend_volatility_normalized_ratio_yj', 'DIFF_1_stats_mean_ratio_to_whole_left_yj', 'RAW_1_stats_median_whole_yj', 'DIFF_9_ar_param_0_ratio_to_whole_left_yj', 'CUMSUM_8_ar_coefficient_coeff_2_k_10_contribution_left_yj', 'RAW_4_autocorr_lag1_ratio_yj']
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - --------------------------------------------------
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - Starting 5-fold cross-validation with enhanced data strategy...
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - 创建增强数据交叉验证分割...
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - 识别到 10001 条原始数据
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - 识别到 0 条增强数据
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - Fold 1: 训练集 8000 条 (原始: 8000, 增强: 0), 验证集 2001 条 (仅原始数据)
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - --- Fold 1/5 ---
+2025-09-14 19:44:05 - Training-20250914_194403 - INFO - 训练数据: (8000, 1443), 验证数据: (2001, 1443)
+2025-09-14 19:46:32 - Training-20250914_194403 - INFO - Fold 1 Train AUC: 1.00000, Val AUC: 0.82549
+2025-09-14 19:46:32 - Training-20250914_194403 - INFO - Fold 1 Early stopping step (best_iteration): 0
+2025-09-14 19:46:32 - Training-20250914_194403 - INFO - Fold 1 finished in 147.17s
+2025-09-14 19:46:32 - Training-20250914_194403 - INFO - Fold 2: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-14 19:46:32 - Training-20250914_194403 - INFO - --- Fold 2/5 ---
+2025-09-14 19:46:32 - Training-20250914_194403 - INFO - 训练数据: (8001, 1443), 验证数据: (2000, 1443)

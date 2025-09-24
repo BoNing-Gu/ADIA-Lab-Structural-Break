@@ -48,6 +48,8 @@ def main():
     # 相关性筛选子命令
     parser_corr = filter_subparsers.add_parser('corr', help='根据特征相关性筛选特征并导出')
     parser_corr.add_argument('--feature-file', type=str, default=None, help='可选，指定特征文件名。如果为空，则使用最新的特征文件。')
+    parser_corr.add_argument('--intra-group', action='store_true', help='对每个组内执行去相关（默认关闭）。')
+    parser_corr.add_argument('--intra-threshold', type=float, default=None, help='组内去相关阈值（默认与跨组阈值相同，当前为0.95）。')
     # 特征重要性筛选子命令
     parser_feature_imp = filter_subparsers.add_parser('feature-imp', help='根据特征重要性阈值筛选特征并导出')
     parser_feature_imp.add_argument('--train-version', type=str, help='训练输出文件夹名，例如 train_20250719_174900_auc_0_76876')
@@ -60,6 +62,16 @@ def main():
     # --- 数据增强命令 ---
     parser_enhance = subparsers.add_parser('data-aug', help='应用数据增强并保存增强数据')
     parser_enhance.add_argument('--augs', nargs='*', default=None, help='要应用的数据增强函数名列表。如果为空，则运行所有注册的增强函数。')
+
+    # --- 特征变换命令（偏度检测 + Yeo-Johnson） ---
+    parser_transform = subparsers.add_parser('transform', help='检测偏度并对 REMAIN_FEATURES 应用 Yeo-Johnson 变换，生成新特征文件')
+    parser_transform.add_argument('--feature-file', type=str, default=None, help='可选，指定特征文件名。如果为空，则使用最新的特征文件。')
+    parser_transform.add_argument('--skew-threshold', type=float, default=None, help='偏度阈值，默认读取 config.SKEWNESS_THRESHOLD')
+    parser_transform.add_argument('--suffix', type=str, default=None, help='新列后缀，默认读取 config.YJ_SUFFIX')
+    # --standardize/--no-standardize 二选一，默认从 config 读取
+    parser_transform.add_argument('--standardize', dest='standardize', action='store_true', help='YJ 后是否标准化')
+    parser_transform.add_argument('--no-standardize', dest='standardize', action='store_false', help='YJ 后不标准化')
+    parser_transform.set_defaults(standardize=None)
 
     # --- 训练命令 ---
     parser_train = subparsers.add_parser('train', help='使用特征文件进行训练')
@@ -83,7 +95,7 @@ def main():
     
     # 根据命令选择 logger
     log_file_path = None # 初始化
-    if args.command in ['gen-feats', 'del-feats', 'gen-interactions', 'data-aug']:
+    if args.command in ['gen-feats', 'del-feats', 'gen-interactions', 'data-aug', 'transform']:
         logger, log_file_path = utils.get_logger('FeatureEng', config.FEATURE_LOG_DIR)
     else: # train
         logger, log_file_path = utils.get_logger('Training', config.TRAINING_LOG_DIR)
@@ -96,6 +108,34 @@ def main():
         from . import data
         data.logger = logger
         data.apply_data_enhancement(func_names=args.augs)
+
+    elif args.command == 'transform':
+        from . import transform, features
+        transform.logger = logger
+        features.logger = logger
+        new_file_name, mapping, new_remain, out_txt_path = transform.transform_skewed_features(
+            feature_file=args.feature_file,
+            features_to_consider=config.REMAIN_FEATURES,
+            skew_threshold=args.skew_threshold,
+            standardize=args.standardize,
+            suffix=args.suffix,
+        )
+        if new_file_name:
+            logger.info(f"Yeo-Johnson 转换完成，新特征文件: {new_file_name}")
+        else:
+            logger.info("Yeo-Johnson 转换未生成新文件。")
+        # 输出映射与新的 REMAIN_FEATURES 列表（便于下一步组合使用）
+        logger.info("=== 旧列 -> 新列 (部分预览) ===")
+        preview_items = list(mapping.items())[:50]
+        for old, new in preview_items:
+            logger.info(f"  {old} -> {new}")
+        # 直接打印为 Python 列表字面量，便于命令行复制
+        print("\nREMAIN_FEATURES = [")
+        for col in new_remain:
+            print("    '" + str(col).replace("'", "\\'") + "',")
+        print("]")
+        if out_txt_path:
+            print(f"\nSaved to: {out_txt_path}")
 
     elif args.command == 'gen-feats':
         from . import data, features
@@ -137,7 +177,9 @@ def main():
         from . import filter
         if args.filter_method == 'corr':
             filter.corr_filter(
-                feature_file=args.feature_file
+                feature_file=args.feature_file,
+                intra_group=args.intra_group,
+                intra_threshold=args.intra_threshold,
             )
         elif args.filter_method == 'feature-imp':
             filter.feature_imp_filter(

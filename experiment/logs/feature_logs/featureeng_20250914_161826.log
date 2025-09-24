@@ -1,0 +1,14 @@
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - ========== Running Command: del-feats ==========
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - Args: {'command': 'del-feats', 'base_file': '/public/home/gugq/mutian-ADIA-Lab-Structural-Break/ADIA-Lab-Structural-Break/feature_dfs/features_20250914_152030_id_0.parquet', 'funcs': ['distribution_stats_features'], 'cols': None}
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - =======================================
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - 将从文件 /public/home/gugq/mutian-ADIA-Lab-Structural-Break/ADIA-Lab-Structural-Break/feature_dfs/features_20250914_152030_id_0.parquet 中删除特征...
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - 加载字典格式特征文件，包含数据ID: ['0']
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - 已将基础文件 features_20250914_152030_id_0.parquet 备份到: /public/home/gugq/mutian-ADIA-Lab-Structural-Break/ADIA-Lab-Structural-Break/feature_dfs/backups
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - 未找到相关的增强数据文件
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO - 
+处理数据ID '0' 的特征删除...
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO -   按函数名删除: ['distribution_stats_features']
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - WARNING -     未找到与函数 'distribution_stats_features' 相关的特征列。
+2025-09-14 16:18:26 - FeatureEng-20250914_161826 - INFO -   数据ID '0' 没有找到要删除的特征列
+2025-09-14 16:18:27 - FeatureEng-20250914_161826 - WARNING - 没有找到任何要删除的特征列，操作中止。
+2025-09-14 16:18:27 - FeatureEng-20250914_161826 - INFO - 已恢复原始文件。

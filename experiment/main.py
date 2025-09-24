@@ -50,6 +50,11 @@ def main():
     parser_corr.add_argument('--feature-file', type=str, default=None, help='可选，指定特征文件名。如果为空，则使用最新的特征文件。')
     parser_corr.add_argument('--intra-group', action='store_true', help='对每个组内执行去相关（默认关闭）。')
     parser_corr.add_argument('--intra-threshold', type=float, default=None, help='组内去相关阈值（默认与跨组阈值相同，当前为0.95）。')
+    # 新增：批次并行模式与相关参数
+    parser_corr.add_argument('--parallel-by-batch', action='store_true', help='不按类别、改为按批次分组，并使用多线程并行交叉相关计算。')
+    parser_corr.add_argument('--batch-size-for-group', type=int, default=256, help='批次并行模式下的批大小（每批列数）。')
+    parser_corr.add_argument('--num-workers', type=int, default=None, help='并行交叉相关计算的线程数（>1 启用并行）。')
+    parser_corr.add_argument('--block-size', type=int, default=512, help='相关性矩阵乘法的分块大小。')
     # 特征重要性筛选子命令
     parser_feature_imp = filter_subparsers.add_parser('feature-imp', help='根据特征重要性阈值筛选特征并导出')
     parser_feature_imp.add_argument('--train-version', type=str, help='训练输出文件夹名，例如 train_20250719_174900_auc_0_76876')
@@ -180,6 +185,10 @@ def main():
                 feature_file=args.feature_file,
                 intra_group=args.intra_group,
                 intra_threshold=args.intra_threshold,
+                parallel_by_batch=args.parallel_by_batch,
+                batch_size_for_group=args.batch_size_for_group,
+                num_workers=args.num_workers,
+                block_size=args.block_size,
             )
         elif args.filter_method == 'feature-imp':
             filter.feature_imp_filter(

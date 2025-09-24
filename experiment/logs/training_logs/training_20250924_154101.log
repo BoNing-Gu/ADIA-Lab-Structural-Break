@@ -1,0 +1,3 @@
+2025-09-24 15:41:01 - Training-20250924_154101 - INFO - ========== Running Command: filter ==========
+2025-09-24 15:41:01 - Training-20250924_154101 - INFO - Args: {'command': 'filter', 'filter_method': 'feature-imp', 'train_version': 'train_20250924_152654_auc_0_88313', 'feature_file': None}
+2025-09-24 15:41:01 - Training-20250924_154101 - INFO - =======================================

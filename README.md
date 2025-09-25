@@ -87,10 +87,24 @@ python -m experiment.main gen-feats
 
 ```bash
 # 基于最新的特征文件，加入 new_awesome_feature
-# 这会生成一个全新的、带时间戳的特征 
-python -m experiment.main gen-feats --funcs new_awesome_feature --trans new_awesome_transform
+# 这会生成一个全新的、带时间戳的特征文件 
+python -m experiment.main gen-feats --trans new_awesome_transform --funcs new_awesome_feature
 ```
 新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
+
+#### GARCH 特征（实验性）
+
+本项目提供 `garch_features`，使用 GARCH(1,1) 在 `left/right/whole` 三段上拟合，并输出条件波动率统计、AIC/BIC、参数（omega/alpha1/beta1/persistence）、以及分段间的差分和比例等派生指标。为避免 `arch` 的尺度警告，内部按整体序列的稳健尺度缩放到标准差约为 10，并禁用内部 rescale。
+
+运行示例：
+
+```bash
+# 单独生成 GARCH 特征（默认跳过实验性特征，需显式指定）
+python -m experiment.main gen-feats --funcs garch_features
+
+# 与某个变换（例如 DIFF）组合
+python -m experiment.main gen-feats --trans DIFF --funcs garch_features
+```
 
 #### 第3步：筛选
 
@@ -205,7 +219,13 @@ python -m experiment.main train --train-data-ids 0 --perm-imp --save-model --sav
     *   `--save-oof`: Flag, 是否保存OOF预测文件。 
 
 # 7. 提交记录
-| 提交号 | 本地CV | 公开LB | 描述 |
-| --- | --- | --- | --- |
-| #7  | 0.7875 | 0.7812 | Perm阈值0.0005，55个特征 |
-| #8  | 0.8739 | 0.8646 | Perm阈值0.0002，添加Top10特征交互项，86个特征 |
+| 提交号 | 本地CV | 公开LB | 描述 | Magic Type |
+| --- | --- | --- | --- | --- |
+| #7  | 0.7875 | 0.7812 | Perm阈值0.0005，55个特征 | no |
+| #8  | 0.8739 | 0.8646 | Perm阈值0.0002，添加Top10特征交互项，86个特征 | by interaction |
+| #10 | 0.8883 | 0.8756 | 交互特征sqmul、add、sub、div、sq、onemulall，106个特征 | by interaction |
+| #12 | 0.8909 | 0.8776 | 交互特征sqmul、add、sub、div、sq、crossmul，99个特征 | by interaction |
+| #17 | 0.9059 | 0.8802 | trans函数CUMSUM、DIFF、ASINH，225个特征 | by feat |
+| #18 | 0.8918 | 0.8745 | trans函数CUMSUM、DIFF、ASINH，74个特征 | by feat |
+| #19 | 0.8945 | 0.8834 | trans函数CUMSUM、DIFF，101个特征 | by interaction |
+| #20 | 0.8966 | 0.8838 | trans函数CUMSUM、DIFF、ASINH，101个特征 | by interaction |

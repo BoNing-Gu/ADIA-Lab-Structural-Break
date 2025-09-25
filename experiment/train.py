@@ -140,7 +140,18 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     """
     start_time = time.time()
     logger.info("Starting training and evaluation pipeline...")
-    logger.info(f"Model Parameters: {json.dumps(config.LGBM_PARAMS, indent=4)}")
+    # 根据实际选择的模型打印相应的参数，避免误导
+    model_params_for_log = None
+    if config.MODEL == 'LGB':
+        model_params_for_log = config.LGBM_PARAMS
+    elif config.MODEL == 'CAT':
+        model_params_for_log = config.CAT_PARAMS
+    elif config.MODEL == 'XGB':
+        model_params_for_log = config.XGB_PARAMS
+    else:
+        model_params_for_log = {}
+    logger.info(f"Using model: {config.MODEL}")
+    logger.info(f"Model Parameters: {json.dumps(model_params_for_log, indent=4)}")
 
     # 1. 加载特征和标签
     feature_df, loaded_feature_name = features.load_features(feature_file_name, data_ids=data_ids)
@@ -357,7 +368,8 @@ def train_and_evaluate(feature_file_name: str, data_ids: list = ["0"], save_oof:
     training_metadata = {
         "feature_file_used": loaded_feature_name,
         "features_used": feature_df.columns.tolist(),
-        "model_params": config.LGBM_PARAMS,
+        "model_name": config.MODEL,
+        "model_params": model_params_for_log,
         "cv_params": config.CV_PARAMS,
         "oof_auc": overall_oof_auc,
         "fold_metrics": fold_metrics

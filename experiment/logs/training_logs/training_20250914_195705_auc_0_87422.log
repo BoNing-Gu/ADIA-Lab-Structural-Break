@@ -1,0 +1,74 @@
+2025-09-14 19:57:05 - Training-20250914_195705 - INFO - ========== Running Command: train ==========
+2025-09-14 19:57:05 - Training-20250914_195705 - INFO - Args: {'command': 'train', 'feature_file': None, 'train_data_ids': ['0'], 'perm_imp': False, 'save_oof': False, 'save_model': False}
+2025-09-14 19:57:05 - Training-20250914_195705 - INFO - =======================================
+2025-09-14 19:57:05 - Training-20250914_195705 - INFO - Starting training and evaluation pipeline...
+2025-09-14 19:57:05 - Training-20250914_195705 - INFO - Using model: LGB
+2025-09-14 19:57:05 - Training-20250914_195705 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 3000,
+    "learning_rate": 0.005,
+    "num_leaves": 36,
+    "random_state": 42,
+    "n_jobs": 64,
+    "is_unbalance": true,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - Successfully loaded features from: features_20250914_195632.parquet
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - Loading data...
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - Original data loaded successfully.
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - X_train shape: (23715734, 2)
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - X_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - y_train shape: (10001, 1)
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - y_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - Loading enhancement data with IDs: ['0']
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - Total datasets loaded: 1
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - Dataset 0: X shape (23715734, 2), y shape (10001, 1)
+2025-09-14 19:57:06 - Training-20250914_195705 - INFO - Return CONCATED data shape: X (23715734, 2), y (10001, 1)
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - 训练数据已对齐. X shape: (10001, 5282), y shape: (10001,)
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - --- 使用的特征列表 (共 1445 个) ---
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - 前50个特征: ['RAW_8_percentage_of_reoccurring_values_to_all_values_contribution_left_yj', 'RAW_1_stats_cv_whole_yj', 'RAW_1_stats_cv_whole', 'RAW_8_index_mass_quantile_q_0_8_ratio_to_whole_left', 'RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_yj', 'RAW_1_stats_std_whole_yj', 'RAW_1_stats_std_whole', 'RAW_3_detrend_volatility_normalized_whole_yj', 'CUMSUM_2_ad_pvalue_yj', 'RAW_8_index_mass_quantile_q_0_1_right_yj', 'RAW_8_quantile_0_4_whole_yj', 'DIFF_8_change_quantiles_f_agg_var_isabs_False_qh_0_6_ql_0_4_whole_yj', 'RAW_8_ratio_value_number_to_time_series_length_ratio_to_whole_left_yj', 'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2_whole_yj', 'RAW_8_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left_yj', 'RAW_7_sample_entropy_left_yj', 'RAW_8_benford_correlation_whole_yj', 'RAW_1_stats_min_whole_yj', 'CUMSUM_3_detrend_volatility_normalized_right_yj', 'CUMSUM_8_change_quantiles_f_agg_mean_isabs_True_qh_1_0_ql_0_4_ratio_to_whole_left', 'RAW_8_ratio_beyond_r_sigma_1_left_yj', 'RAW_1_stats_median_ratio_yj', 'RAW_5_max_power_whole_yj', 'RAW_11_garch_params_alpha1_left_yj', 'CUMSUM_1_stats_max_diff_yj', 'RAW_7_sample_entropy_diff', 'CUMSUM_2_kpss_pvalue_ratio_to_whole_left_yj', 'CUMSUM_7_hjorth_complexity_whole', 'RAW_8_energy_ratio_by_chunks_num_segments_10_segment_focus_9_left_yj', 'RAW_8_energy_ratio_by_chunks_num_segments_10_segment_focus_9_whole_yj', 'CUMSUM_2_mannwhitney_stat_yj', 'RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_ratio_to_whole_right_yj', 'RAW_2_ks_stat_yj', 'RAW_8_quantile_0_4_right_yj', 'RAW_8_agg_linear_trend_attr_rvalue_chunk_len_50_f_agg_mean_diff', 'DIFF_7_cond_entropy_left_yj', 'DIFF_8_ratio_beyond_r_sigma_1_5_whole', 'DIFF_8_agg_linear_trend_attr_rvalue_chunk_len_10_f_agg_mean_whole', 'CUMSUM_1_stats_min_ratio_yj', 'RAW_8_ratio_beyond_r_sigma_0_5_diff', 'RAW_8_ratio_beyond_r_sigma_1_5_whole_yj', 'CUMSUM_4_autocorr_lag1_whole_yj', 'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_1_0_ql_0_4_contribution_left', 'RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_4_whole_yj', 'RAW_8_count_above_0_whole', 'CUMSUM_10_rpt_cost_normal_right_yj', 'CUMSUM_3_detrend_volatility_normalized_ratio_yj', 'DIFF_1_stats_mean_ratio_to_whole_left_yj', 'RAW_1_stats_median_whole_yj', 'DIFF_9_ar_param_0_ratio_to_whole_left_yj']
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - --------------------------------------------------
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - Starting 5-fold cross-validation with enhanced data strategy...
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - 创建增强数据交叉验证分割...
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - 识别到 10001 条原始数据
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - 识别到 0 条增强数据
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - Fold 1: 训练集 8000 条 (原始: 8000, 增强: 0), 验证集 2001 条 (仅原始数据)
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - --- Fold 1/5 ---
+2025-09-14 19:57:07 - Training-20250914_195705 - INFO - 训练数据: (8000, 1445), 验证数据: (2001, 1445)
+2025-09-14 19:59:15 - Training-20250914_195705 - INFO - Fold 1 Train AUC: 1.00000, Val AUC: 0.87708
+2025-09-14 19:59:15 - Training-20250914_195705 - INFO - Fold 1 Early stopping step (best_iteration): 0
+2025-09-14 19:59:15 - Training-20250914_195705 - INFO - Fold 1 finished in 128.21s
+2025-09-14 19:59:15 - Training-20250914_195705 - INFO - Fold 2: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-14 19:59:15 - Training-20250914_195705 - INFO - --- Fold 2/5 ---
+2025-09-14 19:59:15 - Training-20250914_195705 - INFO - 训练数据: (8001, 1445), 验证数据: (2000, 1445)
+2025-09-14 20:01:17 - Training-20250914_195705 - INFO - Fold 2 Train AUC: 1.00000, Val AUC: 0.86756
+2025-09-14 20:01:17 - Training-20250914_195705 - INFO - Fold 2 Early stopping step (best_iteration): 0
+2025-09-14 20:01:17 - Training-20250914_195705 - INFO - Fold 2 finished in 122.16s
+2025-09-14 20:01:17 - Training-20250914_195705 - INFO - Fold 3: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-14 20:01:17 - Training-20250914_195705 - INFO - --- Fold 3/5 ---
+2025-09-14 20:01:17 - Training-20250914_195705 - INFO - 训练数据: (8001, 1445), 验证数据: (2000, 1445)
+2025-09-14 20:03:20 - Training-20250914_195705 - INFO - Fold 3 Train AUC: 1.00000, Val AUC: 0.87798
+2025-09-14 20:03:20 - Training-20250914_195705 - INFO - Fold 3 Early stopping step (best_iteration): 0
+2025-09-14 20:03:20 - Training-20250914_195705 - INFO - Fold 3 finished in 122.68s
+2025-09-14 20:03:20 - Training-20250914_195705 - INFO - Fold 4: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-14 20:03:20 - Training-20250914_195705 - INFO - --- Fold 4/5 ---
+2025-09-14 20:03:20 - Training-20250914_195705 - INFO - 训练数据: (8001, 1445), 验证数据: (2000, 1445)
+2025-09-14 20:05:38 - Training-20250914_195705 - INFO - Fold 4 Train AUC: 1.00000, Val AUC: 0.87326
+2025-09-14 20:05:38 - Training-20250914_195705 - INFO - Fold 4 Early stopping step (best_iteration): 0
+2025-09-14 20:05:38 - Training-20250914_195705 - INFO - Fold 4 finished in 137.90s
+2025-09-14 20:05:38 - Training-20250914_195705 - INFO - Fold 5: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-14 20:05:38 - Training-20250914_195705 - INFO - --- Fold 5/5 ---
+2025-09-14 20:05:38 - Training-20250914_195705 - INFO - 训练数据: (8001, 1445), 验证数据: (2000, 1445)
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - Fold 5 Train AUC: 1.00000, Val AUC: 0.87640
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - Fold 5 Early stopping step (best_iteration): 0
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - Fold 5 finished in 137.10s
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - Overall OOF AUC: 0.87422
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - All outputs will be saved to: /public/home/gugq/mutian-ADIA-Lab-Structural-Break/ADIA-Lab-Structural-Break/experiment/output/train_20250914_200755_auc_0_87422
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - 特征重要性已保存到: /public/home/gugq/mutian-ADIA-Lab-Structural-Break/ADIA-Lab-Structural-Break/experiment/output/train_20250914_200755_auc_0_87422/feature_importance.tsv
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - feature importance saved.
+2025-09-14 20:07:55 - Training-20250914_195705 - INFO - 训练流程结束，总耗时: 650.02 秒。

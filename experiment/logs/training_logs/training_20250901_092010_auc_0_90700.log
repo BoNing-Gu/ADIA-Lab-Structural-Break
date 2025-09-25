@@ -1,0 +1,73 @@
+2025-09-01 09:20:10 - Training-20250901_092010 - INFO - ========== Running Command: train ==========
+2025-09-01 09:20:10 - Training-20250901_092010 - INFO - Args: {'command': 'train', 'feature_file': None, 'train_data_ids': ['0'], 'perm_imp': False, 'save_oof': False, 'save_model': False}
+2025-09-01 09:20:10 - Training-20250901_092010 - INFO - =======================================
+2025-09-01 09:20:10 - Training-20250901_092010 - INFO - Starting training and evaluation pipeline...
+2025-09-01 09:20:10 - Training-20250901_092010 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 4200,
+    "learning_rate": 0.005,
+    "num_leaves": 29,
+    "random_state": 42,
+    "n_jobs": 36,
+    "is_unbalance": true,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}
+2025-09-01 09:20:11 - Training-20250901_092010 - INFO - Successfully loaded features from: features_20250831_232746.parquet
+2025-09-01 09:20:11 - Training-20250901_092010 - INFO - Loading data...
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - Original data loaded successfully.
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - X_train shape: (23715734, 2)
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - X_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - y_train shape: (10001, 1)
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - y_train type: <class 'pandas.core.frame.DataFrame'>
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - Loading enhancement data with IDs: ['0']
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - Total datasets loaded: 1
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - Dataset 0: X shape (23715734, 2), y shape (10001, 1)
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - Return CONCATED data shape: X (23715734, 2), y (10001, 1)
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - 训练数据已对齐. X shape: (10001, 9126), y shape: (10001,)
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - --- 使用的特征列表 (共 225 个) ---
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - 前50个特征: ['div_RAW_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'div_ASINH_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'add_RAW_1_stats_cv_mul_std_whole_CUMSUM_1_stats_theil_sen_slope_whole', 'div_RAW_1_stats_cv_whole_RAW_7_sample_entropy_whole', 'div_RAW_7_sample_entropy_left_RAW_1_stats_cv_whole', 'add_ASINH_1_stats_cv_mul_std_whole_CUMSUM_1_stats_theil_sen_slope_whole', 'cross_mul_RAW_8_index_mass_quantile_q_0_1_right_RAW_8_energy_ratio_by_chunks_num_segments_10_segment_focus_9_left', 'add_RAW_8_index_mass_quantile_q_0_8_ratio_to_whole_left_RAW_8_index_mass_quantile_q_0_1_right', 'cross_mul_RAW_8_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left_CUMSUM_1_stats_range_ratio_to_whole_left', 'cross_mul_CUMSUM_2_ad_pvalue_RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_6_ql_0_2_whole', 'cross_mul_RAW_8_ratio_value_number_to_time_series_length_ratio_to_whole_left_RAW_8_quantile_0_6_ratio_to_whole_left', 'sub_ASINH_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_values_to_all_values_contribution_left', 'cross_mul_RAW_8_index_mass_quantile_q_0_1_right_RAW_10_rpt_cost_cosine_whole', 'sub_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2_ratio_to_whole_left', 'sub_RAW_7_sample_entropy_left_RAW_8_index_mass_quantile_q_0_8_ratio_to_whole_left', 'sqmul_CUMSUM_1_stats_theil_sen_slope_whole_RAW_7_sample_entropy_left', 'div_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_RAW_8_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left', 'div_RAW_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_values_to_all_values_contribution_left', 'sqmul_CUMSUM_1_stats_theil_sen_slope_whole_RAW_7_sample_entropy_whole', 'div_CUMSUM_2_ad_pvalue_RAW_1_stats_cv_mul_std_whole', 'sub_RAW_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_values_to_all_values_ratio_to_whole_left', 'cross_mul_RAW_7_sample_entropy_whole_CUMSUM_2_kpss_pvalue_ratio_to_whole_left', 'cross_mul_CUMSUM_1_stats_theil_sen_slope_whole_RAW_7_sample_entropy_diff', 'add_RAW_8_ratio_beyond_r_sigma_1_left_DIFF_2_bartlett_pvalue', 'cross_mul_RAW_8_benford_correlation_whole_RAW_8_count_above_0_whole', 'sub_DIFF_2_levene_pvalue_RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2_ratio_to_whole_left', 'cross_mul_CUMSUM_1_stats_theil_sen_slope_whole_RAW_8_ratio_value_number_to_time_series_length_diff', 'sqmul_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_RAW_8_ratio_value_number_to_time_series_length_ratio_to_whole_left', 'cross_mul_RAW_8_benford_correlation_whole_CUMSUM_8_change_quantiles_f_agg_var_isabs_False_qh_0_4_ql_0_2_ratio_to_whole_left', 'cross_mul_RAW_2_bartlett_stat_RAW_1_stats_median_ratio', 'cross_mul_CUMSUM_1_stats_theil_sen_slope_whole_CUMSUM_8_change_quantiles_f_agg_var_isabs_False_qh_1_0_ql_0_4_contribution_right', 'div_RAW_2_bartlett_stat_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'sqmul_RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2_ratio_to_whole_left_RAW_7_sample_entropy_whole', 'sub_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_CUMSUM_1_stats_theil_sen_slope_whole', 'cross_mul_RAW_8_ratio_value_number_to_time_series_length_ratio_to_whole_left_DIFF_8_ratio_value_number_to_time_series_length_ratio_to_whole_right', 'cross_mul_CUMSUM_1_stats_theil_sen_slope_whole_RAW_8_percentage_of_reoccurring_values_to_all_values_ratio', 'cross_mul_RAW_8_index_mass_quantile_q_0_1_right_ASINH_8_ar_coefficient_coeff_8_k_10_ratio_to_whole_right', 'cross_mul_RAW_8_index_mass_quantile_q_0_1_right_RAW_8_quantile_0_4_ratio_to_whole_left', 'cross_mul_RAW_7_sample_entropy_left_ASINH_8_ratio_beyond_r_sigma_1_5_ratio_to_whole_right', 'cross_mul_RAW_8_ratio_beyond_r_sigma_1_left_CUMSUM_2_kpss_pvalue_ratio_to_whole_left', 'cross_mul_RAW_2_bartlett_stat_RAW_2_jb_pvalue_ratio_to_whole_right', 'cross_mul_CUMSUM_2_ad_pvalue_RAW_2_levene_pvalue', 'sub_RAW_1_stats_cv_mul_std_whole_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left', 'cross_mul_RAW_8_index_mass_quantile_q_0_8_ratio_to_whole_left_DIFF_8_ratio_value_number_to_time_series_length_ratio_to_whole_right', 'div_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_RAW_8_percentage_of_reoccurring_values_to_all_values_contribution_left', 'cross_mul_RAW_7_sample_entropy_left_CUMSUM_8_last_location_of_maximum_whole', 'DIFF_7_hjorth_complexity_ratio_to_whole_right', 'cross_mul_RAW_8_percentage_of_reoccurring_datapoints_to_all_datapoints_contribution_left_RAW_4_autocorr_lag1_ratio', 'cross_mul_RAW_8_change_quantiles_f_agg_var_isabs_True_qh_0_8_ql_0_2_ratio_to_whole_left_CUMSUM_3_linear_trend_std_err_left', 'div_RAW_7_sample_entropy_left_RAW_8_ratio_beyond_r_sigma_1_left']
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - --------------------------------------------------
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - Starting 5-fold cross-validation with enhanced data strategy...
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - 创建增强数据交叉验证分割...
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - 识别到 10001 条原始数据
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - 识别到 0 条增强数据
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - Fold 1: 训练集 8000 条 (原始: 8000, 增强: 0), 验证集 2001 条 (仅原始数据)
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - --- Fold 1/5 ---
+2025-09-01 09:20:12 - Training-20250901_092010 - INFO - 训练数据: (8000, 225), 验证数据: (2001, 225)
+2025-09-01 09:20:32 - Training-20250901_092010 - INFO - Fold 1 Train AUC: 1.00000, Val AUC: 0.90607
+2025-09-01 09:20:32 - Training-20250901_092010 - INFO - Fold 1 Early stopping step (best_iteration): 0
+2025-09-01 09:20:32 - Training-20250901_092010 - INFO - Fold 1 finished in 20.29s
+2025-09-01 09:20:32 - Training-20250901_092010 - INFO - Fold 2: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-01 09:20:32 - Training-20250901_092010 - INFO - --- Fold 2/5 ---
+2025-09-01 09:20:32 - Training-20250901_092010 - INFO - 训练数据: (8001, 225), 验证数据: (2000, 225)
+2025-09-01 09:20:53 - Training-20250901_092010 - INFO - Fold 2 Train AUC: 1.00000, Val AUC: 0.90535
+2025-09-01 09:20:53 - Training-20250901_092010 - INFO - Fold 2 Early stopping step (best_iteration): 0
+2025-09-01 09:20:53 - Training-20250901_092010 - INFO - Fold 2 finished in 20.37s
+2025-09-01 09:20:53 - Training-20250901_092010 - INFO - Fold 3: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-01 09:20:53 - Training-20250901_092010 - INFO - --- Fold 3/5 ---
+2025-09-01 09:20:53 - Training-20250901_092010 - INFO - 训练数据: (8001, 225), 验证数据: (2000, 225)
+2025-09-01 09:21:13 - Training-20250901_092010 - INFO - Fold 3 Train AUC: 1.00000, Val AUC: 0.91267
+2025-09-01 09:21:13 - Training-20250901_092010 - INFO - Fold 3 Early stopping step (best_iteration): 0
+2025-09-01 09:21:13 - Training-20250901_092010 - INFO - Fold 3 finished in 20.31s
+2025-09-01 09:21:13 - Training-20250901_092010 - INFO - Fold 4: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-01 09:21:13 - Training-20250901_092010 - INFO - --- Fold 4/5 ---
+2025-09-01 09:21:13 - Training-20250901_092010 - INFO - 训练数据: (8001, 225), 验证数据: (2000, 225)
+2025-09-01 09:21:33 - Training-20250901_092010 - INFO - Fold 4 Train AUC: 1.00000, Val AUC: 0.90935
+2025-09-01 09:21:33 - Training-20250901_092010 - INFO - Fold 4 Early stopping step (best_iteration): 0
+2025-09-01 09:21:33 - Training-20250901_092010 - INFO - Fold 4 finished in 20.33s
+2025-09-01 09:21:33 - Training-20250901_092010 - INFO - Fold 5: 训练集 8001 条 (原始: 8001, 增强: 0), 验证集 2000 条 (仅原始数据)
+2025-09-01 09:21:33 - Training-20250901_092010 - INFO - --- Fold 5/5 ---
+2025-09-01 09:21:33 - Training-20250901_092010 - INFO - 训练数据: (8001, 225), 验证数据: (2000, 225)
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - Fold 5 Train AUC: 1.00000, Val AUC: 0.90183
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - Fold 5 Early stopping step (best_iteration): 0
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - Fold 5 finished in 20.25s
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - Overall OOF AUC: 0.90700
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - All outputs will be saved to: /home/adia/ADIA-Lab-Structural-Break/experiment/output/train_20250901_092154_auc_0_90700
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - 特征重要性已保存到: /home/adia/ADIA-Lab-Structural-Break/experiment/output/train_20250901_092154_auc_0_90700/feature_importance.tsv
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - feature importance saved.
+2025-09-01 09:21:54 - Training-20250901_092010 - INFO - 训练流程结束，总耗时: 104.16 秒。

@@ -1,0 +1,19 @@
+2025-09-24 16:15:52 - Training-20250924_161552 - INFO - ========== Running Command: train ==========
+2025-09-24 16:15:52 - Training-20250924_161552 - INFO - Args: {'command': 'train', 'feature_file': None, 'train_data_ids': ['0'], 'perm_imp': False, 'save_oof': False, 'save_model': True}
+2025-09-24 16:15:52 - Training-20250924_161552 - INFO - =======================================
+2025-09-24 16:15:52 - Training-20250924_161552 - INFO - Starting training and evaluation pipeline...
+2025-09-24 16:15:52 - Training-20250924_161552 - INFO - Using model: LGB
+2025-09-24 16:15:52 - Training-20250924_161552 - INFO - Model Parameters: {
+    "objective": "binary",
+    "metric": "auc",
+    "boosting_type": "gbdt",
+    "n_estimators": 1000,
+    "learning_rate": 0.005,
+    "num_leaves": 29,
+    "random_state": 42,
+    "n_jobs": 72,
+    "reg_alpha": 3,
+    "reg_lambda": 3,
+    "colsample_bytree": 0.8,
+    "subsample": 0.8
+}

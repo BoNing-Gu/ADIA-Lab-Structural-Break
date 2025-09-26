@@ -8,9 +8,6 @@ import antropy
 from tsfresh.feature_extraction import feature_calculators as tsfresh_fe
 import ruptures as rpt
 
-from arch import arch_model
-
-
 import re
 import json
 import time
@@ -77,43 +74,6 @@ def no_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 
     return result_dfs
 
-# @register_transform(output_mode_names=['MAtrend', 'MAresid'])
-# def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
-#     """
-#     滑动平均分解
-#     Args:
-#         X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
-#     Returns:
-#         List[pd.DataFrame]: 包含两个数据框的列表 [趋势值, 残差值]
-#     """
-#     X_df_sorted = X_df.sort_index()
-#     result_dfs = []
-    
-#     # 为每个模态创建一个空的数据框
-#     for mode_name in ['trend', 'resid']:
-#         mode_df = X_df_sorted.copy()
-#         mode_df['value'] = np.nan
-#         result_dfs.append(mode_df)
-    
-#     # 对每个id进行分解
-#     for series_id in X_df_sorted.index.get_level_values('id').unique():
-#         series_data = X_df_sorted.loc[series_id]
-#         series_data = series_data.sort_index()
-#         values = series_data['value'].values
-        
-#         # 滑动平均分解
-#         window_size = 200
-#         trend = pd.Series(values).rolling(window=window_size, center=True, min_periods=1).mean()
-#         trend.iloc[:window_size//2] = trend.iloc[window_size//2]
-#         trend.iloc[-(window_size//2):] = trend.iloc[-(window_size//2)]
-        
-#         residual = values - trend.values
-        
-#         result_dfs[0].loc[series_id, 'value'] = trend.values  # 趋势值
-#         result_dfs[1].loc[series_id, 'value'] = residual  # 残差值
-    
-#     return result_dfs
-
 @register_transform(output_mode_names=['CUMSUM'])
 def cumsum_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     """
@@ -165,33 +125,6 @@ def diff_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
     
     result_dfs.append(result_df)
     return result_dfs
-
-# @register_transform(output_mode_names=['ASINH'])
-# def asinh_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
-#     """
-#     反双曲正弦变换
-#     Args:
-#         X_df: 输入数据框，包含MultiIndex (id, time) 和 columns ['value', 'period']
-#     Returns:
-#         List[pd.DataFrame]: 包含一个数据框的列表 [反双曲正弦值]
-#     """
-#     X_df_sorted = X_df.sort_index()
-#     result_dfs = []
-    
-#     result_df = X_df_sorted.copy()
-#     result_df['value'] = np.nan
-    
-#     for series_id in X_df_sorted.index.get_level_values('id').unique():
-#         series_data = X_df_sorted.loc[series_id]
-#         series_data = series_data.sort_index()
-#         values = series_data['value'].values
-        
-#         asinh_values = np.arcsinh(values)
-#         result_df.loc[series_id, 'value'] = asinh_values
-    
-#     result_dfs.append(result_df)
-#     return result_dfs
-
 
 # --- 特征函数注册表 ---
 FEATURE_REGISTRY = {}
@@ -1165,101 +1098,6 @@ def rupture_cost_features(u: pd.DataFrame) -> dict:
 
     return {k: float(v) if not np.isnan(v) else 0 for k, v in feats.items()}
 
-
-# --- 11. GARCH 波动率特征 ---
-@register_feature(func_id="11")
-def garch_features(u: pd.DataFrame) -> dict:
-    """基于 GARCH(1,1) 的分段与整体波动率特征。
-
-    为 period==0（left）、period==1（right）以及整体（whole）分别拟合 GARCH(1,1)，
-    导出：
-      - 条件波动率统计: mean、std
-      - 模型信息准则: aic、bic
-      - 关键参数: omega, alpha1, beta1, persistence(alpha1+beta1)
-      - 是否收敛: converged (0/1)
-    并计算 left/right 的 diff 与 ratio，以及相对 whole 的贡献度与比例。
-    """
-
-    s_left = u['value'][u['period'] == 0].to_numpy()
-    s_right = u['value'][u['period'] == 1].to_numpy()
-    s_whole = u['value'].to_numpy()
-
-    feats = {}
-
-    def fit_and_collect(series: np.ndarray, seg: str) -> dict:
-        result = {
-            f'garch_cond_vol_mean_{seg}': 0.0,
-            f'garch_cond_vol_std_{seg}': 0.0,
-            f'garch_aic_{seg}': 0.0,
-            f'garch_bic_{seg}': 0.0,
-            f'garch_params_omega_{seg}': 0.0,
-            f'garch_params_alpha1_{seg}': 0.0,
-            f'garch_params_beta1_{seg}': 0.0,
-            f'garch_persistence_{seg}': 0.0,
-            f'garch_converged_{seg}': 0.0,
-        }
-        if series is None or len(series) < 30:
-            return result
-        try:
-            model = arch_model(series, mean='Zero', vol='GARCH', p=1, q=1, dist='normal', rescale=False)
-            fit_res = model.fit(disp='off', show_warning=False)
-
-            cond_vol = np.asarray(fit_res.conditional_volatility)
-            cond_mean = float(np.mean(cond_vol)) if cond_vol.size > 0 else 0.0
-            cond_std = float(np.std(cond_vol)) if cond_vol.size > 0 else 0.0
-
-            params = fit_res.params.to_dict() if hasattr(fit_res, 'params') else {}
-            omega = float(params.get('omega', 0.0))
-            alpha1 = float(params.get('alpha[1]', params.get('alpha1', 0.0)))
-            beta1 = float(params.get('beta[1]', params.get('beta1', 0.0)))
-            persistence = float(alpha1 + beta1)
-
-            aic = float(getattr(fit_res, 'aic', 0.0))
-            bic = float(getattr(fit_res, 'bic', 0.0))
-            converged = 1.0 if getattr(fit_res, 'converged', True) else 0.0
-
-            result.update({
-                f'garch_cond_vol_mean_{seg}': cond_mean,
-                f'garch_cond_vol_std_{seg}': cond_std,
-                f'garch_aic_{seg}': aic,
-                f'garch_bic_{seg}': bic,
-                f'garch_params_omega_{seg}': omega,
-                f'garch_params_alpha1_{seg}': alpha1,
-                f'garch_params_beta1_{seg}': beta1,
-                f'garch_persistence_{seg}': persistence,
-                f'garch_converged_{seg}': converged,
-            })
-        except Exception:
-            # 保持默认的 0.0 值，避免中断
-            pass
-        return result
-
-    # 统一按整体尺度缩放到目标区间，避免优化不稳定
-    # 使用鲁棒尺度估计：优先标准差；过小/非有限则退化到 MAD；仍不可靠则用 RMS；最终兜底为 1.0
-    if s_whole.size > 0:
-        scale_val = float(np.std(s_whole))
-        if (not np.isfinite(scale_val)) or (scale_val < 1e-12):
-            median_val = float(np.median(s_whole))
-            mad_val = float(np.median(np.abs(s_whole - median_val)))
-            scale_val = 1.4826 * mad_val  # 正态假设下 std≈1.4826*MAD
-        if (not np.isfinite(scale_val)) or (scale_val < 1e-12):
-            # 使用均方根作为进一步回退
-            scale_val = float(np.sqrt(np.mean(np.square(s_whole)))) if np.isfinite(np.mean(np.square(s_whole))) else 0.0
-        if (not np.isfinite(scale_val)) or (scale_val < 1e-12):
-            scale_val = 1.0
-    else:
-        scale_val = 1.0
-
-    # 目标尺度：将整体标准差缩放到约 10（arch 推荐量级 1~1000）
-    target_std = 10.0
-    scale_factor = float(target_std / max(scale_val, 1e-12))
-    # 放宽裁剪范围，兼顾极端小/大的尺度，避免数值溢出
-    scale_factor = float(np.clip(scale_factor, 1e-6, 1e6))
-
-    s_left = s_left * scale_factor
-    s_right = s_right * scale_factor
-    s_whole = s_whole * scale_factor
-
 # @register_transform(output_mode_names=['MAtrend', 'MAresid'])
 # def moving_average_decomposition(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 #     """
@@ -1297,26 +1135,6 @@ def garch_features(u: pd.DataFrame) -> dict:
     
 #     return result_dfs
 
-    feats.update(left_stats)
-    feats.update(right_stats)
-    feats.update(whole_stats)
-
-    # 计算 Diff / Ratio / 贡献度
-    def add_relations(base_name: str, left_key: str, right_key: str, whole_key: str):
-        left_val = feats.get(left_key, 0.0)
-        right_val = feats.get(right_key, 0.0)
-        whole_val = feats.get(whole_key, 0.0)
-        _add_diff_ratio_feats(feats, base_name, left_val, right_val)
-        _add_contribution_ratio_feats(feats, base_name, left_val, right_val, whole_val)
-
-    add_relations('garch_cond_vol_mean', 'garch_cond_vol_mean_left', 'garch_cond_vol_mean_right', 'garch_cond_vol_mean_whole')
-    add_relations('garch_cond_vol_std', 'garch_cond_vol_std_left', 'garch_cond_vol_std_right', 'garch_cond_vol_std_whole')
-    add_relations('garch_aic', 'garch_aic_left', 'garch_aic_right', 'garch_aic_whole')
-    add_relations('garch_bic', 'garch_bic_left', 'garch_bic_right', 'garch_bic_whole')
-    add_relations('garch_persistence', 'garch_persistence_left', 'garch_persistence_right', 'garch_persistence_whole')
-
-    return {k: float(v) if not np.isnan(v) else 0.0 for k, v in feats.items()}
-
 # @register_transform(output_mode_names=['ASINH'])
 # def asinh_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:
 #     """
@@ -1343,90 +1161,90 @@ def garch_features(u: pd.DataFrame) -> dict:
 #     result_dfs.append(result_df)
 #     return result_dfs
 
-def compute_matrix_profile(ts: np.ndarray, w: int, device='cuda', verbose=False):
-    """
-    计算一维时间序列的 self matrix profile
-    """
-    ts = torch.tensor(ts, device=device)
-    t = ts.shape[0]
-    n = t - w + 1
+# def compute_matrix_profile(ts: np.ndarray, w: int, device='cuda', verbose=False):
+#     """
+#     计算一维时间序列的 self matrix profile
+#     """
+#     ts = torch.tensor(ts, device=device)
+#     t = ts.shape[0]
+#     n = t - w + 1
 
-    # 子序列矩阵
-    subseq = torch.stack([ts[i:i+w] for i in range(n)])  # (n, w)
+#     # 子序列矩阵
+#     subseq = torch.stack([ts[i:i+w] for i in range(n)])  # (n, w)
 
-    # 标准化
-    subseq_mean = subseq.mean(dim=1, keepdim=True)
-    subseq_std = subseq.std(dim=1, keepdim=True)
-    subseq_norm = (subseq - subseq_mean) / (subseq_std + 1e-8)
+#     # 标准化
+#     subseq_mean = subseq.mean(dim=1, keepdim=True)
+#     subseq_std = subseq.std(dim=1, keepdim=True)
+#     subseq_norm = (subseq - subseq_mean) / (subseq_std + 1e-8)
 
-    # 距离矩阵
-    sq_norm = torch.sum(subseq_norm ** 2, dim=1, keepdim=True)
-    dist_matrix = torch.sqrt(
-        torch.clamp(
-            sq_norm + sq_norm.T - 2 * subseq_norm @ subseq_norm.T, min=0.0
-        ) + 1e-8
-    )
+#     # 距离矩阵
+#     sq_norm = torch.sum(subseq_norm ** 2, dim=1, keepdim=True)
+#     dist_matrix = torch.sqrt(
+#         torch.clamp(
+#             sq_norm + sq_norm.T - 2 * subseq_norm @ subseq_norm.T, min=0.0
+#         ) + 1e-8
+#     )
 
-    # === 矩阵化 exclusion zone ===
-    excl_zone = int(np.ceil(w / 4))
-    idx = torch.arange(n, device=device)
-    diff = idx.unsqueeze(0) - idx.unsqueeze(1)   # (n, n)，值是 i-j
-    mask = diff.abs() <= excl_zone               # True 表示要屏蔽
-    dist_matrix[mask] = float('inf')
+#     # === 矩阵化 exclusion zone ===
+#     excl_zone = int(np.ceil(w / 4))
+#     idx = torch.arange(n, device=device)
+#     diff = idx.unsqueeze(0) - idx.unsqueeze(1)   # (n, n)，值是 i-j
+#     mask = diff.abs() <= excl_zone               # True 表示要屏蔽
+#     dist_matrix[mask] = float('inf')
 
-    # matrix profile
-    mp_val, mp_idx = torch.min(dist_matrix, dim=1)
+#     # matrix profile
+#     mp_val, mp_idx = torch.min(dist_matrix, dim=1)
 
-    return mp_val.cpu().numpy(), mp_idx.cpu().numpy()
+#     return mp_val.cpu().numpy(), mp_idx.cpu().numpy()
 
-def batch_matrix_profile(sequences: List[np.ndarray], w: int, device='cuda', verbose=False):
-    """
-    批量计算 self-join Matrix Profile
-    """
-    n_list = [len(seq) - w + 1 for seq in sequences]
-    max_n = max(n_list)
-    batch_size = len(sequences)
+# def batch_matrix_profile(sequences: List[np.ndarray], w: int, device='cuda', verbose=False):
+#     """
+#     批量计算 self-join Matrix Profile
+#     """
+#     n_list = [len(seq) - w + 1 for seq in sequences]
+#     max_n = max(n_list)
+#     batch_size = len(sequences)
     
-    batch_tensor = torch.zeros((batch_size, max_n, w), device=device)
-    mask = torch.zeros((batch_size, max_n), dtype=torch.bool, device=device)
-    for i, seq in enumerate(sequences):
-        n = n_list[i]
-        subseq = torch.stack([torch.tensor(seq[j:j+w], device=device) for j in range(n)])
-        batch_tensor[i, :n, :] = subseq
-        mask[i, :n] = True
+#     batch_tensor = torch.zeros((batch_size, max_n, w), device=device)
+#     mask = torch.zeros((batch_size, max_n), dtype=torch.bool, device=device)
+#     for i, seq in enumerate(sequences):
+#         n = n_list[i]
+#         subseq = torch.stack([torch.tensor(seq[j:j+w], device=device) for j in range(n)])
+#         batch_tensor[i, :n, :] = subseq
+#         mask[i, :n] = True
     
-    mean = batch_tensor.mean(dim=2, keepdim=True)
-    std = batch_tensor.std(dim=2, keepdim=True) + 1e-8
-    batch_norm = (batch_tensor - mean) / std
+#     mean = batch_tensor.mean(dim=2, keepdim=True)
+#     std = batch_tensor.std(dim=2, keepdim=True) + 1e-8
+#     batch_norm = (batch_tensor - mean) / std
     
-    sq_norm = torch.sum(batch_norm ** 2, dim=2, keepdim=True)
-    dist_matrix = torch.sqrt(
-        torch.clamp(
-            sq_norm + sq_norm.transpose(1,2) - 2 * torch.bmm(batch_norm, batch_norm.transpose(1,2)), min=0.0
-        ) + 1e-8
-    )
+#     sq_norm = torch.sum(batch_norm ** 2, dim=2, keepdim=True)
+#     dist_matrix = torch.sqrt(
+#         torch.clamp(
+#             sq_norm + sq_norm.transpose(1,2) - 2 * torch.bmm(batch_norm, batch_norm.transpose(1,2)), min=0.0
+#         ) + 1e-8
+#     )
     
-    # === 矩阵化 exclusion zone ===
-    excl_zone = int(np.ceil(w / 4))
-    idx = torch.arange(max_n, device=device)
-    diff = idx.unsqueeze(0) - idx.unsqueeze(1)  # (max_n, max_n)
-    excl_mask = diff.abs() <= excl_zone         # True 表示要屏蔽
+#     # === 矩阵化 exclusion zone ===
+#     excl_zone = int(np.ceil(w / 4))
+#     idx = torch.arange(max_n, device=device)
+#     diff = idx.unsqueeze(0) - idx.unsqueeze(1)  # (max_n, max_n)
+#     excl_mask = diff.abs() <= excl_zone         # True 表示要屏蔽
 
-    mp_values = []
-    mp_indices = []
-    for i in range(batch_size):
-        n = n_list[i]
-        # padding 屏蔽
-        dist_matrix[i, ~mask[i].unsqueeze(1).expand(-1,max_n)] = float('inf')
-        dist_matrix[i, :, ~mask[i]] = float('inf')
-        # exclusion zone 屏蔽
-        dist_matrix[i, :n, :n][excl_mask[:n, :n]] = float('inf')
+#     mp_values = []
+#     mp_indices = []
+#     for i in range(batch_size):
+#         n = n_list[i]
+#         # padding 屏蔽
+#         dist_matrix[i, ~mask[i].unsqueeze(1).expand(-1,max_n)] = float('inf')
+#         dist_matrix[i, :, ~mask[i]] = float('inf')
+#         # exclusion zone 屏蔽
+#         dist_matrix[i, :n, :n][excl_mask[:n, :n]] = float('inf')
 
-        mp_val, mp_idx = torch.min(dist_matrix[i, :n, :n], dim=1)
-        mp_values.append(mp_val.cpu().numpy())
-        mp_indices.append(mp_idx.cpu().numpy())
+#         mp_val, mp_idx = torch.min(dist_matrix[i, :n, :n], dim=1)
+#         mp_values.append(mp_val.cpu().numpy())
+#         mp_indices.append(mp_idx.cpu().numpy())
     
-    return mp_values, mp_indices
+#     return mp_values, mp_indices
 
 # @register_transform(output_mode_names=['MP'])
 # def matrix_profile_transformation(X_df: pd.DataFrame) -> List[pd.DataFrame]:

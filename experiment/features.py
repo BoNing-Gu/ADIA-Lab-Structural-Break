@@ -1858,6 +1858,115 @@ def delete_features(base_feature_file: str, funcs_to_delete: list = None, cols_t
     logger.info(f"删除完成。新文件: {new_path.name}, 总计删除 {total_deleted_count} 个特征")
 
 
+def delete_samples(base_feature_file: str, num_samples_to_delete: int = 100):
+    """
+    从指定的特征文件中删除样本（数据框的某些行），并生成一个新的带时间戳的文件。
+    支持字典格式的特征数据。
+    默认删除最后一百个样本。
+    
+    Args:
+        base_feature_file (str): 基础特征文件名
+        num_samples_to_delete (int): 要删除的样本数量，默认为100
+    """
+    base_path = config.FEATURE_DIR / base_feature_file
+    if not base_path.exists():
+        logger.error(f"指定的特征文件不存在: {base_feature_file}")
+        return
+
+    logger.info(f"将从文件 {base_feature_file} 中删除 {num_samples_to_delete} 个样本...")
+    
+    # 尝试加载字典格式的特征文件
+    try:
+        feature_dict, metadata = _load_feature_dict_file(base_path)
+        is_dict_format = True
+        logger.info(f"加载字典格式特征文件，包含数据ID: {list(feature_dict.keys())}")
+    except Exception:
+        # 回退到旧格式
+        feature_df, metadata = _load_feature_file(base_path)
+        if feature_df.empty:
+            logger.error(f"无法从 {base_feature_file} 加载数据，操作中止。")
+            return
+        feature_dict = {"0": feature_df}
+        is_dict_format = False
+        logger.info("加载旧格式特征文件，转换为字典格式处理")
+
+    _backup_feature_file(base_path)
+    
+    # 为每个数据ID处理样本删除
+    updated_feature_dict = {}
+    total_deleted_samples = {}
+    
+    for data_id, feature_df in feature_dict.items():
+        logger.info(f"\n处理数据ID '{data_id}' 的样本删除...")
+        initial_sample_count = len(feature_df)
+        
+        # 打印删除前的id列范围（如果存在id列）
+        if 'id' in feature_df.columns:
+            id_min_before = feature_df['id'].min()
+            id_max_before = feature_df['id'].max()
+            logger.info(f"  删除前数据框中'id'列范围: {id_min_before} - {id_max_before}")
+        else:
+            logger.info(f"  删除前数据框中没有'id'列，使用索引范围: {feature_df.index.min()} - {feature_df.index.max()}")
+        
+        # 检查要删除的样本数量是否超过总样本数
+        if num_samples_to_delete >= initial_sample_count:
+            logger.warning(f"  要删除的样本数量 ({num_samples_to_delete}) 大于等于总样本数 ({initial_sample_count})，将删除所有样本")
+            samples_to_delete = initial_sample_count
+            feature_df_copy = feature_df.iloc[:0].copy()  # 创建空的DataFrame，保持列结构
+        else:
+            samples_to_delete = num_samples_to_delete
+            # 删除最后 num_samples_to_delete 个样本
+            feature_df_copy = feature_df.iloc[:-num_samples_to_delete].copy()
+        
+        # 打印删除后的id列范围（如果存在id列）
+        if not feature_df_copy.empty:
+            if 'id' in feature_df_copy.columns:
+                id_min_after = feature_df_copy['id'].min()
+                id_max_after = feature_df_copy['id'].max()
+                logger.info(f"  删除后数据框中'id'列范围: {id_min_after} - {id_max_after}")
+            else:
+                logger.info(f"  删除后数据框中没有'id'列，使用索引范围: {feature_df_copy.index.min()} - {feature_df_copy.index.max()}")
+        else:
+            logger.info(f"  删除后数据框为空")
+        
+        final_sample_count = len(feature_df_copy)
+        actual_deleted = initial_sample_count - final_sample_count
+        
+        logger.info(f"  数据ID '{data_id}' 删除了 {actual_deleted} 个样本，剩余 {final_sample_count} 个样本")
+        
+        updated_feature_dict[data_id] = feature_df_copy
+        total_deleted_samples[data_id] = actual_deleted
+    
+    # 检查是否有任何样本被删除
+    total_deleted_count = sum(total_deleted_samples.values())
+    if total_deleted_count == 0:
+        logger.warning("没有删除任何样本，操作中止。")
+        # 恢复备份，因为没有变化
+        backup_path = config.FEATURE_BACKUP_DIR / base_path.name
+        if backup_path.exists():
+            backup_path.rename(base_path)
+            logger.info("已恢复原始文件。")
+        return
+    
+    # 更新元数据
+    metadata['last_deleted_samples'] = total_deleted_samples
+    metadata['data_ids'] = list(updated_feature_dict.keys())
+    
+    # 保存结果
+    if is_dict_format or len(updated_feature_dict) > 1:
+        new_path = _save_feature_dict_file(updated_feature_dict, metadata)
+    else:
+        # 如果原来是单个DataFrame格式且只有一个数据ID，保持兼容性
+        new_path = _save_feature_file(updated_feature_dict["0"], metadata)
+    
+    logger.info(f"\n=== 样本删除完成统计 ===")
+    for data_id, deleted_samples in total_deleted_samples.items():
+        remaining_count = len(updated_feature_dict[data_id])
+        logger.info(f"数据ID '{data_id}': 删除了 {deleted_samples} 个样本，剩余 {remaining_count} 个样本")
+    
+    logger.info(f"删除完成。新文件: {new_path.name}, 总计删除 {total_deleted_count} 个样本")
+
+
 def load_features(feature_file: str = None, data_ids: list = None) -> tuple[pd.DataFrame | None, str | None]:
     """加载指定的或最新的特征文件，并拼接指定数据ID的特征数据。
     

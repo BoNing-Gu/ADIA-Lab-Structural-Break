@@ -34,7 +34,7 @@ SEED = 42
 ENHANCEMENT_IDS = ["0"] 
 
 # --- Model ---
-MODEL = 'XGB'  # 'LGB', 'CAT', or 'XGB'
+MODEL = 'LGB'  # 'LGB', 'CAT', or 'XGB'
 LGBM_PARAMS = {
     # --- 基础设定 ---
     'objective': 'binary',

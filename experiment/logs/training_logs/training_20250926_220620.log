@@ -1,0 +1,17 @@
+2025-09-26 22:06:20 - Training-20250926_220620 - INFO - ========== Running Command: del-samples ==========
+2025-09-26 22:06:20 - Training-20250926_220620 - INFO - Args: {'command': 'del-samples', 'base_file': 'features_20250926_111329.parquet', 'n': 100}
+2025-09-26 22:06:20 - Training-20250926_220620 - INFO - =======================================
+2025-09-26 22:06:20 - Training-20250926_220620 - INFO - 将从文件 features_20250926_111329.parquet 中删除 100 个样本...
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO - 加载字典格式特征文件，包含数据ID: ['0']
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO - 已将基础文件 features_20250926_111329.parquet 备份到: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO - 找到 1 个相关的增强数据文件
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO - 已将增强数据文件 features_20250926_111329_id_0.parquet 备份到: E:\ggq的文件\比赛\25-ADIA-Lab-Structure-Break\ADIA-Lab-Structural-Break\feature_dfs\backups
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO - 
+处理数据ID '0' 的样本删除...
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO -   删除前数据框中没有'id'列，使用索引范围: 0 - 10000
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO -   删除后数据框中没有'id'列，使用索引范围: 0 - 9900
+2025-09-26 22:06:22 - Training-20250926_220620 - INFO -   数据ID '0' 删除了 100 个样本，剩余 9901 个样本
+2025-09-26 22:06:23 - Training-20250926_220620 - INFO - 
+=== 样本删除完成统计 ===
+2025-09-26 22:06:23 - Training-20250926_220620 - INFO - 数据ID '0': 删除了 100 个样本，剩余 9901 个样本
+2025-09-26 22:06:23 - Training-20250926_220620 - INFO - 删除完成。新文件: features_20250926_220622.parquet, 总计删除 100 个样本

@@ -28,6 +28,11 @@ def main():
     group.add_argument('--flags', nargs='+', help='要删除的特定特征列关键词标志列表。')
     group.add_argument('--only-keep-remain', action='store_true', help='只保留REMAIN_FEATURES，删除其他所有特征。')
 
+    # --- 样本删除命令 ---
+    parser_del_samples = subparsers.add_parser('del-samples', help='从指定的特征文件中删除样本，并创建一个新的带时间戳的文件')
+    parser_del_samples.add_argument('--base-file', type=str, required=True, help='必须指定一个基础特征文件名进行操作。')
+    parser_del_samples.add_argument('--n', type=int, required=False, default=100, help='要删除的样本数量。')
+
     # --- 特征交互项生成命令 ---
     parser_inter = subparsers.add_parser('gen-interactions', help='根据特征重要性文件生成交互特征')
     parser_inter.add_argument('--importance-file', type=str, required=False, help='特征重要性文件路径 (e.g., permutation_importance.tsv).')
@@ -115,6 +120,14 @@ def main():
             cols_to_delete=args.cols,
             flags_to_delete=args.flags,
             only_keep_remain=args.only_keep_remain,
+        )
+
+    elif args.command == 'del-samples':
+        from . import features
+        features.logger = logger
+        features.delete_samples(
+            base_feature_file=args.base_file,
+            num_samples_to_delete=args.n
         )
 
     elif args.command == 'gen-interactions':

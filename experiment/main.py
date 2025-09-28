@@ -92,6 +92,14 @@ def main():
     parser_tune.add_argument('--train-data-ids', nargs='*', default=["0"], help='可选，指定用于训练的数据ID列表。如果为空，则使用原始数据。')
     parser_tune.add_argument('--n-trials', type=int, default=50, help='Optuna 试验次数，默认50')
 
+    # --- 集成命令 ---
+    parser_ensemble = subparsers.add_parser('ensemble', help='运行模型集成（训练或仅推理融合）')
+    parser_ensemble.add_argument('--feature-file', type=str, default=None, help='可选，指定用于训练的特征文件名。如果为空，则使用最新的特征文件。')
+    parser_ensemble.add_argument('--train-data-ids', nargs='*', default=["0"], help='可选，指定用于训练的数据ID列表。如果为空，则使用原始数据。')
+    parser_ensemble.add_argument('--use-pretrained', action='store_true', help='仅加载预训练折内模型并进行 5 折推理融合。')
+    parser_ensemble.add_argument('--save-oof', action='store_true', help='是否保存各基模型与集成的 OOF 预测文件。')
+    parser_ensemble.add_argument('--save-model', action='store_true', help='训练模式下是否保存各基模型的折内模型文件。')
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -253,6 +261,32 @@ def main():
             # 2. 重命名文件
             auc_str = f"{best_oof_auc:.5f}".replace('.', '_')
             new_log_path = log_file_path.with_name(f"{log_file_path.stem}_auc_{auc_str}{log_file_path.suffix}")
+            try:
+                log_file_path.rename(new_log_path)
+                print(f"Log file renamed to: {new_log_path.name}")
+            except OSError as e:
+                print(f"Error renaming log file: {e}")
+
+    elif args.command == 'ensemble':
+        from . import ensemble
+        ensemble.logger = logger
+        result = ensemble.run_ensemble(
+            feature_file_name=args.feature_file,
+            data_ids=args.train_data_ids,
+            use_pretrained=args.use_pretrained,
+            save_oof=args.save_oof,
+            save_model=args.save_model,
+        )
+
+        # 训练/推理完成后重命名日志文件（带集成 AUC）
+        ensemble_auc = result.get('ensemble_auc') if isinstance(result, dict) else None
+        if ensemble_auc is not None:
+            for handler in logger.handlers[:]:
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
+                    logger.removeHandler(handler)
+            auc_str = f"{ensemble_auc:.5f}".replace('.', '_')
+            new_log_path = log_file_path.with_name(f"{log_file_path.stem}_ensemble_auc_{auc_str}{log_file_path.suffix}")
             try:
                 log_file_path.rename(new_log_path)
                 print(f"Log file renamed to: {new_log_path.name}")

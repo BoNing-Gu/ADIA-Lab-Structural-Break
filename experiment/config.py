@@ -34,7 +34,7 @@ SEED = 42
 ENHANCEMENT_IDS = ["0"] 
 
 # --- Model ---
-MODEL = 'XGB'  # 'LGB', 'CAT', or 'XGB'
+MODEL = 'LGB'  # 'LGB', 'CAT', or 'XGB'
 LGBM_PARAMS = {
     # --- 基础设定 ---
     'objective': 'binary',
@@ -86,6 +86,94 @@ XGB_PARAMS = {
     'reg_lambda': 3,         # L2 正则化
     'colsample_bytree': 0.8, # 构建树时对特征的列采样率
     'subsample': 0.8,        # 训练样本的采样率
+}
+
+# --- Ensemble ---
+# 定义可扩展的集成配置。支持：
+# - 同一模型的不同参数组合（通过 params 覆盖）
+# - 预训练模型（通过 pretrained_dir 指向已保存的折内模型目录）
+# - 权重加权融合（weighted_mean）
+ENSEMBLE = {
+    'models': [
+        # 🟢 Model 1: 低方差（强正则化，保守型）—— High Bias, Low Variance
+        {
+            'name': 'lgbm_conservative',
+            'type': 'LGB',
+            'params_name': 'LGBM_BASE_PARAMS',
+            'params': {
+                'learning_rate': 0.003,      # 更小学习率 → 更稳定
+                'num_leaves': 15,            # 更少叶子 → 更简单树
+                'max_depth': 4,              # 显式限制深度
+                'reg_alpha': 8,              # 强 L1 正则
+                'reg_lambda': 8,             # 强 L2 正则
+                'min_data_in_leaf': 200,     # 防止过拟合小样本
+                'colsample_bytree': 0.6,     # 更强特征采样
+                'subsample': 0.7,            # 更强样本采样
+            },
+            'weight': 1.0,
+            'pretrained_dir': None
+        },
+        
+        # 🔵 Model 2: 平衡型（你的原始配置微调）—— Medium Bias, Medium Variance
+        {
+            'name': 'lgbm_balanced',
+            'type': 'LGB',
+            'params_name': 'LGBM_BASE_PARAMS',
+            'params': {
+                'learning_rate': 0.005,
+                'num_leaves': 29,
+                'max_depth': 6,
+                'reg_alpha': 3,
+                'reg_lambda': 3,
+                'min_data_in_leaf': 50,
+                'colsample_bytree': 0.8,
+                'subsample': 0.8,
+            },
+            'weight': 1.0,
+            'pretrained_dir': None
+        },
+        
+        # 🔴 Model 3: 低偏差（弱正则化，激进型）—— Low Bias, High Variance
+        {
+            'name': 'lgbm_aggressive',
+            'type': 'LGB',
+            'params_name': 'LGBM_BASE_PARAMS',
+            'params': {
+                'learning_rate': 0.01,       # 更大学习率 → 更快拟合
+                'num_leaves': 63,            # 更多叶子 → 更复杂树
+                'max_depth': 8,              # 允许更深
+                'reg_alpha': 0.1,            # 弱 L1 正则
+                'reg_lambda': 0.1,           # 弱 L2 正则
+                'min_data_in_leaf': 10,      # 允许小叶子
+                'colsample_bytree': 0.9,     # 弱特征采样
+                'subsample': 0.9,            # 弱样本采样
+            },
+            'weight': 1.0,
+            'pretrained_dir': None
+        },
+        
+        # 🟣 Model 4: 深而慢（深度优先，适合捕捉复杂模式）—— Low Bias, Medium Variance
+        {
+            'name': 'lgbm_deep_slow',
+            'type': 'LGB',
+            'params_name': 'LGBM_BASE_PARAMS',
+            'params': {
+                'learning_rate': 0.002,      # 非常小学习率
+                'num_leaves': 48,            # 中等偏多叶子
+                'max_depth': 10,             # 允许很深
+                'reg_alpha': 1.0,
+                'reg_lambda': 1.0,
+                'min_data_in_leaf': 30,
+                'colsample_bytree': 0.75,
+                'subsample': 0.75,
+                'extra_trees': True,         # 增加随机性（类似 Extremely Randomized Trees）
+            },
+            'weight': 1.0,
+            'pretrained_dir': None
+        },
+    ],
+    'aggregation': 'weighted_mean',
+    'use_pretrained': False
 }
 
 # --- Early Stopping ---

@@ -9,6 +9,8 @@ This Repo is written for illustrating the pipeline we built for the ADIA Lab Str
 
 ![ADIA LAB STRUCTRAL BREAK](figs/ADIA_LAB_STRUCTRAL_BREAK.png)
 
+> `experiment/` is the experimental pipeline for ML methods, `submit_onlinetrain.ipynb` is the notebook used to submit online-trained models (LB AUC 88.60%). In addition, `UTime.py` and `PatchCrossEncoder.py` are attempts using DL methods (with poor CV scores).
+
 ## 1. Core Philosophy
 
 This workflow is tailored for fast-paced data science competitions, with the core principles of **rapid iteration** and **result traceability**. When used with git, it ensures that every experiment's feature set and model can be versioned, rolled back, and shared.

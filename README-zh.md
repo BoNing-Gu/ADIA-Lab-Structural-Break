@@ -9,6 +9,8 @@
 
 ![ADIA LAB STRUCTRAL BREAK](figs/ADIA_LAB_STRUCTRAL_BREAK.png)
 
+> `experiment/`是ML方法的实验管道、`submit_onlinetrain.ipynb`是用于提交在线训练模型的notebook（LB AUC 88.60%）。此外，`UTime.py`、`PatchCrossEncoder.py`是使用DL方法的尝试（性能较差，未被采纳）。
+
 ## 1. 核心理念
 
 本工作流为快节奏的数据科学竞赛量身定制，核心是 **快速迭代** 和 **结果可追溯**。与git配合使用，确保每次实验的特征集和模型都能被版本化、回溯和共享。

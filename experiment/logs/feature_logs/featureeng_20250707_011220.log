@@ -1,5 +1,0 @@
-2025-07-07 01:12:20 - FeatureEng-20250707_011220 - INFO - ========== Running Command: gen-feats ==========
-2025-07-07 01:12:20 - FeatureEng-20250707_011220 - INFO - Args: {'command': 'gen-feats', 'funcs': ['distributional_stats'], 'base_file': None}
-2025-07-07 01:12:20 - FeatureEng-20250707_011220 - INFO - =======================================
-2025-07-07 01:12:21 - FeatureEng-20250707_011220 - INFO - 未找到基础特征文件，将创建全新的特征集。
-2025-07-07 01:12:21 - FeatureEng-20250707_011220 - INFO - --- 开始生成特征: distributional_stats ---

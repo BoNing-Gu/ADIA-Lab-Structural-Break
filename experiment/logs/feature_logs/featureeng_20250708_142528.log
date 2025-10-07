@@ -1,6 +1,0 @@
-2025-07-08 14:25:28 - FeatureEng-20250708_142528 - INFO - ========== Running Command: del-feats ==========
-2025-07-08 14:25:28 - FeatureEng-20250708_142528 - INFO - Args: {'command': 'del-feats', 'funcs': ['volatility_of_volatility_features'], 'base_file': 'E:\\CSworks\\2025spring\\crunch\\repo\\ADIA-Lab-Structural-Break\\feature_dfs\\features_20250708_141721.parquet'}
-2025-07-08 14:25:28 - FeatureEng-20250708_142528 - INFO - =======================================
-2025-07-08 14:25:28 - FeatureEng-20250708_142528 - INFO - 将从文件 E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\features_20250708_141721.parquet 中删除特征: ['volatility_of_volatility_features']
-2025-07-08 14:25:28 - FeatureEng-20250708_142528 - INFO - 已将文件 features_20250708_141721.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
-2025-07-08 14:25:28 - FeatureEng-20250708_142528 - INFO - 删除完成。新文件: features_20250708_142528.parquet, 总特征数: 116

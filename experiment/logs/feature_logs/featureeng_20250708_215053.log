@@ -1,8 +1,0 @@
-2025-07-08 21:50:53 - FeatureEng-20250708_215053 - INFO - ========== Running Command: del-feats ==========
-2025-07-08 21:50:53 - FeatureEng-20250708_215053 - INFO - Args: {'command': 'del-feats', 'base_file': 'features_20250708_214348.parquet', 'funcs': None, 'cols': ['ar_aic_diff', 'ar_predict_mse', 'ar_resid_std_diff']}
-2025-07-08 21:50:53 - FeatureEng-20250708_215053 - INFO - =======================================
-2025-07-08 21:50:53 - FeatureEng-20250708_215053 - INFO - 将从文件 features_20250708_214348.parquet 中删除特征...
-2025-07-08 21:50:54 - FeatureEng-20250708_215053 - INFO - 已将文件 features_20250708_214348.parquet 备份到: E:\CSworks\2025spring\crunch\repo\ADIA-Lab-Structural-Break\feature_dfs\backups
-2025-07-08 21:50:54 - FeatureEng-20250708_215053 - INFO - 按列名删除: ['ar_aic_diff', 'ar_predict_mse', 'ar_resid_std_diff']
-2025-07-08 21:50:54 - FeatureEng-20250708_215053 - INFO - 总计将删除 3 个特征列: ['ar_aic_diff', 'ar_predict_mse', 'ar_resid_std_diff']
-2025-07-08 21:50:54 - FeatureEng-20250708_215053 - INFO - 删除完成。新文件: features_20250708_215054.parquet, 总特征数: 123

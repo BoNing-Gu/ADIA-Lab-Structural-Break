@@ -1,7 +1,0 @@
-2025-07-07 01:09:29 - FeatureEng-20250707_010929 - INFO - ========== Running Command: gen-feats ==========
-2025-07-07 01:09:29 - FeatureEng-20250707_010929 - INFO - Args: {'command': 'gen-feats', 'funcs': None, 'base_file': None}
-2025-07-07 01:09:29 - FeatureEng-20250707_010929 - INFO - =======================================
-2025-07-07 01:09:30 - FeatureEng-20250707_010929 - INFO - 未找到基础特征文件，将创建全新的特征集。
-2025-07-07 01:09:30 - FeatureEng-20250707_010929 - INFO - --- 开始生成特征: distributional_stats ---
-2025-07-07 01:09:59 - FeatureEng-20250707_010929 - INFO - --- 开始生成特征: cumulative_features ---
-2025-07-07 01:10:05 - FeatureEng-20250707_010929 - INFO - --- 开始生成特征: oscillation_features ---

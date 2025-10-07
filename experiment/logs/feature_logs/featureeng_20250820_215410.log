@@ -1,3 +1,0 @@
-2025-08-20 21:54:10 - FeatureEng-20250820_215410 - INFO - ========== Running Command: gen-interactions ==========
-2025-08-20 21:54:10 - FeatureEng-20250820_215410 - INFO - Args: {'command': 'gen-interactions', 'importance_file': None, 'base_file': None, 'sqmul': True, 'add': True, 'sub': True, 'div': True, 'sq': True, 'cross_mul': True, 'cross_sqmul': False, 'cross_add': False, 'cross_sub': False, 'cross_div': False, 'mul': True}
-2025-08-20 21:54:10 - FeatureEng-20250820_215410 - INFO - =======================================

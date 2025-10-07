@@ -1,3 +1,0 @@
-2025-07-07 12:53:41 - FeatureEng-20250707_125341 - INFO - ========== Running Command: gen-feats ==========
-2025-07-07 12:53:41 - FeatureEng-20250707_125341 - INFO - Args: {'command': 'gen-feats', 'funcs': ['mean_abs_diff_features'], 'base_file': None}
-2025-07-07 12:53:41 - FeatureEng-20250707_125341 - INFO - =======================================

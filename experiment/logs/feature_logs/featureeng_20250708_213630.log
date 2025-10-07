@@ -1,4 +1,0 @@
-2025-07-08 21:36:30 - FeatureEng-20250708_213630 - INFO - ========== Running Command: gen-feats ==========
-2025-07-08 21:36:30 - FeatureEng-20250708_213630 - INFO - Args: {'command': 'gen-feats', 'funcs': ['ar_model_features'], 'base_file': 'features_20250708_143209.parquet'}
-2025-07-08 21:36:30 - FeatureEng-20250708_213630 - INFO - =======================================
-2025-07-08 21:36:31 - FeatureEng-20250708_213630 - INFO - 未找到基础特征文件，将创建全新的特征集。

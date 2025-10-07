@@ -1,3 +1,0 @@
-2025-09-24 14:04:02 - Training-20250924_140402 - INFO - ========== Running Command: filter ==========
-2025-09-24 14:04:02 - Training-20250924_140402 - INFO - Args: {'command': 'filter', 'filter_method': 'corr', 'feature_file': None, 'intra_group': True, 'intra_threshold': None, 'parallel_by_batch': True, 'batch_size_for_group': 256, 'num_workers': 64, 'block_size': 512}
-2025-09-24 14:04:02 - Training-20250924_140402 - INFO - =======================================

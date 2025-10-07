@@ -1,5 +1,0 @@
-2025-07-08 15:01:55 - FeatureEng-20250708_150155 - INFO - ========== Running Command: gen-feats ==========
-2025-07-08 15:01:55 - FeatureEng-20250708_150155 - INFO - Args: {'command': 'gen-feats', 'funcs': ['arima_garch_mismatch_features'], 'base_file': None}
-2025-07-08 15:01:55 - FeatureEng-20250708_150155 - INFO - =======================================
-2025-07-08 15:01:57 - FeatureEng-20250708_150155 - WARNING - 函数 arima_garch_mismatch_features 未在注册表中找到，已跳过。
-2025-07-08 15:01:57 - FeatureEng-20250708_150155 - INFO - 未找到基础特征文件，将创建全新的特征集。

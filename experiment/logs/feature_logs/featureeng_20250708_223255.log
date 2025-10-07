@@ -1,5 +1,0 @@
-2025-07-08 22:32:55 - FeatureEng-20250708_223255 - INFO - ========== Running Command: gen-feats ==========
-2025-07-08 22:32:55 - FeatureEng-20250708_223255 - INFO - Args: {'command': 'gen-feats', 'funcs': ['arima_model_features'], 'base_file': None}
-2025-07-08 22:32:55 - FeatureEng-20250708_223255 - INFO - =======================================
-2025-07-08 22:32:56 - FeatureEng-20250708_223255 - INFO - 将基于特征文件进行更新: features_20250708_215159.parquet
-2025-07-08 22:32:56 - FeatureEng-20250708_223255 - INFO - --- 开始生成特征: arima_model_features ---

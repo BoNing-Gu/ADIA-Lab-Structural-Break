@@ -8,6 +8,7 @@ try_features/
 catboost_info/
 resources/
 .ipynb_checkpoints/
+.vercel/
 
 *.csv
 *.parquet

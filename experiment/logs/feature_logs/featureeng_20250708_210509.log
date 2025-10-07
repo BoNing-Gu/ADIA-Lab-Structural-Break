@@ -1,4 +1,0 @@
-2025-07-08 21:05:09 - FeatureEng-20250708_210509 - INFO - ========== Running Command: gen-feats ==========
-2025-07-08 21:05:09 - FeatureEng-20250708_210509 - INFO - Args: {'command': 'gen-feats', 'funcs': ['ar_model_residual_features'], 'base_file': None}
-2025-07-08 21:05:09 - FeatureEng-20250708_210509 - INFO - =======================================
-2025-07-08 21:05:11 - FeatureEng-20250708_210509 - INFO - 未找到基础特征文件，将创建全新的特征集。

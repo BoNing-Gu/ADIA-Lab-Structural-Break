@@ -1,6 +1,0 @@
-2025-09-14 19:31:53 - FeatureEng-20250914_193153 - INFO - ========== Running Command: transform ==========
-2025-09-14 19:31:53 - FeatureEng-20250914_193153 - INFO - Args: {'command': 'transform', 'feature_file': None, 'skew_threshold': None, 'suffix': None, 'standardize': None}
-2025-09-14 19:31:53 - FeatureEng-20250914_193153 - INFO - =======================================
-2025-09-14 19:31:53 - FeatureEng-20250914_193153 - ERROR - 无法找到基础特征文件，请先生成特征或传入 --feature-file。
-2025-09-14 19:31:53 - FeatureEng-20250914_193153 - INFO - Yeo-Johnson 转换未生成新文件。
-2025-09-14 19:31:53 - FeatureEng-20250914_193153 - INFO - === 旧列 -> 新列 (部分预览) ===

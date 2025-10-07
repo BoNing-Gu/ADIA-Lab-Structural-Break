@@ -1,8 +1,0 @@
-2025-07-25 21:52:26 - FeatureEng-20250725_215226 - INFO - Loading data...
-2025-07-25 21:52:28 - FeatureEng-20250725_215226 - INFO - Original data loaded successfully.
-2025-07-25 21:52:28 - FeatureEng-20250725_215226 - INFO - X_train shape: (23715734, 2)
-2025-07-25 21:52:28 - FeatureEng-20250725_215226 - INFO - y_train shape: (10001, 1)
-2025-07-25 21:52:28 - FeatureEng-20250725_215226 - INFO - Loading enhancement data with IDs: ['0']
-2025-07-25 21:52:28 - FeatureEng-20250725_215226 - INFO - Total datasets loaded: 1
-2025-07-25 21:52:28 - FeatureEng-20250725_215226 - INFO - Dataset 0: X shape (23715734, 2), y shape (10001, 1)
-2025-07-25 21:52:28 - FeatureEng-20250725_215226 - INFO - Return CONCATED data shape: X (23715734, 2), y (10001, 1)

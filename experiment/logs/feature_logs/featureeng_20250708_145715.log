@@ -1,4 +1,0 @@
-2025-07-08 14:57:15 - FeatureEng-20250708_145715 - INFO - ========== Running Command: gen-feats ==========
-2025-07-08 14:57:15 - FeatureEng-20250708_145715 - INFO - Args: {'command': 'gen-feats', 'funcs': ['arima_garch_mismatch_features'], 'base_file': None}
-2025-07-08 14:57:15 - FeatureEng-20250708_145715 - INFO - =======================================
-2025-07-08 14:57:17 - FeatureEng-20250708_145715 - INFO - 未找到基础特征文件，将创建全新的特征集。

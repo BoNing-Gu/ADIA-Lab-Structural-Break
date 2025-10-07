@@ -1,4 +1,0 @@
-2025-07-08 14:50:35 - FeatureEng-20250708_145035 - INFO - ========== Running Command: gen-feats ==========
-2025-07-08 14:50:35 - FeatureEng-20250708_145035 - INFO - Args: {'command': 'gen-feats', 'funcs': ['time_series_mismatch_features'], 'base_file': None}
-2025-07-08 14:50:35 - FeatureEng-20250708_145035 - INFO - =======================================
-2025-07-08 14:51:03 - FeatureEng-20250708_145035 - INFO - 未找到基础特征文件，将创建全新的特征集。

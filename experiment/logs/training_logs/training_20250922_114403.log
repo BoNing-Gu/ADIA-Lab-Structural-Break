@@ -1,3 +1,0 @@
-2025-09-22 11:44:03 - Training-20250922_114403 - INFO - ========== Running Command: filter ==========
-2025-09-22 11:44:03 - Training-20250922_114403 - INFO - Args: {'command': 'filter', 'filter_method': 'corr', 'feature_file': None, 'intra_group': True, 'intra_threshold': None}
-2025-09-22 11:44:03 - Training-20250922_114403 - INFO - =======================================

@@ -1,231 +1,191 @@
-# 轻量级数据科学竞赛工作流
+# Lightweight Data Science Competition Workflow (For ADIA Lab Structural Break)
 
-## 1. 核心理念
+[中文版本](README-zh.md) | English
 
-本工作流为快节奏的数据科学竞赛量身定制，核心是 **快速迭代** 和 **结果可追溯**。我们摒弃了复杂的版本控制（如Git分支），将所有精力集中在特征工程和模型训练上。
+## TL;DR
 
-*   **特征集的演进**: 我们不维护单一的"主"特征文件，而是通过生成一系列带时间戳的特征文件来记录实验的每一步。最新的文件代表了当前最优的特征集。
-*   **版本即文件**: 每个特征文件 (`features_YYYYMMDD_HHMMSS.parquet`) 都是一个独立的版本。想要回退或比较，只需在命令中指定不同的文件名即可。
-*   **自动化日志**: 所有的操作（特征生成/删除、模型训练）都会生成带时间戳的、独立的日志文件。成功的训练日志会自动以CV分数重命名，方便快速定位。
-*   **输出隔离**: 每次训练的产出（模型、OOF预测、日志、元数据）都保存在以时间戳和CV分数命名的独立文件夹中，确保实验结果清晰、不混淆。
+This Repo is written for illustrating the pipeline we built for the ADIA Lab Structural Break Competition. View our Notion document for a detailed feature engineering solution.  
+[Solution](https://messy-plain-a65.notion.site/ADIA25-211402a1a1b780428471eaed714e285b?source=copy_link)
+
+## 1. Core Philosophy
+
+This workflow is tailored for fast-paced data science competitions, with the core principles of **rapid iteration** and **result traceability**. When used with git, it ensures that every experiment's feature set and model can be versioned, rolled back, and shared.
+
+*   **Feature Set Evolution**: We don't maintain a single "master" feature file, but record every step of the experiment by generating a series of timestamped feature files. The latest file represents the current optimal feature set.
+*   **Version as File**: Each feature file (`features_YYYYMMDD_HHMMSS.parquet`) is an independent version. To rollback or compare, simply specify different file names in commands.
+*   **Automated Logging**: All operations (feature generation/deletion, model training) generate timestamped, independent log files. Successful training logs are automatically renamed with CV scores for quick identification.
+*   **Output Isolation**: Each training session's outputs (models, OOF predictions, logs, metadata) are saved in independent folders named with timestamps and CV scores, ensuring clear and unambiguous experiment results.
 
 ---
 
-## 2. 项目结构
+## 2. Project Structure
 
 ```
 ADIA-Lab-Structural-Break/
-├── experiment/                   # 主要实验模块
-│   ├── config.py                 # 配置文件
-│   ├── data.py                   # 数据加载和预处理
-│   ├── features.py               # **所有激活特征函数的定义之处**
-│   ├── features_deprecated.py    # **已废弃或实验失败的特征函数**
-│   ├── filter.py                 # 特征过滤
-│   ├── interactions.py           # 特征交互
-│   ├── model.py                  # 模型定义
-│   ├── train.py                  # 训练和评估（含增强数据交叉验证）
-│   ├── main.py                   # 主程序入口
-│   ├── utils.py                  # 工具函数
-│   ├── logs/                     # 日志文件
-│   │   ├── feature_logs/         # 特征工程日志
-│   │   └── training_logs/        # 训练日志
-│   └── output/                   # 输出结果（按时间戳和AUC分类）
-├── submit.ipynb                  # 提交文件生成
-├── requirements.txt              # 依赖包
-├── .gitignore                    # Git忽略文件
-└── README.md                     # 项目说明
+├── experiment/                   # Main experiment module
+│   ├── config.py                 # Configuration file
+│   ├── data.py                   # Data loading and preprocessing
+│   ├── features.py               # **All active feature function definitions**
+│   ├── features_deprecated.py    # **Deprecated or failed feature functions**
+│   ├── filter.py                 # Feature filtering
+│   ├── interactions.py           # Feature interactions
+│   ├── model.py                  # Experimental model definitions
+│   ├── train.py                  # Training and evaluation (with augmented data cross-validation)
+│   ├── main.py                   # Main program entry point
+│   ├── utils.py                  # Utility functions
+│   ├── logs/                     # Log files
+│   │   ├── feature_logs/         # Feature engineering logs
+│   │   └── training_logs/        # Training logs
+│   └── output/                   # Output results (by timestamp and AUC)
+├── submit_onlinetrain.ipynb      # Submission file
+├── requirements.txt              # Dependencies
+├── .gitignore                    # Git ignore file
+└── README.md                     # Project documentation
 ```
 
 ---
 
-## 3. 工作流说明
+## 3. Workflow Instructions
 
-#### 第1步：数据增强
+#### Step 1: Data Augmentation (Optional - we haven't found augmentation methods that improve model performance)
 
-在 `experiment/data.py` 文件中，添加数据增强函数，并用 `@register_data_enhancement` 装饰器标记。
+In the `experiment/data.py` file, add data augmentation functions and mark them with the `@register_data_enhancement` decorator.
 
-```python
+```bash
+# Generate all registered augmented data
 python -m experiment.main data-aug
 ```
 
-然后在 `experiment/config.py` 中，添加数据增强函数的名称到 `DATA_ENHANCEMENTS` 列表中，这将标记哪些增强数据会在 `gen-feats` 命令中生成特征。
+Then in `experiment/config.py`, add the decorator IDs of data augmentation functions to the `ENHANCEMENT_IDS` list, which marks which augmented data will generate features in the `gen-feats` command.
 
-#### 第2步: 在 `features.py` 中开发特征函数
+> Through data augmentation, we can increase the number of training samples (= original dataset count * number of augmentations).
 
-在 `experiment/features.py` 文件中，添加你的特征函数，并用 `@register_feature` 装饰器标记。
+#### Step 2: Signal Transformation and Feature Engineering
 
-```python
-# experiment/features.py
-
-# ... existing feature functions ...
-
-@register_feature
-def new_awesome_feature(u: pd.DataFrame) -> dict:
-    """一个绝妙的新特征，返回一个字典"""
-    # ... 你的特征计算逻辑 ...
-    # 必须返回一个包含新特征的字典
-    return {'new_awesome_feature': 42}
-```
-
-#### 第2.5步: (可选) 将其设为实验性特征
-如果你不确定这个特征是否有效，可以先将其加入 `experiment/config.py` 的 `EXPERIMENTAL_FEATURES` 列表。
-
-```python
-# experiment/config.py
-EXPERIMENTAL_FEATURES = [
-    'new_awesome_feature',
-]
-```
-这样，默认的 `gen-feats` 命令会跳过它。只有当你通过 `--funcs` 参数明确指定它时，它才会被生成。这有助于保持主特征集的稳定。
-
-打开终端，运行 `gen-feats` 命令并用 `--funcs` 指定要运行的函数。
+In the `experiment/features.py` file, add signal transformation functions and mark them with the `@register_transform` decorator for additional transformations on original signals.  
+In the `experiment/features.py` file, add feature functions and mark them with the `@register_feature` decorator to extract features from original and transformed signals.
 
 ```bash
-# 生成所有注册好的特征
+# Apply all registered transformations to all original and augmented data, then generate all registered features
 python -m experiment.main gen-feats
 ```
 
-```bash
-# 基于最新的特征文件，加入 new_awesome_feature
-# 这会生成一个全新的、带时间戳的特征文件 
-python -m experiment.main gen-feats --trans new_awesome_transform --funcs new_awesome_feature
-```
-新生成的日志会包含新特征的**生成耗时、空值率、零值率**等详细信息，方便快速诊断。
+> Through signal transformation and feature engineering, we can increase training sample feature dimensions (= number of transformations * number of features).
 
-#### GARCH 特征（实验性）
+> Additional Notes
+> 1. Generated feature files are saved in the `feature_dfs/` directory with filenames like `features_YYYYMMDD_HHMMSS.parquet`, `features_YYYYMMDD_HHMMSS_id_{x}.parquet`. Files without ID suffix record feature metadata, files with ID suffix contain features for corresponding augmented data, where `id_0` represents original data features.
+> 2. Run the `gen-feats` command with `--trans` and `--funcs` parameters to specify transformation functions and feature functions to run. This helps add more features based on the latest feature file in feature_dfs/.
+> 3. If you're unsure whether a feature is effective, you can first add it to the `EXPERIMENTAL_FEATURES` list in `experiment/config.py`. This way, the default `gen-feats` command will skip it. It will only be generated when you explicitly specify it through the `--funcs` parameter. This helps maintain stability of the main feature set.
 
-本项目提供 `garch_features`，使用 GARCH(1,1) 在 `left/right/whole` 三段上拟合，并输出条件波动率统计、AIC/BIC、参数（omega/alpha1/beta1/persistence）、以及分段间的差分和比例等派生指标。为避免 `arch` 的尺度警告，内部按整体序列的稳健尺度缩放到标准差约为 10，并禁用内部 rescale。
+#### Step 3: Filtering
 
-运行示例：
+Use the `REMAIN_FEATURES` list in `experiment/config.py` to manage which features should be used for further training (filtering operations will output appropriate result files containing feature lists for various thresholds).
 
-```bash
-# 单独生成 GARCH 特征（默认跳过实验性特征，需显式指定）
-python -m experiment.main gen-feats --funcs garch_features
-
-# 与某个变换（例如 DIFF）组合
-python -m experiment.main gen-feats --trans DIFF --funcs garch_features
-```
-
-#### 第3步：筛选
-
-生成特征后，执行相关性剔除，筛选结果呈现在 `./experiment/output/filter_xxx` 中，将保留下来的特征列表复制到 `experiment/config.py` 的 `REMAIN_FEATURES` 列表。
+After generating features, perform correlation removal. Filtering results are presented in `./experiment/output/filter_{xxx}` where `{xxx}` is the feature filename (without extension).
 
 ```bash
+# Perform correlation filtering
 python -m experiment.main filter corr
 ```
 
-训练后，使用feature importance / permutation importance筛选特征，请指定训练版本，筛选结果会保存在 `./experiment/output/filter_xxx` 中。
+After training, use feature importance / permutation importance to filter features. Please specify the training version, and filtering results will be saved in `./experiment/output/filter_{xxx}`.
 
 ```bash
+# Perform feature importance filtering
 python -m experiment.main filter feature-imp --train-version xxx
+# Perform permutation importance filtering
 python -m experiment.main filter perm-imp --train-version xxx
 ```
 
-#### 第4步: 创建交互项
+#### Step 4: Create Interactions
 
-有两种方法生成交互项，其一是在 `experiment/config.py` 的 `TOP_FEATURES` 列表中指定要交互的特征，其二是在 `gen-interactions` 命令中通过 `importance-file` 参数指定特征重要性文件。
+Specify features to interact with in the `TOP_FEATURES` list in `experiment/config.py`. The `gen-interactions` command will automatically generate interaction terms for these features. Use parameters like `--sqmul --add --sub --div` to specify the types of interaction terms to generate.
 
 ```bash
-python -m experiment.main gen-interactions --importance-file ./experiment/output/train_20250718_144952_auc_0_78772/permutation_importance.tsv
+python -m experiment.main gen-interactions --sqmul --add --sub --div
 ```
 
-#### 第5步: 使用新特征集进行训练
+#### Step 5: Training
 
-直接运行 `train` 命令。脚本会自动查找并使用 `feature_dfs` 目录中最新的特征文件进行训练。
+Run the `train` command directly. The script will automatically find and use the latest feature file in the `feature_dfs` directory for training.
 
 ```bash
-# 自动使用最新的特征集进行训练
+# Automatically use the latest feature set for training
 python -m experiment.main train --train-data-ids 0 --perm-imp --save-model --save-oof
 ```
 
-*   `--train-data-ids 0 1 2`: 指定用于训练的数据ID，可以接受多个值。 
-*   `--perm-imp`: 计算permutation importance。
-*   `--save-model`: 保存训练好的模型文件。
-*   `--save-oof`: 保存OOF（Out-of-Fold）预测结果。
+*   `--train-data-ids 0 1 2`: Specify data IDs for training, can accept multiple values, default is ID `0` for original dataset.
+*   `--perm-imp`: Calculate permutation importance.
+*   `--save-model`: Save trained model files.
+*   `--save-oof`: Save OOF (Out-of-Fold) prediction results.
 
-#### 第6步: 评估结果
+#### Step 6: Evaluate Results
 
-训练完成后，查看终端输出的CV分数。同时，你可以在文件系统中看到结果：
+After training completes, check the CV score in terminal output. You can also see results in the file system:
 
-1.  **产出文件夹**: `experiment/output/` 下会出现一个新的文件夹，例如 `train_20250707_140000_auc_0.69000`。
-2.  **特征重要性图**: 在该文件夹内，你会找到一张 `feature_importance.png` 图，它可视化了所有特征的平均重要性，**高度会自适应调整**，确保所有特征名清晰可见。
-3.  **成功日志**: `experiment/logs/` 下对应的训练日志会被重命名，例如 `train_20250707_140000_auc_0.69000.log`。日志中包含了**训练总耗时**和**使用的全部特征列表**。
+1.  **Output Folder**: A new folder will appear under `experiment/output/`, e.g., `train_20250707_140000_auc_0.69000`.
+2.  **Success Log**: The corresponding training log under `experiment/logs/` will be renamed, e.g., `train_20250707_140000_auc_0.69000.log`. The log contains **total training time** and **complete list of features used**.
 
-#### 第7步: 决策与同步
+#### Step 7: Decision and Synchronization
 
-*   **实验成功 (CV分数提升)**:
-    1.  **确认**: 如果之前是实验性特征，记得从 `config.py` 的 `EXPERIMENTAL_FEATURES` 列表中移除它，使其成为核心特征。
-    2.  **同步**: `git add`, `git commit`, `git push` 你修改过的 `experiment/` 目录下的相关文件。
+*   **Successful Experiment (CV score improvement)**:
+    1.  **Confirm**: If it was previously an experimental feature, remember to remove it from the `EXPERIMENTAL_FEATURES` list in `config.py` to make it a core feature.
+    2.  **Sync**: `git add`, `git commit`, `git push` the relevant files you modified in the `experiment/` directory.
 
-*   **实验失败 (CV分数下降)**:
-    1.  **归档代码**: 将 `features.py` 中失败的特征函数代码，完整地剪切并粘贴到 `experiment/features_deprecated.py` 文件中，并**移除函数头顶的 `@register_feature` 装饰器**。
-    2.  **清理特征文件**: 使用 `del-feats` 命令从最新的特征文件中移除这些失败的特征列。
+*   **Failed Experiment (CV score decline)**:
+    1.  **Archive Code**: Cut and paste the failed feature function code from `features.py` completely into the `experiment/features_deprecated.py` file, and **remove the `@register_feature` decorator** from the function header.
+    2.  **Clean Feature Files**: Use the `del-feats` command to remove these failed feature columns from the latest feature file.
         ```bash
-        # 假设最新的文件是 ...12345.parquet，要删除的特征由 new_awesome_feature 函数生成
+        # Assuming the latest file is ...12345.parquet, and features to delete are generated by new_awesome_feature function
         python -m experiment.main del-feats --base-file features_...12345.parquet --funcs new_awesome_feature
         ```
-    这会生成一个不含失败特征的、更干净的新版本特征文件，你的工作区也随之回滚。
+    This generates a cleaner new version feature file without failed features, and your workspace is rolled back accordingly.
 
 ---
 
-## 4. 如何回滚 / 基于旧版本实验
+## 4. How to Rollback / Experiment Based on Old Versions
 
-如果最新的特征集效果不好，你想退回或基于某个历史版本进行新的实验，非常简单。
+If the latest feature set doesn't perform well and you want to revert or experiment based on a historical version, it's very simple.
 
-假设 `features_20231028_120000.parquet` 是一个已知的、效果很好的版本。
+Assume `features_20231028_120000.parquet` is a known, well-performing version.
 
-*   **只用它来训练**:
+*   **Use it only for training**:
     ```bash
     python -m experiment.main train --feature-file experiment/feature_dfs/features_20231028_120000.parquet
     ```
 
-*   **基于它来添加新特征**:
+*   **Add new features based on it**:
     ```bash
     python -m experiment.main gen-feats --funcs another_new_idea --base-feature-file experiment/feature_dfs/features_20231028_120000.parquet
     ```
-    这会读取指定的旧文件，添加 `another_new_idea` 特征，然后生成一个全新的特征文件，而不会影响 `feature_dfs` 中的任何现有文件。
+    This reads the specified old file, adds the `another_new_idea` feature, then generates a completely new feature file without affecting any existing files in `feature_dfs`.
 
 ---
 
-## 5. 版本追踪与复现
+## 5. Version Tracking and Reproduction
 
-**任何一次训练的结果都是100%可复现的。**
+**Any training result is 100% reproducible.**
 
-如果你在 `output` 目录看到了一个高分结果，例如 `20231029_180000_cv_0.82000`，想知道它是怎么来的：
+If you see a high-scoring result in the `output` directory, e.g., `20231029_180000_cv_0.82000`, and want to know how it was achieved:
 
-1.  找到对应的日志文件 `experiment/logs/train_20231029_180000_cv_0.82000.log`。
-2.  打开该日志文件，里面清晰地记录了所有信息：
-    *   **使用的特征文件**: 日志中会有一行 `INFO - Training with feature file: experiment/feature_dfs/features_xxxxxxxx_xxxxxx.parquet`。
-    *   **模型参数**: 日志中记录了此次训练使用的所有模型超参数。
-    *   **Git Commit Hash**: 记录了当时的代码版本。
-
-有了这些信息，任何人都可以精确地复现这次高分提交。
+1.  Find the corresponding log file `experiment/logs/train_20231029_180000_cv_0.82000.log`.
+2.  Open the log file, which clearly records all information:
+    *   **Feature file used**: The log will have a line `INFO - Training with feature file: experiment/feature_dfs/features_xxxxxxxx_xxxxxx.parquet`.
+    *   **Model parameters**: The log records all model hyperparameters used in this training session.
 
 ---
-## 6. 命令参考
+## 6. Command Reference
 
-*   **生成特征**: `python -m experiment.main gen-feats [--funcs <func_name_1> ...]`
-    *   `--funcs`: 指定要生成的一个或多个特征函数。**如果省略，则生成所有非实验性特征**。
-    *   `--base-file <filename>`: 指定一个基础特征文件名进行更新，默认为最新。
+*   **Generate Features**: `python -m experiment.main gen-feats [--funcs <func_name_1> ...]`
+    *   `--funcs`: Specify one or more feature functions to generate. **If omitted, generates all non-experimental features**.
+    *   `--base-file <filename>`: Specify a base feature filename for updates, defaults to latest.
 
-*   **删除特征**: `python -m experiment.main del-feats --funcs <func_name_1> --cols <col_name_1> ... --base-file <filename>`
-    *   `--funcs`: 指定要删除的特征**函数名**。脚本会自动找到该函数生成的所有列并删除它们。
-    *   `--cols`: 指定要删除的特征**特征列名**。
-    *   `--base-file <filename>`: **必须**指定要操作的基础特征文件名。
+*   **Delete Features**: `python -m experiment.main del-feats --funcs <func_name_1> --cols <col_name_1> ... --base-file <filename>`
+    *   `--funcs`: Specify feature **function names** to delete. The script will automatically find and delete all columns generated by that function.
+    *   `--cols`: Specify feature **column names** to delete.
+    *   `--base-file <filename>`: **Must** specify the base feature filename to operate on.
 
-*   **模型训练**: `python -m experiment.main train`
-    *   `--feature-file <path>`: 指定用于训练的特征文件，默认为最新。
-    *   `--save-model`: Flag, 是否保存模型文件。
-    *   `--save-oof`: Flag, 是否保存OOF预测文件。 
-
-# 7. 提交记录
-| 提交号 | 本地CV | 公开LB | 描述 | Magic Type |
-| --- | --- | --- | --- | --- |
-| #7  | 0.7875 | 0.7812 | Perm阈值0.0005，55个特征 | no |
-| #8  | 0.8739 | 0.8646 | Perm阈值0.0002，添加Top10特征交互项，86个特征 | by interaction |
-| #10 | 0.8883 | 0.8756 | 交互特征sqmul、add、sub、div、sq、onemulall，106个特征 | by interaction |
-| #12 | 0.8909 | 0.8776 | 交互特征sqmul、add、sub、div、sq、crossmul，99个特征 | by interaction |
-| #17 | 0.9059 | 0.8802 | trans函数CUMSUM、DIFF、ASINH，225个特征 | by feat |
-| #18 | 0.8918 | 0.8745 | trans函数CUMSUM、DIFF、ASINH，74个特征 | by feat |
-| #19 | 0.8945 | 0.8834 | trans函数CUMSUM、DIFF，101个特征 | by interaction |
-| #20 | 0.8966 | 0.8838 | trans函数CUMSUM、DIFF、ASINH，101个特征 | by interaction |
+*   **Model Training**: `python -m experiment.main train`
+    *   `--feature-file <path>`: Specify feature file for training, defaults to latest.
+    *   `--save-model`: Flag, whether to save model files.
+    *   `--save-oof`: Flag, whether to save OOF prediction files.

@@ -121,7 +121,7 @@ def register_data_enhancement(_func=None, *, times=1, func_id=""):
         # Used as @register_data_enhancement
         return decorator_register(_func)
 
-@register_data_enhancement(times=1, func_id="1")
+# @register_data_enhancement(times=1, func_id="1")
 def scale_augmentation(u: pd.DataFrame, y: bool, id: int) -> dict:
     """
     基础的缩放数据增强函数
@@ -197,7 +197,7 @@ def scale_augmentation(u: pd.DataFrame, y: bool, id: int) -> dict:
     
     return {'X_enhanced': u_enhanced, 'y_enhanced': y_enhanced}
 
-@register_data_enhancement(times=1, func_id="2")
+# @register_data_enhancement(times=1, func_id="2")
 def noise_augmentation(u: pd.DataFrame, y: bool, id: int) -> dict:
     """
     基于时序数据特征的自适应噪声增强函数
@@ -306,7 +306,7 @@ def noise_augmentation(u: pd.DataFrame, y: bool, id: int) -> dict:
     
     return {'X_enhanced': u_enhanced, 'y_enhanced': y_enhanced}
 
-@register_data_enhancement(times=1, func_id="3")
+# @register_data_enhancement(times=1, func_id="3")
 def swap_periods_augmentation(u: pd.DataFrame, y: bool, id: int) -> dict:
     """
     交换 period 0 和 period 1 的数据段。

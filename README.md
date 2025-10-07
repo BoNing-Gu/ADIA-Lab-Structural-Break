@@ -7,6 +7,8 @@
 This Repo is written for illustrating the pipeline we built for the ADIA Lab Structural Break Competition. View our Notion document for a detailed feature engineering solution.  
 [Solution](https://messy-plain-a65.notion.site/ADIA25-211402a1a1b780428471eaed714e285b?source=copy_link)
 
+![ADIA LAB STRUCTRAL BREAK](figs/ADIA_LAB_STRUCTRAL_BREAK.png)
+
 ## 1. Core Philosophy
 
 This workflow is tailored for fast-paced data science competitions, with the core principles of **rapid iteration** and **result traceability**. When used with git, it ensures that every experiment's feature set and model can be versioned, rolled back, and shared.

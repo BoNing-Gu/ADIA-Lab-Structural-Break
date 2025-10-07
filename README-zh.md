@@ -7,6 +7,8 @@
 本Repo包含了我们为ADIA Lab Structural Break Competition构建的实验管道。查看我们的Notion文档以获取详细的特征工程解决方案。  
 [特征工程方案](https://messy-plain-a65.notion.site/ADIA25-211402a1a1b780428471eaed714e285b?source=copy_link)
 
+![ADIA LAB STRUCTRAL BREAK](figs/ADIA_LAB_STRUCTRAL_BREAK.png)
+
 ## 1. 核心理念
 
 本工作流为快节奏的数据科学竞赛量身定制，核心是 **快速迭代** 和 **结果可追溯**。与git配合使用，确保每次实验的特征集和模型都能被版本化、回溯和共享。

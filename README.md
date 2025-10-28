@@ -10,6 +10,7 @@ This Repo is written for illustrating the pipeline we built for the ADIA Lab Str
 ![ADIA LAB STRUCTRAL BREAK](figs/ADIA_LAB_STRUCTRAL_BREAK.png)
 
 > `experiment/` is the experimental pipeline for ML methods, `submit_onlinetrain.ipynb` is the notebook used to submit online-trained models (LB AUC 88.60%). In addition, `UTime.py` and `PatchCrossEncoder.py` are attempts using DL methods (with poor CV scores).
+> If you want to directly use the feature dataframe (the final 107 features we used), you can grab it here: https://drive.google.com/drive/folders/1J3TRSGAOKDaXeTYcGZ1rwRrnSTKndhfH?usp=sharing
 
 ## 1. Core Philosophy
 
@@ -192,4 +193,5 @@ If you see a high-scoring result in the `output` directory, e.g., `20231029_1800
 *   **Model Training**: `python -m experiment.main train`
     *   `--feature-file <path>`: Specify feature file for training, defaults to latest.
     *   `--save-model`: Flag, whether to save model files.
+
     *   `--save-oof`: Flag, whether to save OOF prediction files.
